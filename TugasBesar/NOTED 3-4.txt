@@ -1,0 +1,26 @@
+CATATAN UNTUK TEMAN-TEMAN
+
+Sudah jadi
+- Koneksi database, template halaman, dan beranda
+- Registrasi + password terenkripsi (auth/register.php), poin 3 dan 4
+
+Yang perlu dibuat
+- Poin 5, login: auth/login.php dan auth/logout.php
+  Cek password pakai password_verify(). Kalau berhasil, simpan:
+  $_SESSION["user_id"], $_SESSION["username"], $_SESSION["role"]
+- Poin 6, profil: user/profil.php (lihat dan edit data). Taruh cek_login(); di bagian atas.
+- Poin 7, CRUD minimal 2 (contoh: destinasi dan ulasan). Halaman admin pakai cek_admin();
+
+Cara mulai
+Salin auth/register.php sebagai contoh kerangka halaman, lalu ganti isinya.
+Folder user, destinasi, review, admin, api masih kosong, silakan isi.
+
+Aturan singkat
+- Koneksi pakai $conn
+- Query pakai mysqli_prepare
+- Teks yang dicetak dibungkus e()
+- Link pakai BASE_URL
+- HTML gaya XHTML (tag ditutup, atribut pakai kutip)
+
+Siap pakai: e(), cek_login(), cek_admin(), rentang_harga(), tampil_foto(), konfirmasiHapus(), tampilSkeleton()
+Kelas CSS: kotak, panel, form-isi, tabel, tombol, error, sukses
