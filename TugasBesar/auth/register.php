@@ -1,89 +1,62 @@
-<?php
-$judul = "Daftar";
-require_once "../includes/auth.php";
-require_once "../config/koneksi.php";
-
-if (sudah_login()) {
-    header("Location: " . BASE_URL . "index.php");
-    exit;
-}
-
-$error = "";
-$sukses = false;
-$nama = "";
-$username = "";
-$email = "";
-
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $nama = trim($_POST["nama_lengkap"]);
-    $username = trim($_POST["username"]);
-    $email = trim($_POST["email"]);
-    $password = $_POST["password"];
-    $konfirmasi = $_POST["konfirmasi"];
-
-    if ($nama === "" || $username === "" || $email === "" || $password === "") {
-        $error = "Semua kolom wajib diisi.";
-    } elseif (!preg_match('/^[a-zA-Z0-9_]{3,30}$/', $username)) {
-        $error = "Username 3-30 karakter, hanya huruf, angka, dan garis bawah.";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Format email tidak valid.";
-    } elseif (strlen($password) < 6) {
-        $error = "Password minimal 6 karakter.";
-    } elseif ($password !== $konfirmasi) {
-        $error = "Konfirmasi password tidak sama.";
-    } else {
-        $cek = mysqli_prepare($conn, "SELECT id FROM users WHERE username = ? OR email = ?");
-        mysqli_stmt_bind_param($cek, "ss", $username, $email);
-        mysqli_stmt_execute($cek);
-        mysqli_stmt_store_result($cek);
-
-        if (mysqli_stmt_num_rows($cek) > 0) {
-            $error = "Username atau email sudah dipakai.";
-        } else {
-            $hash = password_hash($password, PASSWORD_DEFAULT);
-            $simpan = mysqli_prepare($conn, "INSERT INTO users (username, email, password, nama_lengkap) VALUES (?, ?, ?, ?)");
-            mysqli_stmt_bind_param($simpan, "ssss", $username, $email, $hash, $nama);
-            if (mysqli_stmt_execute($simpan)) {
-                $sukses = true;
-            } else {
-                $error = "Pendaftaran gagal, coba lagi.";
+<?php echo '<?xml version="1.0" encoding="UTF-8"?>'; ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="id" lang="id">
+<head>
+    <title>Registrasi Pengguna Baru</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <style type="text/css">
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 40px; }
+        .container { max-width: 400px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background-color: #0056b3; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #004494; }
+    </style>
+    <script type="text/javascript">
+        function validasiForm() {
+            var pass = document.getElementById("password").value;
+            var konfirmasi = document.getElementById("confirm_password").value;
+            if (pass.length < 6) {
+                alert("Password minimal 6 karakter!");
+                return false;
             }
+            if (pass !== konfirmasi) {
+                alert("Konfirmasi password tidak cocok!");
+                return false;
+            }
+            return true;
         }
-    }
-}
-
-require_once "../includes/header.php";
-?>
-<div class="kotak">
-    <h2>Daftar</h2>
-
-    <?php if ($sukses) { ?>
-        <p class="sukses">Pendaftaran berhasil. Silakan masuk dengan akunmu.</p>
-        <p><a class="tombol" href="<?php echo BASE_URL; ?>auth/login.php">Masuk</a></p>
-    <?php } else { ?>
-        <?php if ($error !== "") { ?>
-            <p class="error"><?php echo e($error); ?></p>
-        <?php } ?>
-
-        <form method="post" action="register.php" class="form-isi">
-            <p><label for="nama_lengkap">Nama lengkap</label>
-            <input type="text" id="nama_lengkap" name="nama_lengkap" value="<?php echo e($nama); ?>" /></p>
-
-            <p><label for="username">Username</label>
-            <input type="text" id="username" name="username" value="<?php echo e($username); ?>" /></p>
-
-            <p><label for="email">Email</label>
-            <input type="text" id="email" name="email" value="<?php echo e($email); ?>" /></p>
-
-            <p><label for="password">Password</label>
-            <input type="password" id="password" name="password" /></p>
-
-            <p><label for="konfirmasi">Konfirmasi password</label>
-            <input type="password" id="konfirmasi" name="konfirmasi" /></p>
-
-            <p><button type="submit" class="tombol">Daftar</button></p>
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h2>Registrasi Akun</h2>
+        <form action="proses_register.php" method="post" onsubmit="return validasiForm();">
+            <div class="form-group">
+                <label for="nama_lengkap">Nama Lengkap</label>
+                <input type="text" id="nama_lengkap" name="nama_lengkap" required="required" />
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required="required" />
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="text" id="email" name="email" required="required" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required="required" />
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">Konfirmasi Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required="required" />
+            </div>
+            <button type="submit" name="register">Daftar</button>
         </form>
-        <p class="kecil">Sudah punya akun? <a href="<?php echo BASE_URL; ?>auth/login.php">Masuk</a></p>
-    <?php } ?>
-</div>
-<?php require_once "../includes/footer.php"; ?>
+    </div>
+</body>
+</html>
