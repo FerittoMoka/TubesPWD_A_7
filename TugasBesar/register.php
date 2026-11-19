@@ -144,3 +144,9 @@
     </div>
 </body>
 </html>
+
+<?php require_once 'csrf.php'; $csrfToken = generate_csrf_token(); ?>
+<form action="proses_register.php" method="post">
+    <input type="hidden" name="csrf_token" value="<?php echo e($csrfToken); ?>" />
+    <!-- field input lainnya -->
+</form>
