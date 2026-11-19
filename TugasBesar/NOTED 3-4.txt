@@ -24,3 +24,6 @@ Aturan singkat
 
 Siap pakai: e(), cek_login(), cek_admin(), rentang_harga(), tampil_foto(), konfirmasiHapus(), tampilSkeleton()
 Kelas CSS: kotak, panel, form-isi, tabel, tombol, error, sukses
+
+
+Itu databasenya sudah dipasang di mysql kah?? -Daniel
