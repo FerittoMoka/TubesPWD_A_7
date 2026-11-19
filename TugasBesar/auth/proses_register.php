@@ -8,6 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $password     = $_POST['password'];
     $confirm      = $_POST['confirm_password'];
 
+    // Validasi kosong
     if (empty($nama_lengkap) || empty($username) || empty($email) || empty($password)) {
         echo "<script>alert('Semua field wajib diisi!'); window.location='register.php';</script>";
         exit;
@@ -24,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     mysqli_stmt_store_result($cekStmt);
 
     if (mysqli_stmt_num_rows($cekStmt) > 0) {
-        echo "<script>alert('Username atau Email sudah digunakan!'); window.location='register.php';</script>";
+        echo "<script>alert('Username atau Email sudah terdaftar!'); window.location='register.php';</script>";
         mysqli_stmt_close($cekStmt);
         exit;
     }
@@ -36,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     mysqli_stmt_bind_param($insertStmt, "ssss", $nama_lengkap, $username, $email, $hashed_password);
 
     if (mysqli_stmt_execute($insertStmt)) {
-        echo "<script>alert('Registrasi berhasil! Silakan login.'); window.location='login.php';</script>";
+        echo "<script>alert('Registrasi berhasil! Silakan masuk.'); window.location='login.php';</script>";
     } else {
         echo "<script>alert('Registrasi gagal: " . mysqli_error($conn) . "'); window.location='register.php';</script>";
     }
