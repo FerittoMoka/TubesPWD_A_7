@@ -1,4 +1,10 @@
 <?php
+
+require_once 'csrf.php';
+if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+    die("Token CSRF tidak valid! Silakan muat ulang halaman.");
+}
+
 require_once 'koneksi.php';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
