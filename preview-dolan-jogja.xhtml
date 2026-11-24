@@ -1,0 +1,752 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="id" lang="id">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dolan Jogja — Informasi Pariwisata Yogyakarta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <style type="text/css">
+    :root {
+      --bg-cream: #fbf7f0;
+      --bg-card: #fffdf9;
+      --brown-dark: #432613;
+      --brown-deep: #2f190b;
+      --gold-accent: #ab9446;
+      --gold-hover: #968036;
+      --text-main: #2d1b0e;
+      --text-muted: #7a685b;
+      --border-soft: #e7dfd1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-cream);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+    }
+
+    .container-custom {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* Navbar */
+    .site-header {
+      background-color: var(--brown-dark);
+      color: #ffffff;
+      padding: 18px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: #ffffff;
+      text-decoration: none;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .brand-diamond {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-color: #d7b971;
+      transform: rotate(45deg);
+      border-radius: 1px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: #f3ece2;
+      text-decoration: none;
+      font-size: 0.88rem;
+      padding: 7px 15px;
+      border-radius: 999px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: #ffffff;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-links a.active {
+      background-color: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+    }
+
+    .nav-links a.btn-daftar {
+      background-color: var(--gold-accent);
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .nav-links a.btn-daftar:hover {
+      background-color: var(--gold-hover);
+    }
+
+    /* Hero Section */
+    .hero-section {
+      position: relative;
+      background-color: var(--brown-dark);
+      color: #ffffff;
+      padding: 58px 0 116px;
+      overflow: hidden;
+    }
+
+    .hero-ornament {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      width: 64px;
+      height: 64px;
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #d8c39e;
+      margin-bottom: 14px;
+    }
+
+    .hero-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(2.2rem, 4.4vw, 3.55rem);
+      font-weight: 700;
+      line-height: 1.12;
+      max-width: 640px;
+      margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+      color: #e6dac8;
+      max-width: 490px;
+      font-size: 0.96rem;
+      margin-bottom: 28px;
+    }
+
+    /* Search Pill */
+    .search-pill-form {
+      display: flex;
+      align-items: center;
+      background-color: #ffffff;
+      border-radius: 999px;
+      padding: 6px 8px 6px 22px;
+      max-width: 560px;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .search-pill-form input,
+    .search-pill-form select {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.88rem;
+      color: var(--text-main);
+    }
+
+    .search-pill-form input {
+      flex: 1.3;
+      min-width: 0;
+      padding-right: 10px;
+    }
+
+    .search-divider {
+      width: 1px;
+      height: 24px;
+      background-color: #e5dfd5;
+      margin: 0 10px;
+    }
+
+    .search-pill-form select {
+      flex: 0.9;
+      color: var(--text-muted);
+      padding-right: 8px;
+      cursor: pointer;
+    }
+
+    .btn-search {
+      background-color: var(--gold-accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-weight: 600;
+      font-size: 0.86rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn-search:hover {
+      background-color: var(--gold-hover);
+    }
+
+    /* Hero Stats */
+    .hero-stats {
+      display: flex;
+      gap: 34px;
+      margin-top: 30px;
+    }
+
+    .stat-item strong {
+      display: block;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.5rem;
+      color: #e7c982;
+      line-height: 1.2;
+    }
+
+    .stat-item span {
+      font-size: 0.78rem;
+      color: #d6c5ab;
+    }
+
+    /* Wave Divider */
+    .hero-wave {
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 54px;
+      pointer-events: none;
+    }
+
+    /* Category Filter Section */
+    .section-block {
+      padding: 46px 0;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .section-heading {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.8rem;
+      color: var(--brown-deep);
+      margin-bottom: 20px;
+    }
+
+    .category-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .cat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      font-size: 0.84rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .cat-pill:hover {
+      border-color: var(--brown-dark);
+    }
+
+    .cat-pill.active {
+      background-color: var(--brown-dark);
+      border-color: var(--brown-dark);
+      color: #ffffff;
+    }
+
+    .cat-pill .count {
+      font-size: 0.74rem;
+      opacity: 0.72;
+    }
+
+    /* Pilihan Pengunjung Grid */
+    .featured-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .featured-hero-card {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      min-height: 410px;
+      display: flex;
+      align-items: flex-end;
+      padding: 28px;
+      color: #ffffff;
+      background: linear-gradient(155deg, #6d5575 0%, #8f6b56 42%, #3a2315 100%);
+    }
+
+    .featured-hero-art {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .featured-hero-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(22, 12, 5, 0.9) 10%, rgba(22, 12, 5, 0.15) 70%);
+    }
+
+    .featured-hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 440px;
+    }
+
+    .badge-tag {
+      display: inline-block;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background-color: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+
+    .featured-hero-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2rem;
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+
+    .featured-hero-loc {
+      font-size: 0.84rem;
+      color: #f0e6d8;
+      margin-bottom: 10px;
+    }
+
+    .featured-hero-meta {
+      font-size: 0.84rem;
+      margin-bottom: 14px;
+      color: #f9eedc;
+    }
+
+    .star-icon {
+      color: #e5b84b;
+    }
+
+    .featured-side-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .side-dest-card {
+      display: flex;
+      gap: 16px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 15px;
+      align-items: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .side-dest-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(45, 27, 14, 0.06);
+    }
+
+    .side-dest-thumb {
+      width: 112px;
+      height: 112px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .side-dest-body .badge-tag {
+      background-color: #f2eadc;
+      color: var(--brown-dark);
+      margin-bottom: 6px;
+    }
+
+    .side-dest-body h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.15rem;
+      color: var(--brown-deep);
+      margin-bottom: 4px;
+    }
+
+    .dest-meta {
+      font-size: 0.79rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .dest-price-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.82rem;
+      margin-bottom: 8px;
+    }
+
+    .btn-detail-light {
+      display: inline-block;
+      background-color: var(--gold-accent);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn-detail-light:hover {
+      background-color: var(--gold-hover);
+    }
+
+    .link-detail-inline {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .link-detail-inline:hover {
+      color: var(--brown-dark);
+      text-decoration: underline;
+    }
+
+    .hidden-card {
+      display: none !important;
+    }
+
+    @media (max-width: 820px) {
+      .featured-grid {
+        grid-template-columns: 1fr;
+      }
+      .search-pill-form {
+        flex-wrap: wrap;
+        border-radius: 18px;
+        padding: 12px;
+        gap: 8px;
+      }
+      .search-divider {
+        display: none;
+      }
+      .search-pill-form input,
+      .search-pill-form select,
+      .btn-search {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header / Navbar -->
+  <div class="site-header">
+    <div class="container-custom nav-wrapper">
+      <a href="#beranda" class="brand-logo">
+        <span class="brand-diamond"></span>
+        <span>Dolan Jogja</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#beranda" class="active">Beranda</a></li>
+        <li><a href="#destinasi">Destinasi</a></li>
+        <li><a href="#terdekat">Terdekat</a></li>
+        <li><a href="#masuk">Masuk</a></li>
+        <li><a href="#daftar" class="btn-daftar">Daftar</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <div class="hero-section" id="beranda">
+    <!-- Ornamen Kawung Halus -->
+    <svg class="hero-ornament" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="50" cy="24" rx="14" ry="22" fill="none" stroke="#d8c39e" stroke-width="2" />
+      <ellipse cx="50" cy="76" rx="14" ry="22" fill="none" stroke="#d8c39e" stroke-width="2" />
+      <ellipse cx="24" cy="50" rx="22" ry="14" fill="none" stroke="#d8c39e" stroke-width="2" />
+      <ellipse cx="76" cy="50" rx="22" ry="14" fill="none" stroke="#d8c39e" stroke-width="2" />
+    </svg>
+
+    <div class="container-custom">
+      <p class="hero-eyebrow">INFORMASI PARIWISATA YOGYAKARTA</p>
+      <h1 class="hero-title">Jogja lebih seru kalau tahu mau ke mana.</h1>
+      <p class="hero-subtitle">
+        Cari destinasi, cek harga tiket dan jam buka, lalu baca ulasan pengunjung sebelum berangkat.
+      </p>
+
+      <form action="#destinasi" method="get" class="search-pill-form" onsubmit="filterDestinations(event)">
+        <input type="text" id="searchInput" name="q" placeholder="Cari nama atau lokasi" />
+        <span class="search-divider"></span>
+        <select id="categorySelect" name="kategori" onchange="syncPillFromSelect()">
+          <option value="Semua">Semua kategori</option>
+          <option value="Alam">Alam</option>
+          <option value="Belanja">Belanja</option>
+          <option value="Budaya">Budaya</option>
+          <option value="Keluarga">Keluarga</option>
+          <option value="Pantai">Pantai</option>
+          <option value="Viral">Viral</option>
+        </select>
+        <button type="submit" class="btn-search">Cari</button>
+      </form>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <strong>10</strong>
+          <span>destinasi</span>
+        </div>
+        <div class="stat-item">
+          <strong>6</strong>
+          <span>kategori</span>
+        </div>
+        <div class="stat-item">
+          <strong>17</strong>
+          <span>ulasan</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wave Divider -->
+    <svg class="hero-wave" viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#fbf7f0" d="M0,32 C320,85 560,-10 920,38 C1160,70 1320,25 1440,42 L1440,80 L0,80 Z" />
+    </svg>
+  </div>
+
+  <!-- Kategori Filter -->
+  <div class="section-block" style="padding-bottom: 14px;">
+    <div class="container-custom">
+      <p class="section-label">MULAI DARI SINI</p>
+      <h2 class="section-heading">Mau cari yang seperti apa?</h2>
+
+      <div class="category-pills" id="categoryPills">
+        <button type="button" class="cat-pill active" data-cat="Semua" onclick="selectCategory(this)">
+          <span>Semua</span>
+        </button>
+        <button type="button" class="cat-pill" data-cat="Alam" onclick="selectCategory(this)">
+          <span>Alam</span> <span class="count">2</span>
+        </button>
+        <button type="button" class="cat-pill" data-cat="Belanja" onclick="selectCategory(this)">
+          <span>Belanja</span> <span class="count">1</span>
+        </button>
+        <button type="button" class="cat-pill" data-cat="Budaya" onclick="selectCategory(this)">
+          <span>Budaya</span> <span class="count">2</span>
+        </button>
+        <button type="button" class="cat-pill" data-cat="Keluarga" onclick="selectCategory(this)">
+          <span>Keluarga</span> <span class="count">1</span>
+        </button>
+        <button type="button" class="cat-pill" data-cat="Pantai" onclick="selectCategory(this)">
+          <span>Pantai</span> <span class="count">1</span>
+        </button>
+        <button type="button" class="cat-pill" data-cat="Viral" onclick="selectCategory(this)">
+          <span>Viral</span> <span class="count">3</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pilihan Pengunjung -->
+  <div class="section-block" id="destinasi" style="padding-top: 22px; padding-bottom: 72px;">
+    <div class="container-custom">
+      <p class="section-label">PALING DISUKAI</p>
+      <h2 class="section-heading">Pilihan pengunjung</h2>
+
+      <div class="featured-grid">
+        <!-- Card Utama Kiri: Candi Prambanan -->
+        <div class="featured-hero-card dest-item" data-category="Budaya" data-title="Candi Prambanan Sleman">
+          <!-- Ilustrasi SVG Candi saat senja -->
+          <svg class="featured-hero-art" viewBox="0 0 600 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="skyPrambanan" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#6c5b8b" />
+                <stop offset="55%" stop-color="#b97b7a" />
+                <stop offset="100%" stop-color="#e3a678" />
+              </linearGradient>
+            </defs>
+            <rect width="600" height="450" fill="url(#skyPrambanan)" />
+            <!-- Siluet Candi Utama -->
+            <polygon points="300,35 284,85 316,85" fill="#2e211c" />
+            <rect x="276" y="85" width="48" height="35" fill="#362721" />
+            <rect x="262" y="120" width="76" height="45" fill="#2b1e19" />
+            <rect x="245" y="165" width="110" height="55" fill="#35251f" />
+            <rect x="225" y="220" width="150" height="75" fill="#261a15" />
+            <rect x="200" y="295" width="200" height="120" fill="#1e1410" />
+            <!-- Candi Pendamping -->
+            <polygon points="165,165 152,205 178,205" fill="#33241e" />
+            <rect x="142" y="205" width="46" height="90" fill="#291c17" />
+            <polygon points="435,165 422,205 448,205" fill="#33241e" />
+            <rect x="412" y="205" width="46" height="90" fill="#291c17" />
+            <!-- Pepohonan -->
+            <circle cx="60" cy="390" r="85" fill="#1b2614" />
+            <circle cx="545" cy="395" r="95" fill="#1b2614" />
+          </svg>
+
+          <div class="featured-hero-content">
+            <span class="badge-tag">BUDAYA</span>
+            <h3 class="featured-hero-title">Candi Prambanan</h3>
+            <p class="featured-hero-loc">Jl. Raya Solo - Yogyakarta, Kranggan, Prambanan, Sleman</p>
+            <div class="featured-hero-meta">
+              <span><span class="star-icon">&#9733;</span> 5.0 (3)</span>
+              <span style="margin-left: 12px;">Rp 10.000 - 20.000</span>
+            </div>
+            <a href="#detail-prambanan" class="btn-detail-light">Lihat detail</a>
+          </div>
+        </div>
+
+        <!-- Stack 2 Card Kanan -->
+        <div class="featured-side-stack">
+          <!-- Card 1: Tumpeng Menoreh -->
+          <div class="side-dest-card dest-item" data-category="Viral" data-title="Tumpeng Menoreh Kulon Progo">
+            <div class="side-dest-thumb">
+              <svg width="112" height="112" viewBox="0 0 112 112" xmlns="http://www.w3.org/2000/svg">
+                <rect width="112" height="112" fill="#e69168" />
+                <polygon points="0,78 42,42 84,74 112,52 112,112 0,112" fill="#3d525c" />
+                <polygon points="34,76 56,52 78,76" fill="#f6efe6" />
+                <rect x="40" y="76" width="32" height="14" fill="#d9cab8" />
+              </svg>
+            </div>
+            <div class="side-dest-body">
+              <span class="badge-tag">VIRAL</span>
+              <h3>Tumpeng Menoreh</h3>
+              <p class="dest-meta">Sumbersari, Ngargoretno, Samigaluh, Kulon Progo</p>
+              <div class="dest-price-row">
+                <span><span class="star-icon">&#9733;</span> 5.0 (1)</span>
+                <strong>Rp 50.000</strong>
+              </div>
+              <a href="#detail-menoreh" class="link-detail-inline">Lihat detail</a>
+            </div>
+          </div>
+
+          <!-- Card 2: Jalan Malioboro -->
+          <div class="side-dest-card dest-item" data-category="Belanja" data-title="Jalan Malioboro Kota Yogyakarta">
+            <div class="side-dest-thumb">
+              <svg width="112" height="112" viewBox="0 0 112 112" xmlns="http://www.w3.org/2000/svg">
+                <rect width="112" height="112" fill="#2d3b28" />
+                <rect x="0" y="76" width="112" height="36" fill="#3b3632" />
+                <circle cx="32" cy="38" r="18" fill="#5b7a3d" />
+                <circle cx="80" cy="34" r="20" fill="#4f6d34" />
+                <rect x="52" y="28" width="6" height="52" fill="#1e241b" />
+                <circle cx="55" cy="26" r="6" fill="#ffdf78" />
+                <rect x="18" y="64" width="24" height="16" fill="#c94b38" />
+              </svg>
+            </div>
+            <div class="side-dest-body">
+              <span class="badge-tag">BELANJA</span>
+              <h3>Jalan Malioboro</h3>
+              <p class="dest-meta">Jl. Malioboro, Sosromenduran, Gedong Tengen, Kota Yogyakarta</p>
+              <div class="dest-price-row">
+                <span><span class="star-icon">&#9733;</span> 4.5 (2)</span>
+                <strong>Gratis</strong>
+              </div>
+              <a href="#detail-malioboro" class="link-detail-inline">Lihat detail</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    //<![CDATA[
+    function applyFilter(category, keyword) {
+      var cards = document.querySelectorAll('.dest-item');
+      var q = (keyword || '').toLowerCase().trim();
+
+      for (var i = 0; i < cards.length; i++) {
+        var cardCat = cards[i].getAttribute('data-category');
+        var cardTitle = (cards[i].getAttribute('data-title') || '').toLowerCase();
+        var matchCat = (category === 'Semua' || cardCat === category);
+        var matchText = (q === '' || cardTitle.indexOf(q) !== -1);
+
+        if (matchCat && matchText) {
+          cards[i].classList.remove('hidden-card');
+        } else {
+          cards[i].classList.add('hidden-card');
+        }
+      }
+    }
+
+    function selectCategory(btn) {
+      var pills = document.querySelectorAll('.cat-pill');
+      for (var i = 0; i < pills.length; i++) {
+        pills[i].classList.remove('active');
+      }
+      btn.classList.add('active');
+
+      var selectedCat = btn.getAttribute('data-cat');
+      document.getElementById('categorySelect').value = selectedCat;
+      applyFilter(selectedCat, document.getElementById('searchInput').value);
+    }
+
+    function syncPillFromSelect() {
+      var selectedCat = document.getElementById('categorySelect').value;
+      var pills = document.querySelectorAll('.cat-pill');
+      for (var i = 0; i < pills.length; i++) {
+        if (pills[i].getAttribute('data-cat') === selectedCat) {
+          pills[i].classList.add('active');
+        } else {
+          pills[i].classList.remove('active');
+        }
+      }
+      applyFilter(selectedCat, document.getElementById('searchInput').value);
+    }
+
+    function filterDestinations(e) {
+      if (e) e.preventDefault();
+      var selectedCat = document.getElementById('categorySelect').value;
+      var keyword = document.getElementById('searchInput').value;
+      applyFilter(selectedCat, keyword);
+      document.getElementById('destinasi').scrollIntoView({ behavior: 'smooth' });
+    }
+    //]]>
+  </script>
+</body>
+</html>
