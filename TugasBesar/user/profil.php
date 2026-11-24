@@ -22,6 +22,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($nama_lengkap === "" || $username === "" || $email === "") {
             $pesan = "Nama lengkap, username, dan email wajib diisi.";
             $jenis_pesan = "error";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $pesan = "Format email tidak valid.";
+            $jenis_pesan = "error";
+        } elseif (!preg_match('/^[A-Za-z0-9_.-]+$/', $username)) {
+            $pesan = "Username hanya boleh huruf, angka, titik, garis bawah, atau strip.";
+            $jenis_pesan = "error";
         } elseif ($password_baru !== "" && strlen($password_baru) < 6) {
             $pesan = "Password baru minimal 6 karakter.";
             $jenis_pesan = "error";
@@ -38,26 +44,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 mysqli_stmt_close($cek);
 
                 $foto_baru = null;
-                if (isset($_FILES["foto"]) && $_FILES["foto"]["error"] !== UPLOAD_ERR_NO_FILE) {
-                    if ($_FILES["foto"]["error"] !== UPLOAD_ERR_OK) {
-                        $pesan = "Foto gagal diunggah.";
-                        $jenis_pesan = "error";
-                    } else {
-                        $size = (int) $_FILES["foto"]["size"];
-                        $tipe = mime_content_type($_FILES["foto"]["tmp_name"]);
-                        $tipe_valid = array("image/jpeg", "image/png", "image/webp");
-                        if ($size > 2097152 || !in_array($tipe, $tipe_valid, true)) {
-                            $pesan = "Foto harus JPG, PNG, atau WEBP maksimal 2 MB.";
+                if (isset($_FILES["foto"])) {
+                    if ($_FILES["foto"]["error"] !== UPLOAD_ERR_NO_FILE) {
+                        if ($_FILES["foto"]["error"] !== UPLOAD_ERR_OK) {
+                            $pesan = "Foto gagal diunggah.";
                             $jenis_pesan = "error";
                         } else {
-                            $ext = pathinfo($_FILES["foto"]["name"], PATHINFO_EXTENSION);
-                            $foto_baru = "user_" . $user_id . "_" . time() . "." . strtolower($ext);
-                            $folder = "../assets/uploads/profil";
-                            if (!is_dir($folder)) { mkdir($folder, 0777, true); }
-                            if (!move_uploaded_file($_FILES["foto"]["tmp_name"], $folder . "/" . $foto_baru)) {
-                                $foto_baru = null;
-                                $pesan = "Foto gagal disimpan.";
+                            $size = (int) $_FILES["foto"]["size"];
+                            $tipe = mime_content_type($_FILES["foto"]["tmp_name"]);
+                            $tipe_valid = array("image/jpeg", "image/png", "image/webp");
+                            if ($size > 2097152 || !in_array($tipe, $tipe_valid, true)) {
+                                $pesan = "Foto harus JPG, PNG, atau WEBP maksimal 2 MB.";
                                 $jenis_pesan = "error";
+                            } else {
+                                $ext = strtolower(pathinfo($_FILES["foto"]["name"], PATHINFO_EXTENSION));
+                                $foto_baru = "user_" . $user_id . "_" . time() . "." . $ext;
+                                $folder = "../assets/uploads/profil";
+                                if (!is_dir($folder)) { mkdir($folder, 0777, true); }
+                                if (!move_uploaded_file($_FILES["foto"]["tmp_name"], $folder . "/" . $foto_baru)) {
+                                    $foto_baru = null;
+                                    $pesan = "Foto gagal disimpan.";
+                                    $jenis_pesan = "error";
+                                }
                             }
                         }
                     }
@@ -112,13 +120,14 @@ require_once "../includes/header.php";
         <h1>Profil Pengguna</h1>
         <?php if ($pesan !== "") { ?><p class="<?php echo $jenis_pesan; ?>"><?php echo e($pesan); ?></p><?php } ?>
         <div class="panel">
+            <?php if (!empty($user["foto"])) { ?><p><img src="<?php echo BASE_URL; ?>assets/uploads/profil/<?php echo e($user["foto"]); ?>" alt="Foto <?php echo e($user["nama_lengkap"]); ?>" style="width:120px;height:120px;border-radius:50%;object-fit:cover;" /></p><?php } ?>
             <form method="post" action="profil.php" enctype="multipart/form-data" class="form-isi">
                 <input type="hidden" name="csrf_token" value="<?php echo e($csrf_token); ?>" />
-                <p><label for="nama_lengkap">Nama lengkap</label><input type="text" id="nama_lengkap" name="nama_lengkap" value="<?php echo e($user["nama_lengkap"]); ?>" required="required" /></p>
-                <p><label for="username">Username</label><input type="text" id="username" name="username" value="<?php echo e($user["username"]); ?>" required="required" /></p>
-                <p><label for="email">Email</label><input type="email" id="email" name="email" value="<?php echo e($user["email"]); ?>" required="required" /></p>
-                <p><label for="no_hp">Nomor HP</label><input type="text" id="no_hp" name="no_hp" value="<?php echo e($user["no_hp"] ?? ""); ?>" /></p>
-                <p><label for="password_baru">Password baru <span class="kecil">(kosongkan jika tidak ingin mengganti)</span></label><input type="password" id="password_baru" name="password_baru" /></p>
+                <p><label for="nama_lengkap">Nama lengkap</label><input type="text" id="nama_lengkap" name="nama_lengkap" value="<?php echo e($user["nama_lengkap"]); ?>" maxlength="100" required="required" /></p>
+                <p><label for="username">Username</label><input type="text" id="username" name="username" value="<?php echo e($user["username"]); ?>" maxlength="30" required="required" /></p>
+                <p><label for="email">Email</label><input type="email" id="email" name="email" value="<?php echo e($user["email"]); ?>" maxlength="100" required="required" /></p>
+                <p><label for="no_hp">Nomor HP</label><input type="text" id="no_hp" name="no_hp" value="<?php echo e($user["no_hp"] ?? ""); ?>" maxlength="20" /></p>
+                <p><label for="password_baru">Password baru <span class="kecil">(kosongkan jika tidak ingin mengganti)</span></label><input type="password" id="password_baru" name="password_baru" minlength="6" /></p>
                 <p><label for="foto">Foto profil</label><input type="file" id="foto" name="foto" accept="image/jpeg,image/png,image/webp" /></p>
                 <?php if (!empty($user["foto"])) { ?><p class="kecil">Foto saat ini: <?php echo e($user["foto"]); ?></p><?php } ?>
                 <p><input type="submit" value="Simpan Perubahan" /></p>
