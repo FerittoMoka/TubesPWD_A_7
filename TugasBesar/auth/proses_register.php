@@ -1,22 +1,26 @@
 <?php
 
-require_once 'csrf.php';
-if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+require_once "../includes/csrf.php";
+if (!verify_csrf_token($_POST["csrf_token"] ?? "")) {
     die("Token CSRF tidak valid! Silakan muat ulang halaman.");
 }
 
-require_once 'koneksi.php';
+require_once "../config/koneksi.php";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $nama_lengkap = trim($_POST['nama_lengkap']);
-    $username     = trim($_POST['username']);
-    $email        = trim($_POST['email']);
-    $password     = $_POST['password'];
-    $confirm      = $_POST['confirm_password'];
+    $nama_lengkap = trim($_POST["nama_lengkap"] ?? "");
+    $username = trim($_POST["username"] ?? "");
+    $email = trim($_POST["email"] ?? "");
+    $password = $_POST["password"] ?? "";
+    $confirm = $_POST["confirm_password"] ?? "";
 
-    // Validasi kosong
     if (empty($nama_lengkap) || empty($username) || empty($email) || empty($password)) {
         echo "<script>alert('Semua field wajib diisi!'); window.location='register.php';</script>";
+        exit;
+    }
+
+    if (strlen($password) < 6) {
+        echo "<script>alert('Password minimal 6 karakter!'); window.location='register.php';</script>";
         exit;
     }
 
@@ -38,14 +42,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     mysqli_stmt_close($cekStmt);
 
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
     $insertStmt = mysqli_prepare($conn, "INSERT INTO users (nama_lengkap, username, email, password) VALUES (?, ?, ?, ?)");
     mysqli_stmt_bind_param($insertStmt, "ssss", $nama_lengkap, $username, $email, $hashed_password);
 
     if (mysqli_stmt_execute($insertStmt)) {
         echo "<script>alert('Registrasi berhasil! Silakan masuk.'); window.location='login.php';</script>";
     } else {
-        echo "<script>alert('Registrasi gagal: " . mysqli_error($conn) . "'); window.location='register.php';</script>";
+        echo "<script>alert('Registrasi gagal.'); window.location='register.php';</script>";
     }
 
     mysqli_stmt_close($insertStmt);
@@ -54,4 +57,3 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     header("Location: register.php");
     exit;
 }
-?>
