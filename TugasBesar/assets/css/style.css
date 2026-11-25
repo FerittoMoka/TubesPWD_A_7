@@ -388,3 +388,5 @@ img { max-width: 100%; }
 .filter-admin { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
 .filter-admin input[type="text"] { flex: 1 1 220px; min-width: 0; }
 .filter-admin select { padding: 10px 12px; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: inherit; color: var(--kakao); }
+
+.unggulan-teks .badge-buka.tutup { position: static; background: #F3DEDA; color: #9B2C2C; }
