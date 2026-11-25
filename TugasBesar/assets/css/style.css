@@ -206,3 +206,10 @@ img { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* === Tempel di akhir assets/css/style.css === */
+.breadcrumb { font-size: 13px; color: var(--coklat-jawa); margin: 0 0 14px; }
+.breadcrumb a { text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb .sekarang { color: var(--soga-gelap); font-weight: 600; }
+.terkait-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 14px; }

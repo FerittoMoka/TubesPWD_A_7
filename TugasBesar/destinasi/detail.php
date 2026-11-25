@@ -32,11 +32,38 @@ if (sudah_login()) {
     }
 }
 
+$tersimpan = false;
+if (sudah_login()) {
+    $st = mysqli_prepare($conn, "SELECT id FROM wishlists WHERE user_id = ? AND destination_id = ? LIMIT 1");
+    mysqli_stmt_bind_param($st, "ii", $_SESSION["user_id"], $id);
+    mysqli_stmt_execute($st);
+    $tersimpan = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+}
+
+// Terkait: kategori yang sama dulu, lalu sisanya (maks. 3)
+$st = mysqli_prepare($conn, "SELECT d.id, d.nama, d.foto, d.harga_tiket, d.harga_maks, c.nama AS kategori,
+    (SELECT AVG(rating) FROM reviews WHERE destination_id = d.id) AS rata,
+    (SELECT COUNT(*) FROM reviews WHERE destination_id = d.id) AS jml_ulasan
+    FROM destinations d JOIN categories c ON c.id = d.category_id
+    WHERE d.id <> ? ORDER BY (d.category_id = ?) DESC, d.id LIMIT 3");
+mysqli_stmt_bind_param($st, "ii", $id, $d["category_id"]);
+mysqli_stmt_execute($st);
+$terkait = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
+
+$wl = $_GET["wl"] ?? "";
+
 $judul = $d["nama"];
 require_once __DIR__ . "/../includes/header.php";
 ?>
 <div class="wadah"><div class="halaman-isi">
-    <p><a href="<?php echo BASE_URL; ?>index.php#destinasi">&laquo; Kembali</a></p>
+    <p class="breadcrumb">
+        <a href="<?php echo BASE_URL; ?>index.php">Beranda</a> &gt;
+        <a href="<?php echo BASE_URL; ?>index.php?kategori=<?php echo (int) $d["category_id"]; ?>#destinasi"><?php echo e($d["kategori"]); ?></a> &gt;
+        <span class="sekarang"><?php echo e($d["nama"]); ?></span>
+    </p>
+    <?php if ($wl === "tersimpan") { ?><p class="sukses">Disimpan ke daftar favorit.</p><?php } ?>
+    <?php if ($wl === "dihapus") { ?><p class="sukses">Dihapus dari daftar favorit.</p><?php } ?>
+    <?php if ($wl === "gagal") { ?><p class="error">Gagal memproses favorit. Silakan coba lagi.</p><?php } ?>
     <div class="panel">
         <div style="height:280px;border-radius:12px;overflow:hidden;margin-bottom:16px;"><?php echo tampil_foto($d["foto"], $d["kategori"], $d["nama"]); ?></div>
         <span class="label"><?php echo e($d["kategori"]); ?></span>
@@ -48,6 +75,17 @@ require_once __DIR__ . "/../includes/header.php";
         <p><?php echo nl2br(e($d["deskripsi"])); ?></p>
         <?php if ($d["latitude"] !== null && $d["longitude"] !== null) { ?>
             <p><a class="tombol tombol-garis" href="https://www.google.com/maps?q=<?php echo e($d["latitude"]); ?>,<?php echo e($d["longitude"]); ?>" target="_blank" rel="noopener noreferrer">Buka di Google Maps</a></p>
+        <?php } ?>
+        <?php if (sudah_login()) { ?>
+            <form method="post" action="<?php echo BASE_URL; ?>user/wishlist.php" class="inline">
+                <div class="inline">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="destination_id" value="<?php echo (int) $d["id"]; ?>" />
+                    <button type="submit" class="tombol<?php echo $tersimpan ? ' tombol-garis' : ''; ?>"><?php echo $tersimpan ? "&#10003; Tersimpan (klik untuk hapus)" : "Simpan ke favorit"; ?></button>
+                </div>
+            </form>
+        <?php } else { ?>
+            <p><a class="tombol" href="<?php echo BASE_URL; ?>auth/login.php">Masuk untuk menyimpan ke favorit</a></p>
         <?php } ?>
     </div>
 
@@ -91,5 +129,25 @@ require_once __DIR__ . "/../includes/header.php";
             </div>
         <?php } ?>
     </div>
+
+    <?php if (count($terkait) > 0) { ?>
+    <div class="bagian">
+        <p class="eyebrow">Masih penasaran?</p>
+        <h2>Pilihan terkait lainnya</h2>
+        <div class="terkait-grid">
+            <?php foreach ($terkait as $t) { ?>
+                <div class="baris-kecil kartu-klik">
+                    <?php echo tampil_foto($t["foto"], $t["kategori"], $t["nama"]); ?>
+                    <div>
+                        <span class="label"><?php echo e($t["kategori"]); ?></span>
+                        <h3><?php echo e($t["nama"]); ?></h3>
+                        <p class="meta-baris"><?php echo tampil_rating($t["rata"], $t["jml_ulasan"]); ?><span><?php echo e(rentang_harga($t["harga_tiket"], $t["harga_maks"])); ?></span></p>
+                        <a href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $t["id"]; ?>">Lihat detail</a>
+                    </div>
+                </div>
+            <?php } ?>
+        </div>
+    </div>
+    <?php } ?>
 </div></div>
 <?php require_once __DIR__ . "/../includes/footer.php"; ?>
