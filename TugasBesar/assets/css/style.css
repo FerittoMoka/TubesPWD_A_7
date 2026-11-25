@@ -384,3 +384,8 @@ img { max-width: 100%; }
 .terdekat-status { margin-top: 12px; margin-bottom: 0; }
 .terdekat-badges { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .badge-jarak { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--soga-gelap); color: var(--emas); font-size: 12px; font-weight: 600; }
+
+/* ===== Admin: pencarian & filter tabel destinasi (tempel di akhir style.css) ===== */
+.filter-admin { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.filter-admin input[type="text"] { flex: 1 1 220px; min-width: 0; }
+.filter-admin select { padding: 10px 12px; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: inherit; color: var(--kakao); }

@@ -57,7 +57,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             $pesan = "Foto harus JPG, PNG, atau WEBP maksimal 2 MB.";
                             $jenis_pesan = "error";
                         } else {
-                            $ext = strtolower(pathinfo($_FILES["foto"]["name"], PATHINFO_EXTENSION));
+                            // Ekstensi ditentukan dari tipe file yang terverifikasi, bukan dari nama kiriman pengguna
+                            $peta_ext = array("image/jpeg" => "jpg", "image/png" => "png", "image/webp" => "webp");
+                            $ext = $peta_ext[$tipe];
                             $foto_baru = "user_" . $user_id . "_" . time() . "." . $ext;
                             $folder = "../assets/uploads/profil";
                             if (!is_dir($folder)) {
@@ -73,6 +75,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 }
 
                 if ($jenis_pesan !== "error") {
+                    $foto_lama = null;
+                    if ($foto_baru !== null) {
+                        $q_lama = mysqli_prepare($conn, "SELECT foto FROM users WHERE id = ? LIMIT 1");
+                        mysqli_stmt_bind_param($q_lama, "i", $user_id);
+                        mysqli_stmt_execute($q_lama);
+                        $r_lama = mysqli_fetch_assoc(mysqli_stmt_get_result($q_lama));
+                        mysqli_stmt_close($q_lama);
+                        $foto_lama = $r_lama["foto"] ?? null;
+                    }
                     if ($foto_baru !== null) {
                         $stmt = mysqli_prepare($conn, "UPDATE users SET nama_lengkap=?, username=?, email=?, no_hp=?, foto=? WHERE id=?");
                         mysqli_stmt_bind_param($stmt, "sssssi", $nama_lengkap, $username, $email, $no_hp, $foto_baru, $user_id);
@@ -83,6 +94,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                     if (mysqli_stmt_execute($stmt)) {
                         $_SESSION["username"] = $username;
+                        if ($foto_baru !== null && !empty($foto_lama) && $foto_lama !== $foto_baru) {
+                            $path_lama = "../assets/uploads/profil/" . basename($foto_lama);
+                            if (is_file($path_lama)) { @unlink($path_lama); }
+                        }
                         $pesan = "Biodata dan foto profil berhasil diperbarui.";
                         $jenis_pesan = "sukses";
                     } else {
@@ -172,7 +187,7 @@ if ($jml_ulasan === 0) {
     $badge_kelas = "badge-duta";
 }
 
-$inisial = strtoupper(substr(trim($user["nama_lengkap"] ?: $user["username"]), 0, 1));
+$inisial = mb_strtoupper(mb_substr(trim($user["nama_lengkap"] ?: $user["username"]), 0, 1, "UTF-8"), "UTF-8");
 $tgl_gabung = !empty($user["created_at"]) ? date("d M Y", strtotime($user["created_at"])) : "-";
 $url_foto = !empty($user["foto"]) ? BASE_URL . "assets/uploads/profil/" . e($user["foto"]) : "";
 
@@ -192,6 +207,7 @@ require_once "../includes/header.php";
                 <?php if (($user["role"] ?? "") === "admin") { ?>
                     <a class="tombol" href="<?php echo BASE_URL; ?>admin/index.php">Panel Admin</a>
                 <?php } ?>
+                <a class="tombol" href="<?php echo BASE_URL; ?>user/rencana.php">Rencana Dolan</a>
                 <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>index.php">Kembali ke Beranda</a>
             </div>
         </div>

@@ -38,8 +38,28 @@ $populer = $conn->query("SELECT d.id, d.nama,
 $ulasan_baru = $conn->query("SELECT r.rating, r.komentar, r.created_at, u.username, d.nama AS destinasi
         FROM reviews r JOIN users u ON u.id=r.user_id JOIN destinations d ON d.id=r.destination_id
         ORDER BY r.created_at DESC, r.id DESC LIMIT 5");
-$rows = $conn->query("SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, c.nama AS kategori
-        FROM destinations d JOIN categories c ON c.id=d.category_id ORDER BY d.id DESC");
+// Pencarian & filter kategori untuk tabel "Data destinasi"
+$cari_admin = trim($_GET["q"] ?? "");
+$kat_admin = (int) ($_GET["kategori"] ?? 0);
+$ada_filter_admin = ($cari_admin !== "" || $kat_admin > 0);
+$daftar_kat = $conn->query("SELECT id, nama FROM categories ORDER BY nama")->fetch_all(MYSQLI_ASSOC);
+
+$sql_dest = "SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, c.nama AS kategori
+        FROM destinations d JOIN categories c ON c.id=d.category_id
+        WHERE (d.nama LIKE ? OR d.lokasi LIKE ?)";
+$like_admin = "%" . $cari_admin . "%";
+$tipe_admin = "ss";
+$param_admin = array($like_admin, $like_admin);
+if ($kat_admin > 0) {
+    $sql_dest .= " AND d.category_id = ?";
+    $tipe_admin .= "i";
+    $param_admin[] = $kat_admin;
+}
+$sql_dest .= " ORDER BY d.id DESC";
+$st_dest = $conn->prepare($sql_dest);
+$st_dest->bind_param($tipe_admin, ...$param_admin);
+$st_dest->execute();
+$rows = $st_dest->get_result();
 
 header_web("Panel Admin");
 ?>
@@ -82,11 +102,28 @@ header_web("Panel Admin");
 </div>
 
 <div class="admin-actions"><a class="btn" href="<?php echo url("admin/destinasi.php"); ?>">+ Tambah destinasi</a></div>
-<div class="panel table-wrap">
+<div class="panel table-wrap" id="data-destinasi">
   <h2>Data destinasi</h2>
+  <form method="get" action="<?php echo url("admin/index.php"); ?>#data-destinasi" class="form-isi">
+    <div class="filter-admin">
+      <input type="text" name="q" value="<?php echo e($cari_admin); ?>" placeholder="Cari nama atau lokasi" />
+      <select name="kategori">
+        <option value="0">Semua kategori</option>
+        <?php foreach ($daftar_kat as $k) { ?>
+        <option value="<?php echo (int) $k["id"]; ?>"<?php if ($kat_admin === (int) $k["id"]) { echo ' selected="selected"'; } ?>><?php echo e($k["nama"]); ?></option>
+        <?php } ?>
+      </select>
+      <input type="submit" value="Cari" />
+      <?php if ($ada_filter_admin) { ?><a href="<?php echo url("admin/index.php"); ?>#data-destinasi">Reset</a><?php } ?>
+    </div>
+  </form>
+  <p class="kecil"><?php echo (int) $rows->num_rows; ?> destinasi<?php echo $ada_filter_admin ? " cocok dengan filter" : ""; ?></p>
   <table>
     <thead><tr><th>Nama destinasi</th><th>Kategori</th><th>Lokasi</th><th>Tiket</th><th>Aksi</th></tr></thead>
     <tbody>
+      <?php if ($rows->num_rows === 0) { ?>
+      <tr><td colspan="5">Tidak ada destinasi yang cocok.</td></tr>
+      <?php } ?>
       <?php while ($d = $rows->fetch_assoc()) { ?>
       <tr>
         <td><?php echo e($d["nama"]); ?></td>

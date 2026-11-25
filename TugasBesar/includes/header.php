@@ -25,6 +25,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
             <a href="<?php echo BASE_URL; ?>index.php#destinasi">Destinasi</a>
             <a href="<?php echo BASE_URL; ?>destinasi/terdekat.php"<?php echo aktif("terdekat", $menu_aktif); ?>>Terdekat</a>
             <?php if (sudah_login()) { ?>
+                <a href="<?php echo BASE_URL; ?>user/rencana.php"<?php echo aktif("rencana", $menu_aktif); ?>>Rencana</a>
                 <?php if ($_SESSION["role"] === "admin") { ?>
                     <a href="<?php echo BASE_URL; ?>admin/index.php">Admin</a>
                 <?php } ?>
