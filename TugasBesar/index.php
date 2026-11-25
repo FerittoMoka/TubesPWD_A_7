@@ -3,18 +3,13 @@ $judul = "Beranda";
 $menu_aktif = "beranda";
 require_once "config/koneksi.php";
 require_once "includes/header.php";
+require_once "includes/mood.php";
 require_once "includes/jam_buka.php";
 
 $cari = trim($_GET["cari"] ?? "");
 $kategori = (int) ($_GET["kategori"] ?? 0);
 // Mood & Time Matcher: kunci = nilai di kolom destinations.tag
-$daftar_mood = [
-    "sunset"     => "Cocok untuk Sunset",
-    "sunrise"    => "Berburu Sunrise",
-    "keluarga"   => "Wisata Keluarga & Edukasi",
-    "hidden-gem" => "Hidden Gem Alam",
-    "malam"      => "Seru di Malam Hari",
-];
+$daftar_mood = daftar_mood();
 $mood = $_GET["mood"] ?? "";
 if (!isset($daftar_mood[$mood])) {
     $mood = "";
