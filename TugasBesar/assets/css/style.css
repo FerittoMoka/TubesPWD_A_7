@@ -218,7 +218,7 @@ img { max-width: 100%; }
 /* ===== Badge Buka / Tutup ===== */
 .badge-buka { display: inline-block; margin-left: 6px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .04em; vertical-align: middle; }
 .badge-buka.buka { background: #E3EEDC; color: #3F6B3A; }
-.badge-buka.tutup { background: #F3DEDA; color: #9B2C2C; }
+.badge-buka > .tutup { background: #F3DEDA; color: #9B2C2C; }
 
 /* ===== Rencana Dolan ===== */
 .total-label { margin: 8px 0 0; font-size: 13px; color: var(--coklat-jawa); }
@@ -389,4 +389,4 @@ img { max-width: 100%; }
 .filter-admin input[type="text"] { flex: 1 1 220px; min-width: 0; }
 .filter-admin select { padding: 10px 12px; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: inherit; color: var(--kakao); }
 
-.unggulan-teks .badge-buka.tutup { position: static; background: #F3DEDA; color: #9B2C2C; }
+.unggulan-teks .badge-buka > .tutup { position: static; background: #F3DEDA; color: #9B2C2C; }
