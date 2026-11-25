@@ -355,3 +355,32 @@ img { max-width: 100%; }
   .profil-aksi { justify-content: stretch; }
   .profil-aksi input[type="submit"] { width: 100%; }
 }
+
+/* ===== Register Real-Time & Password Strength ===== */
+.auth-kotak { width: 440px; max-width: 94%; }
+.auth-sub { font-size: 14px; margin-bottom: 18px; }
+.field-grup { margin-bottom: 14px; }
+.status-cek { display: block; margin-top: 5px; font-size: 12px; min-height: 16px; color: var(--coklat-jawa); }
+.status-cek.cek-ok { color: #3F6B3A; font-weight: 600; }
+.status-cek.cek-error { color: #9B2C2C; font-weight: 600; }
+.status-cek.cek-netral { color: var(--indigo); }
+.input-password-wrap { display: flex; gap: 8px; align-items: center; }
+.input-password-wrap input { flex: 1; }
+.btn-toggle-pass { background: var(--pasir); color: var(--soga-gelap); border: 1px solid var(--taupe); border-radius: 10px; padding: 9px 12px; font: 600 12px var(--font-isi); cursor: pointer; white-space: nowrap; }
+.btn-toggle-pass:hover { background: var(--batik); color: var(--krem); }
+.strength-bar-wrap { width: 100%; height: 6px; background: var(--pasir); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+.strength-bar { height: 100%; width: 0%; transition: width .25s ease, background-color .25s ease; }
+.strength-bar.lemah { background: #9B2C2C; }
+.strength-bar.sedang { background: var(--emas); }
+.strength-bar.kuat { background: #3F6B3A; }
+.auth-submit-baris { margin-top: 18px; }
+.auth-footer-link { margin-top: 16px; font-size: 14px; text-align: center; }
+
+/* ===== Halaman Terdekat (Geolocation) ===== */
+.terdekat-kontrol { margin-bottom: 24px; }
+.terdekat-aksi-baris { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.terdekat-radius-label { font-size: 13px; font-weight: 600; margin-left: 6px; }
+.terdekat-kontrol select { padding: 8px 12px; border: 1px solid var(--taupe); border-radius: 999px; background: var(--krem); font: 500 13px var(--font-isi); color: var(--kakao); }
+.terdekat-status { margin-top: 12px; margin-bottom: 0; }
+.terdekat-badges { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.badge-jarak { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--soga-gelap); color: var(--emas); font-size: 12px; font-weight: 600; }
