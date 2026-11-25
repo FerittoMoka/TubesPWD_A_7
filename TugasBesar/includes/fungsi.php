@@ -43,3 +43,19 @@ function tampil_rating($rata, $jumlah) {
     }
     return '<span class="rating"><span class="bintang"></span>' . number_format($rata, 1) . ' <span class="redup">(' . (int) $jumlah . ')</span></span>';
 }
+
+if (!function_exists('set_pesan')) {
+    function set_pesan($jenis, $teks) {
+        $_SESSION['pesan'] = [$jenis, $teks];
+    }
+}
+
+if (!function_exists('tampil_pesan')) {
+    function tampil_pesan() {
+        if (empty($_SESSION['pesan'])) { return; }
+        list($jenis, $teks) = $_SESSION['pesan'];
+        unset($_SESSION['pesan']);
+        $kelas = ($jenis === 'error') ? 'error' : 'sukses';
+        echo '<p class="' . $kelas . '">' . e($teks) . '</p>';
+    }
+}
