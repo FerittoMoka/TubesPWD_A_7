@@ -95,8 +95,7 @@ img { max-width: 100%; }
 .unggulan-besar { position: relative; border-radius: 20px; overflow: hidden; min-height: 440px; color: var(--krem); }
 .unggulan-besar > .foto-bingkai { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 .unggulan-besar .ph span { font-size: 120px; }
-.unggulan-besar .tutup { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(56,39,31,.92) 0%, rgba(56,39,31,.25) 55%, rgba(56,39,31,0) 100%); }
-.unggulan-teks { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px; }
+.unggulan-besar > .tutup { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(56,39,31,.92) 0%, rgba(56,39,31,.25) 55%, rgba(56,39,31,0) 100%); }.unggulan-teks { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px; }
 .unggulan-teks h3 { color: var(--krem); font-size: 30px; margin: 10px 0 4px; }
 .unggulan-teks p { color: var(--pasir); }
 .unggulan-teks .label { background: rgba(247,242,232,.18); color: var(--krem); }
