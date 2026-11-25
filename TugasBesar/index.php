@@ -6,68 +6,88 @@ require_once "includes/header.php";
 require_once "includes/mood.php";
 require_once "includes/jam_buka.php";
 
-/* Baca parameter GET bertipe teks. Mengembalikan null jika bukan teks (mis. ?kategori[]=1). */
-function param_teks($nama) {
+/* Baca parameter berisi daftar nilai dipisah koma (mis. ?mood=sunset,malam).
+   Mengembalikan array, atau null jika formatnya bukan teks (mis. ?mood[]=a). */
+function param_daftar($nama) {
     $v = $_GET[$nama] ?? "";
-    return is_string($v) ? trim($v) : null;
+    if (!is_string($v)) { return null; }
+    $item = array();
+    foreach (explode(",", trim($v)) as $x) {
+        $x = trim($x);
+        if ($x !== "" && !in_array($x, $item, true)) { $item[] = $x; }
+    }
+    return array_slice($item, 0, 30);
 }
 
-/* Buat URL filter sambil mempertahankan filter lain. $ubah: nama => nilai baru ("" atau 0 = hapus). */
-function url_filter($ubah, $cari, $kategori, $mood) {
+/* Tambah nilai ke daftar jika belum ada, hapus jika sudah ada (dipakai untuk tautan chip tanpa JavaScript). */
+function ganti_nilai($list, $nilai) {
+    $i = array_search($nilai, $list, true);
+    if ($i === false) { $list[] = $nilai; } else { unset($list[$i]); }
+    return array_values($list);
+}
+
+function url_beranda($cari, $mood_list, $kat_list) {
     $p = array();
-    if ($cari !== "") { $p["cari"] = $cari; }
-    if ($kategori > 0) { $p["kategori"] = $kategori; }
-    if ($mood !== "") { $p["mood"] = $mood; }
-    foreach ($ubah as $k => $v) {
-        if ($v === "" || $v === 0) { unset($p[$k]); } else { $p[$k] = $v; }
-    }
-    $q = http_build_query($p, "", "&amp;");
-    return "index.php" . ($q !== "" ? "?" . $q : "") . "#destinasi";
+    if ($cari !== "") { $p[] = "cari=" . rawurlencode($cari); }
+    if (count($kat_list) > 0) { $p[] = "kategori=" . implode(",", $kat_list); }
+    if (count($mood_list) > 0) { $p[] = "mood=" . implode(",", $mood_list); }
+    return "index.php" . (count($p) > 0 ? "?" . implode("&amp;", $p) : "") . "#destinasi";
 }
 
-/* Satu chip filter.
-   - tidak aktif            : tautan biasa untuk memilih.
-   - aktif + $bisa_batal    : tautan yang membatalkan pilihan (klik lagi = batal), diberi tanda x.
-   - aktif tanpa $bisa_batal: <span> terkunci (dipakai untuk chip "Semua", tidak ada yang perlu dibatalkan). */
-function chip_filter($label, $aktif, $href, $jumlah = null, $bisa_batal = false) {
-    $isi = e($label) . ($jumlah !== null ? "<small>" . (int) $jumlah . "</small>" : "");
-    if ($aktif && $bisa_batal) {
-        return '<a class="chip aktif" href="' . $href . '" title="Klik lagi untuk membatalkan pilihan">' . $isi . '<span class="chip-x">&times;</span></a>';
+/* Chip filter (bisa dipilih lebih dari satu; klik lagi untuk membatalkan). $nilai "" = chip "Semua". */
+function chip_filter($label, $grup, $nilai, $aktif, $href, $jumlah = null) {
+    $kelas = "chip" . ($aktif ? " aktif" : "") . (($aktif && $nilai === "") ? " chip-terkunci" : "");
+    $judul = ($aktif && $nilai !== "") ? ' title="Klik lagi untuk membatalkan pilihan"' : "";
+    $isi = e($label)
+         . ($jumlah !== null ? "<small>" . (int) $jumlah . "</small>" : "")
+         . ($nilai !== "" ? '<span class="chip-x">&times;</span>' : "");
+    return '<a class="' . $kelas . '" href="' . $href . '" data-grup="' . $grup . '" data-nilai="' . e($nilai) . '" data-label="' . e($label) . '"' . $judul . '>' . $isi . '</a>';
+}
+
+/* Aturan filter: suasana = salah satu cocok (ATAU), kategori = salah satu cocok (ATAU),
+   antar kelompok (suasana, kategori, kata kunci) = semua harus terpenuhi (DAN). */
+function cocok_filter($d, $mood_list, $kat_list, $cari) {
+    if (count($kat_list) > 0 && !in_array((int) $d["category_id"], $kat_list, true)) { return false; }
+    if (count($mood_list) > 0) {
+        $tag = (string) ($d["tag"] ?? "");
+        $tags = $tag === "" ? array() : explode(",", $tag);
+        if (count(array_intersect($mood_list, $tags)) === 0) { return false; }
     }
-    if ($aktif) {
-        return '<span class="chip aktif chip-terkunci">' . $isi . '</span>';
+    if ($cari !== "") {
+        $teks = mb_strtolower($d["nama"] . " " . $d["lokasi"], "UTF-8");
+        if (mb_strpos($teks, mb_strtolower($cari, "UTF-8"), 0, "UTF-8") === false) { return false; }
     }
-    return '<a class="chip" href="' . $href . '">' . $isi . '</a>';
+    return true;
 }
 
 $pesan_filter = array();
 $gagal_muat = false;
 
 /* ---------- Validasi parameter ---------- */
-$cari = param_teks("cari");
-if ($cari === null) {
+$cari_raw = $_GET["cari"] ?? "";
+if (!is_string($cari_raw)) {
     $pesan_filter[] = "Format kata kunci pencarian tidak sesuai, jadi diabaikan.";
-    $cari = "";
+    $cari_raw = "";
 }
-$cari = mb_substr($cari, 0, 100, "UTF-8");
+$cari = mb_substr(trim($cari_raw), 0, 100, "UTF-8");
 
 $daftar_mood = daftar_mood();
-$mood = param_teks("mood");
-if ($mood === null || ($mood !== "" && !preg_match('/^[a-z-]{1,30}$/', $mood))) {
+$mood_list = array();
+$mood_raw = param_daftar("mood");
+if ($mood_raw === null) {
     $pesan_filter[] = "Parameter suasana tidak sesuai format, jadi diabaikan.";
-    $mood = "";
-} elseif ($mood !== "" && !isset($daftar_mood[$mood])) {
-    $pesan_filter[] = "Suasana yang dipilih tidak ditemukan, jadi ditampilkan semua suasana.";
-    $mood = "";
+} else {
+    $abaikan = 0;
+    foreach ($mood_raw as $m) {
+        if (isset($daftar_mood[$m])) { $mood_list[] = $m; } else { $abaikan++; }
+    }
+    if ($abaikan > 0) { $pesan_filter[] = $abaikan . " suasana pada alamat tidak ditemukan, jadi diabaikan."; }
 }
 
-// Kategori: format dicek di sini, keberadaannya dicek setelah daftar kategori dimuat
-$kat_raw = param_teks("kategori");
-$kategori = 0;
-if ($kat_raw === null || ($kat_raw !== "" && !ctype_digit($kat_raw))) {
+$kat_raw = param_daftar("kategori");
+$kat_list = array();
+if ($kat_raw === null) {
     $pesan_filter[] = "Parameter kategori tidak sesuai format, jadi diabaikan.";
-} else {
-    $kategori = (int) $kat_raw;
 }
 
 /* ---------- Muat data (aman dari error database) ---------- */
@@ -90,69 +110,53 @@ try {
         $daftar_kat[] = $k;
     }
 
-    if ($kategori > 0) {
-        $ada_kat = false;
-        foreach ($daftar_kat as $k) {
-            if ((int) $k["id"] === $kategori) { $ada_kat = true; }
+    if ($kat_raw !== null) {
+        $abaikan = 0;
+        foreach ($kat_raw as $x) {
+            $ada_kat = false;
+            if (ctype_digit($x)) {
+                foreach ($daftar_kat as $k) {
+                    if ((int) $k["id"] === (int) $x) { $ada_kat = true; }
+                }
+            }
+            if ($ada_kat) { $kat_list[] = (int) $x; } else { $abaikan++; }
         }
-        if (!$ada_kat) {
-            $pesan_filter[] = "Kategori yang dipilih tidak ditemukan, jadi ditampilkan semua kategori.";
-            $kategori = 0;
-        }
+        $kat_list = array_values(array_unique($kat_list));
+        if ($abaikan > 0) { $pesan_filter[] = $abaikan . " kategori pada alamat tidak ditemukan, jadi diabaikan."; }
     }
 
-    $sql = "SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, c.nama AS kategori,
+    // Semua destinasi dimuat sekali; penyaringan dilakukan di PHP (tampilan awal) dan JavaScript (saat chip diklik)
+    $sql = "SELECT d.id, d.category_id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, d.tag, c.nama AS kategori,
             (SELECT AVG(r.rating) FROM reviews r WHERE r.destination_id = d.id) AS rata,
             (SELECT COUNT(*) FROM reviews r WHERE r.destination_id = d.id) AS jml_ulasan
             FROM destinations d JOIN categories c ON d.category_id = c.id
-            WHERE (d.nama LIKE ? OR d.lokasi LIKE ?)";
-    $like = "%" . $cari . "%";
-    $tipe = "ss";
-    $param = array($like, $like);
-
-    if ($kategori > 0) {
-        $sql .= " AND d.category_id = ?";
-        $tipe .= "i";
-        $param[] = $kategori;
-    }
-    if ($mood !== "") {
-        $sql .= " AND FIND_IN_SET(?, d.tag) > 0";
-        $tipe .= "s";
-        $param[] = $mood;
-    }
-    $sql .= " ORDER BY d.created_at DESC, d.id DESC";
-
-    $stmt = mysqli_prepare($conn, $sql);
-    if (!$stmt) {
+            ORDER BY d.created_at DESC, d.id DESC";
+    $hasil = mysqli_query($conn, $sql);
+    if (!$hasil) {
         throw new Exception(mysqli_error($conn));
     }
-    mysqli_stmt_bind_param($stmt, $tipe, ...$param);
-    mysqli_stmt_execute($stmt);
-    $hasil = mysqli_stmt_get_result($stmt);
     while ($row = mysqli_fetch_assoc($hasil)) {
         $semua[] = $row;
     }
-    mysqli_stmt_close($stmt);
 } catch (Throwable $ex) {
     $gagal_muat = true;
     $semua = array();
     error_log("Dolan Jogja (index.php): " . $ex->getMessage());
 }
 
-$ada_filter = ($cari !== "" || $kategori > 0 || $mood !== "");
+$ada_filter = ($cari !== "" || count($mood_list) > 0 || count($kat_list) > 0);
 
 // Nama filter aktif untuk judul hasil
 $label_filter = array();
-if ($mood !== "") { $label_filter[] = e($daftar_mood[$mood]); }
-if ($kategori > 0) {
-    foreach ($daftar_kat as $k) {
-        if ((int) $k["id"] === $kategori) { $label_filter[] = e($k["nama"]); }
-    }
+foreach ($mood_list as $m) { $label_filter[] = e($daftar_mood[$m]); }
+foreach ($daftar_kat as $k) {
+    if (in_array((int) $k["id"], $kat_list, true)) { $label_filter[] = e($k["nama"]); }
 }
 
+// Destinasi unggulan (3 rating tertinggi), hanya ditampilkan saat tidak ada filter
 $unggulan = array();
-$lainnya = $semua;
-if (!$ada_filter && count($semua) >= 3) {
+$id_unggulan = array();
+if (count($semua) >= 3) {
     $urut = $semua;
     usort($urut, function ($a, $b) {
         $ra = (float) $a["rata"];
@@ -163,11 +167,21 @@ if (!$ada_filter && count($semua) >= 3) {
         return $rb <=> $ra;
     });
     $unggulan = array_slice($urut, 0, 3);
-    $id_unggulan = array_column($unggulan, "id");
-    $lainnya = array_values(array_filter($semua, function ($x) use ($id_unggulan) {
-        return !in_array($x["id"], $id_unggulan);
-    }));
+    $id_unggulan = array_map("intval", array_column($unggulan, "id"));
 }
+
+// Tentukan baris mana yang tampil pada kondisi awal
+$jml_cocok = 0;
+foreach ($semua as $i => $d) {
+    $cocok = cocok_filter($d, $mood_list, $kat_list, $cari);
+    $semua[$i]["_cocok"] = $cocok;
+    $semua[$i]["_unggulan"] = in_array((int) $d["id"], $id_unggulan, true);
+    $semua[$i]["_tampil"] = $cocok && ($ada_filter || !$semua[$i]["_unggulan"]);
+    if ($cocok) { $jml_cocok++; }
+}
+$ada_baris_tampil = false;
+foreach ($semua as $d) { if ($d["_tampil"]) { $ada_baris_tampil = true; } }
+$kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
 ?>
 
 <div class="hero">
@@ -176,15 +190,10 @@ if (!$ada_filter && count($semua) >= 3) {
         <h1>Jogja lebih seru kalau tahu mau ke mana.</h1>
         <p class="pengantar">Cari destinasi, cek harga tiket dan jam buka, lalu baca ulasan pengunjung sebelum berangkat.</p>
 
-        <form method="get" action="index.php#destinasi" class="form-cari">
-            <input type="text" name="cari" value="<?php echo e($cari); ?>" placeholder="Cari nama atau lokasi" maxlength="100" />
-            <select name="kategori">
-                <option value="0">Semua kategori</option>
-                <?php foreach ($daftar_kat as $k) { ?>
-                    <option value="<?php echo (int) $k["id"]; ?>"<?php if ($kategori === (int) $k["id"]) { echo ' selected="selected"'; } ?>><?php echo e($k["nama"]); ?></option>
-                <?php } ?>
-            </select>
-            <?php if ($mood !== "") { ?><input type="hidden" name="mood" value="<?php echo e($mood); ?>" /><?php } ?>
+        <form method="get" action="index.php#destinasi" class="form-cari" id="form-cari">
+            <input type="text" id="cari-input" name="cari" value="<?php echo e($cari); ?>" placeholder="Cari nama atau lokasi" maxlength="100" />
+            <input type="hidden" id="in-kategori" name="kategori" value="<?php echo e(implode(",", $kat_list)); ?>" />
+            <input type="hidden" id="in-mood" name="mood" value="<?php echo e(implode(",", $mood_list)); ?>" />
             <button type="submit" class="tombol">Cari</button>
         </form>
 
@@ -209,41 +218,33 @@ if (!$ada_filter && count($semua) >= 3) {
             <p class="error">Data belum dapat dimuat saat ini. Silakan muat ulang halaman beberapa saat lagi.</p>
         <?php } ?>
 
-        <p class="muted">Berdasarkan suasana atau waktu kunjungan</p>
+        <p class="muted">Suasana atau waktu kunjungan <span class="kecil">(boleh pilih lebih dari satu)</span></p>
         <?php if (count($daftar_mood) === 0) { ?>
             <p class="kecil">Belum ada pilihan suasana yang tersedia.</p>
         <?php } else { ?>
             <div class="chip-baris" id="mood-baris">
-                <?php echo chip_filter("Semua suasana", $mood === "", url_filter(array("mood" => ""), $cari, $kategori, $mood)); ?>
+                <?php echo chip_filter("Semua suasana", "mood", "", count($mood_list) === 0, url_beranda($cari, array(), $kat_list)); ?>
                 <?php foreach ($daftar_mood as $kunci => $label) { ?>
-                    <?php $dipilih = ($mood === $kunci); ?>
-                    <?php echo chip_filter($label, $dipilih, url_filter(array("mood" => $dipilih ? "" : $kunci), $cari, $kategori, $mood), null, true); ?>
+                    <?php echo chip_filter($label, "mood", $kunci, in_array($kunci, $mood_list, true), url_beranda($cari, ganti_nilai($mood_list, $kunci), $kat_list)); ?>
                 <?php } ?>
             </div>
         <?php } ?>
 
-        <p class="muted">Atau berdasarkan kategori</p>
+        <p class="muted">Kategori <span class="kecil">(boleh pilih lebih dari satu)</span></p>
         <?php if (count($daftar_kat) === 0) { ?>
             <?php if (!$gagal_muat) { ?><p class="kecil">Belum ada kategori yang tersedia.</p><?php } ?>
         <?php } else { ?>
             <div class="chip-baris" id="kategori-baris">
-                <?php echo chip_filter("Semua", $kategori === 0, url_filter(array("kategori" => ""), $cari, $kategori, $mood)); ?>
-                <?php foreach ($daftar_kat as $k) { ?>
-                    <?php $dipilih = ($kategori === (int) $k["id"]); ?>
-                    <?php echo chip_filter($k["nama"], $dipilih, url_filter(array("kategori" => $dipilih ? 0 : (int) $k["id"]), $cari, $kategori, $mood), $k["jumlah"], true); ?>
+                <?php echo chip_filter("Semua", "kategori", "", count($kat_list) === 0, url_beranda($cari, $mood_list, array())); ?>
+                <?php foreach ($daftar_kat as $k) { $kid = (int) $k["id"]; ?>
+                    <?php echo chip_filter($k["nama"], "kategori", (string) $kid, in_array($kid, $kat_list, true), url_beranda($cari, $mood_list, ganti_nilai($kat_list, $kid)), $k["jumlah"]); ?>
                 <?php } ?>
             </div>
         <?php } ?>
     </div>
 
-    <div id="area-hasil">
-    <div class="skeleton-hasil">
-        <div class="skeleton-baris"></div>
-        <div class="skeleton-baris"></div>
-        <div class="skeleton-baris"></div>
-    </div>
-
     <?php if (count($unggulan) === 3) { $besar = $unggulan[0]; ?>
+    <div id="bagian-unggulan"<?php if ($ada_filter) { echo ' class="sembunyi"'; } ?>>
     <div class="bagian">
         <p class="eyebrow">Paling disukai</p>
         <h2>Pilihan pengunjung</h2>
@@ -276,30 +277,29 @@ if (!$ada_filter && count($semua) >= 3) {
             </div>
         </div>
     </div>
+    </div>
     <?php } ?>
 
     <div class="bagian">
-        <?php if ($ada_filter) { ?>
-            <p class="eyebrow">Hasil pencarian</p>
-            <h2><?php echo count($semua); ?> destinasi ditemukan<?php if (count($label_filter) > 0) { echo " &middot; " . implode(" &middot; ", $label_filter); } ?></h2>
-        <?php } else { ?>
-            <p class="eyebrow">Jelajahi</p>
-            <h2>Semua destinasi</h2>
-        <?php } ?>
+        <p class="eyebrow" id="eyebrow-hasil"><?php echo $ada_filter ? "Hasil pencarian" : "Jelajahi"; ?></p>
+        <h2 id="judul-hasil"><?php
+            if ($ada_filter) {
+                echo $jml_cocok . " destinasi ditemukan" . (count($label_filter) > 0 ? " &middot; " . implode(" &middot; ", $label_filter) : "");
+            } else {
+                echo "Semua destinasi";
+            }
+        ?></h2>
 
         <div id="daftar-hasil">
         <?php if ($gagal_muat) { ?>
             <p class="kosong">Destinasi belum dapat ditampilkan saat ini. <a href="index.php#destinasi">Coba muat ulang</a></p>
         <?php } elseif (count($semua) === 0) { ?>
-            <?php if ($ada_filter) { ?>
-                <p class="kosong">Tidak ada destinasi yang sesuai dengan filter yang dipilih. <a href="index.php#destinasi">Hapus semua filter</a></p>
-            <?php } else { ?>
-                <p class="kosong">Belum ada destinasi yang tersedia.</p>
-            <?php } ?>
-        <?php } elseif (count($lainnya) > 0) { ?>
-            <div class="daftar">
-                <?php foreach ($lainnya as $d) { ?>
-                    <div class="baris kartu-klik">
+            <p class="kosong">Belum ada destinasi yang tersedia.</p>
+        <?php } else { ?>
+            <p class="kosong<?php echo $kosong_karena_filter ? "" : " sembunyi"; ?>" id="pesan-kosong"><strong>Destinasi tidak ditemukan.</strong> Tidak ada destinasi yang sesuai dengan filter yang dipilih. <a href="index.php#destinasi" id="reset-filter">Hapus semua filter</a></p>
+            <div class="daftar<?php echo $ada_baris_tampil ? "" : " sembunyi"; ?>">
+                <?php foreach ($semua as $d) { ?>
+                    <div class="baris kartu-klik<?php echo $d["_tampil"] ? "" : " sembunyi"; ?>" data-kategori="<?php echo (int) $d["category_id"]; ?>" data-mood="<?php echo e((string) ($d["tag"] ?? "")); ?>" data-teks="<?php echo e(mb_strtolower($d["nama"] . " " . $d["lokasi"], "UTF-8")); ?>"<?php if ($d["_unggulan"]) { echo ' data-unggulan="1"'; } ?>>
                         <?php echo tampil_foto($d["foto"], $d["kategori"], $d["nama"]); ?>
                         <div class="baris-info">
                             <h3><?php echo e($d["nama"]); ?></h3>
@@ -314,7 +314,6 @@ if (!$ada_filter && count($semua) >= 3) {
         <?php } ?>
         </div>
     </div>
-    </div>
 
     <div class="ajakan">
         <div>
@@ -325,23 +324,5 @@ if (!$ada_filter && count($semua) >= 3) {
     </div>
 </div>
 
-<script type="text/javascript">
-//<![CDATA[
-// Indikator memuat singkat saat berpindah filter (halaman dimuat ulang oleh server).
-(function () {
-    var area = document.getElementById("area-hasil");
-    if (!area) { return; }
-    function mulai() { area.classList.add("memuat"); }
-    document.addEventListener("click", function (e) {
-        var a = e.target.closest ? e.target.closest("a.chip") : null;
-        if (a && !e.ctrlKey && !e.metaKey && !e.shiftKey) { mulai(); }
-    });
-    var form = document.querySelector(".form-cari");
-    if (form) { form.addEventListener("submit", mulai); }
-    // tombol "kembali" browser: pastikan indikator tidak tertinggal
-    window.addEventListener("pageshow", function () { area.classList.remove("memuat"); });
-})();
-//]]>
-</script>
-
+<script type="text/javascript" src="<?php echo BASE_URL; ?>assets/js/filter-beranda.js"></script>
 <?php require_once "includes/footer.php"; ?>
