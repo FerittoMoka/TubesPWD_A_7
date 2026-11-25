@@ -176,7 +176,7 @@ require_once __DIR__ . "/../includes/header.php";
                     <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; subtotal <?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?></span></h3>
                     <div class="daftar">
                         <?php foreach ($blok["item"] as $i => $r) { ?>
-                            <div class="baris">
+                            <div class="baris baris-rencana">
                                 <?php echo tampil_foto($r["foto"], $r["kategori"], $r["nama"]); ?>
                                 <div class="baris-info">
                                     <h3><a href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $r["did"]; ?>"><?php echo ($i + 1) . ". " . e($r["nama"]); ?></a></h3>

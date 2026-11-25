@@ -2,6 +2,8 @@
 require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
+require_once __DIR__ . "/../includes/pesan.php";
+require_once __DIR__ . "/../includes/jam_buka.php";
 
 $id = (int) ($_GET["id"] ?? 0);
 $st = mysqli_prepare($conn, "SELECT d.*, c.nama AS kategori,
@@ -66,7 +68,7 @@ require_once __DIR__ . "/../includes/header.php";
     <?php if ($wl === "gagal") { ?><p class="error">Gagal memproses favorit. Silakan coba lagi.</p><?php } ?>
     <div class="panel">
         <div style="height:280px;border-radius:12px;overflow:hidden;margin-bottom:16px;"><?php echo tampil_foto($d["foto"], $d["kategori"], $d["nama"]); ?></div>
-        <span class="label"><?php echo e($d["kategori"]); ?></span>
+        <span class="label"><?php echo e($d["kategori"]); ?></span><?php echo badge_buka($d["jam_buka"]); ?>
         <h2><?php echo e($d["nama"]); ?></h2>
         <p><?php echo e($d["lokasi"]); ?></p>
         <p class="meta-baris"><?php echo tampil_rating($d["rata"], $d["jml_ulasan"]); ?></p>

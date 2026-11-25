@@ -3,6 +3,7 @@ $judul = "Beranda";
 $menu_aktif = "beranda";
 require_once "config/koneksi.php";
 require_once "includes/header.php";
+require_once "includes/jam_buka.php";
 
 $cari = trim($_GET["cari"] ?? "");
 $kategori = (int) ($_GET["kategori"] ?? 0);
@@ -18,7 +19,7 @@ while ($k = mysqli_fetch_assoc($q)) {
     $daftar_kat[] = $k;
 }
 
-$sql = "SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.foto, c.nama AS kategori,
+$sql = "SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, c.nama AS kategori,
         (SELECT AVG(r.rating) FROM reviews r WHERE r.destination_id = d.id) AS rata,
         (SELECT COUNT(*) FROM reviews r WHERE r.destination_id = d.id) AS jml_ulasan
         FROM destinations d JOIN categories c ON d.category_id = c.id
@@ -109,7 +110,7 @@ if (!$ada_filter && count($semua) >= 3) {
                 <?php echo tampil_foto($besar["foto"], $besar["kategori"], $besar["nama"]); ?>
                 <div class="tutup"></div>
                 <div class="unggulan-teks">
-                    <span class="label"><?php echo e($besar["kategori"]); ?></span>
+                    <span class="label"><?php echo e($besar["kategori"]); ?></span><?php echo badge_buka($besar["jam_buka"]); ?>
                     <h3><?php echo e($besar["nama"]); ?></h3>
                     <p><?php echo e($besar["lokasi"]); ?></p>
                     <p class="meta-baris"><?php echo tampil_rating($besar["rata"], $besar["jml_ulasan"]); ?><span><?php echo rentang_harga($besar["harga_tiket"], $besar["harga_maks"]); ?></span></p>
@@ -122,7 +123,7 @@ if (!$ada_filter && count($semua) >= 3) {
                     <div class="baris-kecil kartu-klik">
                         <?php echo tampil_foto($s["foto"], $s["kategori"], $s["nama"]); ?>
                         <div>
-                            <span class="label"><?php echo e($s["kategori"]); ?></span>
+                            <span class="label"><?php echo e($s["kategori"]); ?></span><?php echo badge_buka($s["jam_buka"]); ?>
                             <h3><?php echo e($s["nama"]); ?></h3>
                             <p class="baris-meta"><?php echo e($s["lokasi"]); ?></p>
                             <p class="meta-baris"><?php echo tampil_rating($s["rata"], $s["jml_ulasan"]); ?><span><?php echo rentang_harga($s["harga_tiket"], $s["harga_maks"]); ?></span></p>
@@ -154,7 +155,7 @@ if (!$ada_filter && count($semua) >= 3) {
                         <?php echo tampil_foto($d["foto"], $d["kategori"], $d["nama"]); ?>
                         <div class="baris-info">
                             <h3><?php echo e($d["nama"]); ?></h3>
-                            <p class="baris-meta"><?php echo e($d["kategori"]); ?> &middot; <?php echo e($d["lokasi"]); ?></p>
+                            <p class="baris-meta"><?php echo e($d["kategori"]); ?> &middot; <?php echo e($d["lokasi"]); ?><?php echo badge_buka($d["jam_buka"]); ?></p>
                             <?php echo tampil_rating($d["rata"], $d["jml_ulasan"]); ?>
                         </div>
                         <div class="baris-harga"><?php echo rentang_harga($d["harga_tiket"], $d["harga_maks"]); ?></div>
