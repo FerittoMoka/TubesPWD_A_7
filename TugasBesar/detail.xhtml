@@ -7,11 +7,19 @@
     <title>Detail Pilihan - Tugas Besar PWD</title>
     <link rel="stylesheet" href="assets/css/style.css" />
     <link rel="stylesheet" href="assets/css/detail.css" />
+    <link rel="stylesheet" href="assets/css/extras.css" />
 </head>
 <body>
 
     <nav class="navbar">
         <a href="preview-dolan-jogja.xhtml" class="back-link">&#8592; Kembali ke Beranda</a>
+        <a href="favorit.xhtml" class="fav-link">&#9825; Favorit<span class="fav-badge">0</span></a>
+    </nav>
+
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="preview-dolan-jogja.xhtml">Beranda</a> &gt;
+        <span id="crumb-cat">Kategori</span> &gt;
+        <span id="crumb-title" class="current">Item</span>
     </nav>
 
     <main class="detail-container">
@@ -45,6 +53,12 @@
         </div>
     </main>
 
+    <section class="related-section">
+        <h3>Pilihan Terkait Lainnya</h3>
+        <div id="related-grid" class="related-grid"></div>
+    </section>
+
+    <script src="assets/js/app.js"></script>
     <script src="assets/js/detail.js"></script>
 </body>
 </html>

@@ -82,6 +82,8 @@ var item = dataPilihan[itemKey];
 
 if (item) {
     document.title = item.judul + " - Dolan Jogja";
+    document.getElementById("crumb-cat").textContent = item.kategori;
+    document.getElementById("crumb-title").textContent = item.judul;
     document.getElementById("detail-category").textContent = item.kategori;
     document.getElementById("detail-title").textContent = item.judul;
     document.getElementById("detail-meta").textContent = item.meta;
@@ -102,6 +104,52 @@ if (item) {
         "Silakan kembali ke beranda dan pilih item yang tersedia.";
 }
 
-document.getElementById("btn-action").addEventListener("click", function () {
-    alert('"' + (item ? item.judul : "Item") + '" berhasil disimpan ke daftar favorit!');
+var btn = document.getElementById("btn-action");
+
+function renderButton() {
+    var saved = Dolan.isFav(itemKey);
+    btn.textContent = saved ? "\u2713 Tersimpan (klik untuk hapus)" : "Pilih / Simpan";
+    btn.className = saved ? "btn-primary saved" : "btn-primary";
+}
+
+btn.addEventListener("click", function () {
+    if (!item) {
+        Dolan.toast("Item tidak ditemukan.", "error");
+        return;
+    }
+    var nowSaved = Dolan.toggleFav(itemKey);
+    renderButton();
+    Dolan.toast(nowSaved ? '"' + item.judul + '" disimpan ke favorit.'
+                         : '"' + item.judul + '" dihapus dari favorit.',
+                nowSaved ? "success" : "info");
 });
+renderButton();
+
+// Pilihan terkait: utamakan kategori yang sama, maksimal 3
+(function () {
+    var grid = document.getElementById("related-grid");
+    var sama = [], lain = [];
+    Object.keys(dataPilihan).forEach(function (k) {
+        if (k === itemKey) return;
+        (item && dataPilihan[k].kategori === item.kategori ? sama : lain).push(k);
+    });
+    sama.concat(lain).slice(0, 3).forEach(function (k) {
+        var d = dataPilihan[k];
+        var a = document.createElement("a");
+        a.className = "related-card";
+        a.href = "detail.xhtml?item=" + k;
+        var img = document.createElement("img");
+        img.src = d.gambar;
+        img.alt = d.judul;
+        var box = document.createElement("div");
+        var t = document.createElement("strong");
+        t.textContent = d.judul;
+        var c = document.createElement("span");
+        c.textContent = d.kategori;
+        box.appendChild(t);
+        box.appendChild(c);
+        a.appendChild(img);
+        a.appendChild(box);
+        grid.appendChild(a);
+    });
+})();
