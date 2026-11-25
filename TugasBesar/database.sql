@@ -129,3 +129,7 @@ INSERT INTO reviews (destination_id, user_id, rating, komentar) VALUES
 (9, 1, 4, 'Cocok untuk keluarga dengan anak.'),
 (10, 2, 5, 'Malam hari paling hidup, jajanannya banyak.'),
 (10, 3, 4, 'Ramai sekali, sabar saat menyeberang.');
+
+ALTER TABLE wishlists
+  ADD COLUMN hari_ke TINYINT NOT NULL DEFAULT 1 AFTER destination_id,
+  ADD COLUMN urutan INT NOT NULL DEFAULT 0 AFTER hari_ke;
