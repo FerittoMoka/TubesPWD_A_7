@@ -40,10 +40,16 @@ if ($ada) {
     $q = mysqli_prepare($conn, "DELETE FROM wishlists WHERE user_id = ? AND destination_id = ?");
     $hasil = "dihapus";
 } else {
-    $q = mysqli_prepare($conn, "INSERT INTO wishlists (user_id, destination_id) VALUES (?, ?)");
+    // Destinasi baru masuk di akhir Hari ke-1 pada Rencana Dolan
+    $q = mysqli_prepare($conn, "INSERT INTO wishlists (user_id, destination_id, hari_ke, urutan)
+        SELECT ?, ?, 1, COALESCE(MAX(urutan), 0) + 1 FROM wishlists WHERE user_id = ? AND hari_ke = 1");
     $hasil = "tersimpan";
 }
-mysqli_stmt_bind_param($q, "ii", $uid, $id);
+if ($ada) {
+    mysqli_stmt_bind_param($q, "ii", $uid, $id);
+} else {
+    mysqli_stmt_bind_param($q, "iii", $uid, $id, $uid);
+}
 mysqli_stmt_execute($q);
 mysqli_stmt_close($q);
 

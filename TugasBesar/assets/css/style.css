@@ -213,3 +213,24 @@ img { max-width: 100%; }
 .breadcrumb a:hover { text-decoration: underline; }
 .breadcrumb .sekarang { color: var(--soga-gelap); font-weight: 600; }
 .terkait-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 14px; }
+
+/* === Halaman Rencana Dolan: tempel di akhir assets/css/style.css === */
+.total-rencana { text-align: left; }
+.total-label { margin: 8px 0 0; font-size: 13px; color: var(--coklat-jawa); }
+.total-angka { font-family: var(--font-judul); font-size: 32px; font-weight: 700; color: var(--soga-gelap); margin: 0 0 4px; }
+.form-orang div { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.form-orang label { margin: 0; }
+.form-orang input[type="number"] { width: 90px; padding: 8px 10px; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: inherit; color: var(--kakao); }
+.rencana-aksi { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.rencana-aksi select { padding: 5px 8px; border: 1px solid var(--taupe); border-radius: 8px; background: var(--krem); font: inherit; font-size: 13px; color: var(--kakao); }
+.rencana-aksi button[disabled] { opacity: .35; cursor: not-allowed; }
+.baris { flex-wrap: wrap; }
+.baris .rencana-aksi { flex-basis: 100%; margin: 0 0 0 94px; }
+.sembunyi { display: none; }
+
+@media print {
+  .navbar, .footer, .tidak-dicetak { display: none !important; }
+  body { background: #fff; }
+  .panel { border: 0; padding: 0; break-inside: avoid; }
+  .baris { border-bottom: 1px solid #ccc; }
+}
