@@ -17,7 +17,10 @@ function verify_csrf_token($token) {
     return hash_equals($_SESSION['csrf_token'], $token);
 }
 
-function e($text) {
-    return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
+// Dibungkus function_exists agar tidak bentrok dengan e() di includes/fungsi.php
+if (!function_exists('e')) {
+    function e($text) {
+        return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
+    }
 }
 ?>
