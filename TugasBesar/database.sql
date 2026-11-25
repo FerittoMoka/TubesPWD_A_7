@@ -133,3 +133,22 @@ INSERT INTO reviews (destination_id, user_id, rating, komentar) VALUES
 ALTER TABLE wishlists
   ADD COLUMN hari_ke TINYINT NOT NULL DEFAULT 1 AFTER destination_id,
   ADD COLUMN urutan INT NOT NULL DEFAULT 0 AFTER hari_ke;
+
+-- Jalankan sekali di phpMyAdmin (database db_wisata).
+ALTER TABLE destinations
+  ADD COLUMN tag VARCHAR(100) DEFAULT NULL AFTER jam_buka;
+
+-- Tag dipisah koma TANPA spasi. Pilihan: sunset, sunrise, keluarga, hidden-gem, malam
+UPDATE destinations SET tag = 'sunset,keluarga'           WHERE nama = 'Candi Prambanan';
+UPDATE destinations SET tag = 'keluarga'                  WHERE nama = 'Keraton Yogyakarta';
+UPDATE destinations SET tag = 'sunset'                    WHERE nama = 'Pantai Parangtritis';
+UPDATE destinations SET tag = 'sunset,malam'              WHERE nama = 'HeHa Ocean View';
+UPDATE destinations SET tag = 'sunrise,sunset,hidden-gem' WHERE nama = 'Tumpeng Menoreh';
+UPDATE destinations SET tag = 'sunset,malam'              WHERE nama = 'Tebing Breksi';
+UPDATE destinations SET tag = 'sunrise,hidden-gem'        WHERE nama = 'Hutan Pinus Mangunan';
+UPDATE destinations SET tag = 'hidden-gem'                WHERE nama = 'Goa Pindul';
+UPDATE destinations SET tag = 'keluarga'                  WHERE nama = 'Gembira Loka Zoo';
+UPDATE destinations SET tag = 'malam,keluarga'            WHERE nama = 'Jalan Malioboro';
+
+-- Untuk database.sql final: tambahkan "tag VARCHAR(100) DEFAULT NULL," di CREATE TABLE destinations
+-- (setelah jam_buka) dan isi kolom tag pada INSERT, supaya bisa diimpor ulang dari nol.

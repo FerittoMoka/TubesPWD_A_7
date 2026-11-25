@@ -7,7 +7,19 @@ require_once "includes/jam_buka.php";
 
 $cari = trim($_GET["cari"] ?? "");
 $kategori = (int) ($_GET["kategori"] ?? 0);
-$ada_filter = ($cari !== "" || $kategori > 0);
+// Mood & Time Matcher: kunci = nilai di kolom destinations.tag
+$daftar_mood = [
+    "sunset"     => "Cocok untuk Sunset",
+    "sunrise"    => "Berburu Sunrise",
+    "keluarga"   => "Wisata Keluarga & Edukasi",
+    "hidden-gem" => "Hidden Gem Alam",
+    "malam"      => "Seru di Malam Hari",
+];
+$mood = $_GET["mood"] ?? "";
+if (!isset($daftar_mood[$mood])) {
+    $mood = "";
+}
+$ada_filter = ($cari !== "" || $kategori > 0 || $mood !== "");
 
 $jml_dest   = hitung_baris($conn, "destinations");
 $jml_kat    = hitung_baris($conn, "categories");
@@ -25,16 +37,22 @@ $sql = "SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.jam_buka, 
         FROM destinations d JOIN categories c ON d.category_id = c.id
         WHERE (d.nama LIKE ? OR d.lokasi LIKE ?)";
 $like = "%" . $cari . "%";
+$tipe = "ss";
+$param = [$like, $like];
 
 if ($kategori > 0) {
-    $sql .= " AND d.category_id = ? ORDER BY d.created_at DESC, d.id DESC";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "ssi", $like, $like, $kategori);
-} else {
-    $sql .= " ORDER BY d.created_at DESC, d.id DESC";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "ss", $like, $like);
+    $sql .= " AND d.category_id = ?";
+    $tipe .= "i";
+    $param[] = $kategori;
 }
+if ($mood !== "") {
+    $sql .= " AND FIND_IN_SET(?, d.tag) > 0";
+    $tipe .= "s";
+    $param[] = $mood;
+}
+$sql .= " ORDER BY d.created_at DESC, d.id DESC";
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, $tipe, ...$param);
 mysqli_stmt_execute($stmt);
 $hasil = mysqli_stmt_get_result($stmt);
 
@@ -93,6 +111,13 @@ if (!$ada_filter && count($semua) >= 3) {
     <div class="bagian" id="destinasi">
         <p class="eyebrow">Mulai dari sini</p>
         <h2>Mau cari yang seperti apa?</h2>
+        <p class="muted">Berdasarkan suasana atau waktu kunjungan</p>
+        <div class="chip-baris" id="mood-baris">
+            <?php foreach ($daftar_mood as $kunci => $label) { ?>
+                <a class="chip<?php echo $mood === $kunci ? ' aktif' : ''; ?>" href="index.php?mood=<?php echo urlencode($kunci); ?>#destinasi"><?php echo e($label); ?></a>
+            <?php } ?>
+        </div>
+        <p class="muted">Atau berdasarkan kategori</p>
         <div class="chip-baris">
             <a class="chip<?php echo $kategori === 0 ? ' aktif' : ''; ?>" href="index.php#destinasi">Semua</a>
             <?php foreach ($daftar_kat as $k) { ?>
@@ -139,7 +164,7 @@ if (!$ada_filter && count($semua) >= 3) {
     <div class="bagian">
         <?php if ($ada_filter) { ?>
             <p class="eyebrow">Hasil pencarian</p>
-            <h2><?php echo count($semua); ?> destinasi ditemukan</h2>
+            <h2><?php echo count($semua); ?> destinasi ditemukan<?php if ($mood !== "") { echo " &middot; " . e($daftar_mood[$mood]); } ?></h2>
         <?php } else { ?>
             <p class="eyebrow">Jelajahi</p>
             <h2>Semua destinasi</h2>
