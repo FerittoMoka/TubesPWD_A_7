@@ -50,6 +50,7 @@ require_once "../includes/header.php";
         <h1>Masuk</h1>
         <?php if ($pesan !== "") { ?><p class="error"><?php echo e($pesan); ?></p><?php } ?>
         <form method="post" action="login.php" class="form-isi">
+            <div>
             <input type="hidden" name="csrf_token" value="<?php echo e($csrf_token); ?>" />
             <p>
                 <label for="login">Username atau Email</label>
@@ -60,6 +61,7 @@ require_once "../includes/header.php";
                 <input type="password" id="password" name="password" required="required" />
             </p>
             <input type="submit" value="Masuk" />
+            </div>
         </form>
         <p>Belum punya akun? <a href="<?php echo BASE_URL; ?>auth/register.php">Daftar</a></p>
     </div>
