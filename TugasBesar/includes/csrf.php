@@ -23,4 +23,11 @@ if (!function_exists('e')) {
         return htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
     }
 }
+
+// Mengeluarkan input hidden token CSRF (nama field: csrf_token)
+if (!function_exists('csrf_field')) {
+    function csrf_field() {
+        return '<input type="hidden" name="csrf_token" value="' . e(generate_csrf_token()) . '" />';
+    }
+}
 ?>
