@@ -281,3 +281,21 @@ img { max-width: 100%; }
 .alert-success { background: #E3EEDC; color: #3F6B3A; }
 .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--pasir); font-size: 12px; font-weight: 600; }
 .muted { color: var(--coklat-jawa); }
+
+/* ===== Layar penuh =====
+   Konten memenuhi lebar layar dengan tepi yang menyesuaikan ukuran layar.
+   Hapus blok ini jika ingin kembali ke tata letak sempit (atur --lebar di :root). */
+:root { --lebar: 100%; --tepi: clamp(20px, 4vw, 88px); }
+.wadah, .navbar-isi, .hero-isi { padding-left: var(--tepi); padding-right: var(--tepi); }
+.footer { padding-left: var(--tepi); padding-right: var(--tepi); }
+
+/* Hero setinggi layar pertama, isi di tengah */
+.hero { min-height: calc(100vh - 62px); display: flex; align-items: center; }
+.hero-isi { width: 100%; text-align: center; }
+.hero h1 { max-width: 920px; margin-left: auto; margin-right: auto; }
+.hero .pengantar { max-width: 660px; margin-left: auto; margin-right: auto; }
+.form-cari { max-width: 760px; margin-left: auto; margin-right: auto; text-align: left; }
+.hero-angka { justify-content: center; }
+
+/* Teks panjang tetap nyaman dibaca di layar lebar */
+.halaman-isi .panel p { max-width: 110ch; }
