@@ -390,3 +390,25 @@ img { max-width: 100%; }
 .filter-admin select { padding: 10px 12px; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: inherit; color: var(--kakao); }
 
 .unggulan-teks .badge-buka > .tutup { position: static; background: #F3DEDA; color: #9B2C2C; }
+
+/* ===== Filter beranda: pilihan aktif terkunci, transisi, skeleton (tempel di akhir style.css) ===== */
+/* Chip "Semua" yang aktif: tidak ada yang perlu dibatalkan */
+.chip.chip-terkunci { cursor: default; }
+.chip.chip-terkunci:hover { transform: none; }
+/* Chip terpilih yang bisa dibatalkan dengan klik lagi */
+.chip-x { margin-left: 8px; opacity: .7; font-weight: 700; }
+a.chip.aktif:hover { background: var(--coklat-jawa); border-color: var(--coklat-jawa); color: var(--krem); }
+
+@keyframes muncul { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.daftar, .unggulan { animation: muncul .35s ease backwards; }
+
+/* Skeleton hanya tampil saat berpindah filter */
+.skeleton-hasil { display: none; padding-top: 24px; }
+.memuat .skeleton-hasil { display: block; }
+.memuat .bagian { opacity: .35; pointer-events: none; transition: opacity .2s ease; }
+.skeleton-baris { height: 76px; border-radius: 12px; margin: 0 0 14px; background: linear-gradient(90deg, var(--pasir) 25%, #F1E6D2 50%, var(--pasir) 75%); background-size: 200% 100%; animation: kilau 1.2s linear infinite; }
+@keyframes kilau { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .daftar, .unggulan, .skeleton-baris { animation: none; }
+}
