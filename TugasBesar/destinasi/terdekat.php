@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/../config/koneksi.php";
+require_once __DIR__ . "/../includes/auth.php";
 $judul = "Terdekat";
 $menu_aktif = "terdekat";
 require_once __DIR__ . "/../includes/header.php";
@@ -11,6 +12,7 @@ $valid = ($lat !== null && $lng !== null && $lat >= -90 && $lat <= 90 && $lng >=
 $hasil = array();
 
 if ($valid) {
+    $_SESSION["lokasi_user"] = array("lat" => $lat, "lng" => $lng);
     $sql = "SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.foto, d.latitude, d.longitude, c.nama AS kategori,
         (6371 * ACOS(LEAST(1, COS(RADIANS(?)) * COS(RADIANS(d.latitude)) * COS(RADIANS(d.longitude) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(d.latitude))))) AS jarak
         FROM destinations d JOIN categories c ON c.id = d.category_id

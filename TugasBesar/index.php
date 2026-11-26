@@ -39,7 +39,7 @@ while ($k = mysqli_fetch_assoc($q)) {
 }
 
 // Ambil seluruh destinasi agar filter sisi klien bekerja seketika tanpa reload
-$sql = "SELECT d.id, d.category_id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.jam_buka, d.tag, d.foto, c.nama AS kategori,
+$sql = "SELECT d.id, d.category_id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.jam_buka, d.tag, d.latitude, d.longitude, d.foto, c.nama AS kategori,
         (SELECT AVG(r.rating) FROM reviews r WHERE r.destination_id = d.id) AS rata,
         (SELECT COUNT(*) FROM reviews r WHERE r.destination_id = d.id) AS jml_ulasan
         FROM destinations d JOIN categories c ON d.category_id = c.id
@@ -68,6 +68,28 @@ if (count($semua) >= 3) {
     $id_unggulan = array_column($unggulan, "id");
 }
 
+function beranda_jarak_km($lat1, $lng1, $lat2, $lng2) {
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLng = deg2rad($lng2 - $lng1);
+    $a = sin($dLat / 2) * sin($dLat / 2)
+       + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) * sin($dLng / 2);
+    return 6371 * 2 * atan2(sqrt($a), sqrt(1 - $a));
+}
+
+$lokasi_user = $_SESSION["lokasi_user"] ?? null;
+$urut_terdekat = (($_GET["urut"] ?? "") === "terdekat" && $lokasi_user !== null);
+if ($urut_terdekat) {
+    usort($semua, function ($a, $b) use ($lokasi_user) {
+        $ja = ($a["latitude"] !== null && $a["longitude"] !== null)
+            ? beranda_jarak_km($lokasi_user["lat"], $lokasi_user["lng"], (float) $a["latitude"], (float) $a["longitude"])
+            : 99999;
+        $jb = ($b["latitude"] !== null && $b["longitude"] !== null)
+            ? beranda_jarak_km($lokasi_user["lat"], $lokasi_user["lng"], (float) $b["latitude"], (float) $b["longitude"])
+            : 99999;
+        return $ja <=> $jb;
+    });
+}
+
 // Hitung kecocokan awal di server (untuk tampilan awal & fallback non-JS)
 $cari_kecil = mb_strtolower($cari, "UTF-8");
 $jumlah_cocok = 0;
@@ -90,6 +112,9 @@ foreach ($semua as &$d) {
     $d["_teks"] = $teks_cari;
     $d["_unggulan"] = $adalah_unggulan;
     $d["_tampil"] = $tampil;
+        $d["_jarak"] = ($lokasi_user !== null && $d["latitude"] !== null && $d["longitude"] !== null)
+        ? beranda_jarak_km($lokasi_user["lat"], $lokasi_user["lng"], (float) $d["latitude"], (float) $d["longitude"])
+        : null;
     if ($cocok) { $jumlah_cocok++; }
     if ($tampil) { $jumlah_terlihat++; }
 }

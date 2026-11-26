@@ -150,3 +150,7 @@ UPDATE destinations SET tag = 'hidden-gem'                WHERE nama = 'Goa Pind
 UPDATE destinations SET tag = 'keluarga'                  WHERE nama = 'Gembira Loka Zoo';
 UPDATE destinations SET tag = 'malam,keluarga'            WHERE nama = 'Jalan Malioboro';
 
+-- Akun demo siap login (passwordnya: demo1234)
+INSERT INTO users (username, email, password, nama_lengkap, role) VALUES
+('admin_demo', 'admin@dolanjogja.test', '$2y$10$gXYSLETR5zDfrUb7u2zOPu08t6xVE3qbi79/OxZMIW4JvEue.jQL6', 'Admin Dolan Jogja', 'admin'),
+('user_demo',  'user@dolanjogja.test',  '$2y$10$gXYSLETR5zDfrUb7u2zOPu08t6xVE3qbi79/OxZMIW4JvEue.jQL6', 'Wisatawan Demo',    'user');
