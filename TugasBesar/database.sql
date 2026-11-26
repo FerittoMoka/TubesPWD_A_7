@@ -168,3 +168,13 @@ UPDATE destinations SET wilayah = 'Kulon Progo'     WHERE nama = 'Tumpeng Menore
 CREATE INDEX idx_reviews_dest ON reviews (destination_id);
 CREATE INDEX idx_wishlists_user ON wishlists (user_id);
 CREATE INDEX idx_dest_kategori ON destinations (category_id);
+
+CREATE TABLE IF NOT EXISTS favorites (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  destination_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unik_favorit (user_id, destination_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (destination_id) REFERENCES destinations(id) ON DELETE CASCADE
+);

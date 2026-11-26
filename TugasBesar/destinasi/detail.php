@@ -59,6 +59,22 @@ if (sudah_login()) {
     $tersimpan = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($st));
 }
 
+$st = mysqli_prepare($conn, "SELECT COUNT(*) AS n FROM favorites WHERE destination_id = ?");
+mysqli_stmt_bind_param($st, "i", $id);
+mysqli_stmt_execute($st);
+$jml_favorit = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($st))["n"];
+mysqli_stmt_close($st);
+
+$difavoritkan = false;
+if (sudah_login()) {
+    $st = mysqli_prepare($conn, "SELECT id FROM favorites WHERE user_id = ? AND destination_id = ? LIMIT 1");
+    mysqli_stmt_bind_param($st, "ii", $_SESSION["user_id"], $id);
+    mysqli_stmt_execute($st);
+    $difavoritkan = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+    mysqli_stmt_close($st);
+}
+
+
 // Terkait: kategori yang sama dulu, lalu sisanya (maks. 3)
 $st = mysqli_prepare($conn, "SELECT d.id, d.nama, d.foto, d.harga_tiket, d.harga_maks, c.nama AS kategori,
     (SELECT AVG(rating) FROM reviews WHERE destination_id = d.id) AS rata,

@@ -175,6 +175,33 @@ if ($q_rev) {
     mysqli_stmt_close($q_rev);
 }
 
+$daftar_favorit = array();
+$q_fav = mysqli_prepare(
+    $conn,
+    "SELECT d.id, d.nama, d.lokasi, d.foto, d.harga_tiket, d.harga_maks, c.nama AS kategori
+     FROM favorites f
+     JOIN destinations d ON f.destination_id = d.id
+     JOIN categories c ON d.category_id = c.id
+     WHERE f.user_id = ?
+     ORDER BY f.created_at DESC"
+);
+if ($q_fav) {
+    mysqli_stmt_bind_param($q_fav, "i", $user_id);
+    mysqli_stmt_execute($q_fav);
+    $daftar_favorit = mysqli_fetch_all(mysqli_stmt_get_result($q_fav), MYSQLI_ASSOC);
+    mysqli_stmt_close($q_fav);
+}
+$jml_favorit = count($daftar_favorit);
+
+$jml_rencana = 0;
+$q_rcn = mysqli_prepare($conn, "SELECT COUNT(*) AS n FROM wishlists WHERE user_id = ?");
+if ($q_rcn) {
+    mysqli_stmt_bind_param($q_rcn, "i", $user_id);
+    mysqli_stmt_execute($q_rcn);
+    $jml_rencana = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($q_rcn))["n"];
+    mysqli_stmt_close($q_rcn);
+}
+
 $jml_ulasan = count($riwayat_ulasan);
 if ($jml_ulasan === 0) {
     $badge_traveler = "Wisatawan Baru";
@@ -259,6 +286,40 @@ require_once "../includes/header.php";
                         <span>Nomor HP</span>
                         <strong><?php echo e(!empty($user["no_hp"]) ? $user["no_hp"] : "Belum diisi"); ?></strong>
                     </div>
+                </div>
+
+                                <div class="profil-statistik profil-statistik-3">
+                    <div>
+                        <strong><?php echo $jml_ulasan; ?></strong>
+                        <span>Ulasan</span>
+                    </div>
+                    <div>
+                        <strong><?php echo $jml_favorit; ?></strong>
+                        <span>Favorit</span>
+                    </div>
+                    <div>
+                        <strong><?php echo $jml_rencana; ?></strong>
+                        <span>Rencana</span>
+                    </div>
+                </div>
+
+                <div class="profil-meta-list">
+                    <div class="profil-meta-item">
+                        <span>Email</span>
+                        <strong><?php echo e($user["email"]); ?></strong>
+                    </div>
+                    <div class="profil-meta-item">
+                        <span>Nomor HP</span>
+                        <strong><?php echo e(!empty($user["no_hp"]) ? $user["no_hp"] : "Belum diisi"); ?></strong>
+                    </div>
+                    <div class="profil-meta-item">
+                        <span>Bergabung Sejak</span>
+                        <strong><?php echo e($tgl_gabung); ?></strong>
+                    </div>
+                </div>
+
+                <div class="profil-logout-area">
+                    <a class="tombol tombol-garis btn-keluar-profil" href="<?php echo BASE_URL; ?>auth/logout.php" onclick="return confirm('Keluar dari akun sekarang?');">Keluar dari Akun</a>
                 </div>
             </aside>
 

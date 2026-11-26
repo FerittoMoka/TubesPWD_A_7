@@ -3,6 +3,36 @@
 require_once __DIR__ . "/auth.php";
 if (!isset($judul)) { $judul = "Dolan Jogja"; }
 if (!isset($menu_aktif)) { $menu_aktif = ""; }
+
+$nav_foto = "";
+$nav_inisial = "U";
+$nav_jml_rencana = 0;
+if (sudah_login() && isset($conn)) {
+    $nav_uid = (int) $_SESSION["user_id"];
+    $st_nav = mysqli_prepare($conn, "SELECT nama_lengkap, username, foto FROM users WHERE id = ? LIMIT 1");
+    if ($st_nav) {
+        mysqli_stmt_bind_param($st_nav, "i", $nav_uid);
+        mysqli_stmt_execute($st_nav);
+        $u_nav = mysqli_fetch_assoc(mysqli_stmt_get_result($st_nav));
+        mysqli_stmt_close($st_nav);
+        if ($u_nav) {
+            $nama_nav = trim($u_nav["nama_lengkap"] ?: $u_nav["username"]);
+            $nav_inisial = mb_strtoupper(mb_substr($nama_nav, 0, 1, "UTF-8"), "UTF-8");
+            if (!empty($u_nav["foto"])) {
+                $nav_foto = BASE_URL . "assets/uploads/profil/" . $u_nav["foto"];
+            }
+        }
+    }
+    $st_cnt = mysqli_prepare($conn, "SELECT COUNT(*) AS n FROM wishlists WHERE user_id = ?");
+    if ($st_cnt) {
+        mysqli_stmt_bind_param($st_cnt, "i", $nav_uid);
+        mysqli_stmt_execute($st_cnt);
+        $r_cnt = mysqli_fetch_assoc(mysqli_stmt_get_result($st_cnt));
+        $nav_jml_rencana = (int) ($r_cnt["n"] ?? 0);
+        mysqli_stmt_close($st_cnt);
+    }
+}
+
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -26,12 +56,20 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
             <a href="<?php echo BASE_URL; ?>destinasi/terdekat.php"<?php echo aktif("terdekat", $menu_aktif); ?>>Terdekat</a>
             <a href="<?php echo BASE_URL; ?>peta.php"<?php echo aktif("peta", $menu_aktif); ?>>Peta</a>
             <?php if (sudah_login()) { ?>
-                <a href="<?php echo BASE_URL; ?>user/rencana.php"<?php echo aktif("rencana", $menu_aktif); ?>>Rencana</a>
+                <a href="<?php echo BASE_URL; ?>user/rencana.php"<?php echo aktif("rencana", $menu_aktif); ?>>
+                    Rencana <span class="badge-nav<?php echo $nav_jml_rencana === 0 ? ' sembunyi' : ''; ?>" id="badge-rencana"><?php echo $nav_jml_rencana; ?></span>
+                </a>
                 <?php if ($_SESSION["role"] === "admin") { ?>
                     <a href="<?php echo BASE_URL; ?>admin/index.php">Admin</a>
                 <?php } ?>
-                <a href="<?php echo BASE_URL; ?>user/profil.php"<?php echo aktif("profil", $menu_aktif); ?>>Profil</a>
-                <a class="menu-daftar" href="<?php echo BASE_URL; ?>auth/logout.php">Keluar</a>
+                <a class="nav-profil<?php echo $menu_aktif === 'profil' ? ' aktif' : ''; ?>" href="<?php echo BASE_URL; ?>user/profil.php">
+                    <?php if ($nav_foto !== "") { ?>
+                        <img class="nav-avatar" src="<?php echo e($nav_foto); ?>" alt="Profil" />
+                    <?php } else { ?>
+                        <span class="nav-inisial"><?php echo e($nav_inisial); ?></span>
+                    <?php } ?>
+                    <span>Profil</span>
+                </a>
             <?php } else { ?>
                 <a href="<?php echo BASE_URL; ?>auth/login.php">Masuk</a>
                 <a class="menu-daftar" href="<?php echo BASE_URL; ?>auth/register.php">Daftar</a>
