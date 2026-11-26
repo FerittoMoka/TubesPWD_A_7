@@ -51,16 +51,33 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
         <a class="logo" href="<?php echo BASE_URL; ?>index.php"><span class="logo-tanda"></span>Dolan Jogja</a>
         <button type="button" class="tombol-menu" onclick="toggleMenu();">Menu</button>
         <div class="menu" id="menu">
-            <a href="<?php echo BASE_URL; ?>index.php"<?php echo aktif("beranda", $menu_aktif); ?>>Beranda</a>
-            <a href="<?php echo BASE_URL; ?>index.php#destinasi">Destinasi</a>
-            <a href="<?php echo BASE_URL; ?>destinasi/terdekat.php"<?php echo aktif("terdekat", $menu_aktif); ?>>Terdekat</a>
-            <a href="<?php echo BASE_URL; ?>peta.php"<?php echo aktif("peta", $menu_aktif); ?>>Peta</a>
+            <a href="<?php echo BASE_URL; ?>index.php"<?php echo aktif("beranda", $menu_aktif); ?>>
+                <svg class="nav-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+                <span>Beranda</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>index.php#destinasi">
+                <svg class="nav-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polygon points="10 14 14 10 16 16 8 8" fill="currentColor" stroke="none"/></svg>
+                <span>Destinasi</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>destinasi/terdekat.php"<?php echo aktif("terdekat", $menu_aktif); ?>>
+                <svg class="nav-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-6-5.3-6-10a6 6 0 1 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>
+                <span>Terdekat</span>
+            </a>
+            <a href="<?php echo BASE_URL; ?>peta.php"<?php echo aktif("peta", $menu_aktif); ?>>
+                <svg class="nav-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
+                <span>Peta</span>
+            </a>
             <?php if (sudah_login()) { ?>
                 <a href="<?php echo BASE_URL; ?>user/rencana.php"<?php echo aktif("rencana", $menu_aktif); ?>>
-                    Rencana <span class="badge-nav<?php echo $nav_jml_rencana === 0 ? ' sembunyi' : ''; ?>" id="badge-rencana"><?php echo $nav_jml_rencana; ?></span>
+                    <svg class="nav-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <span>Rencana</span>
+                    <span class="badge-nav<?php echo $nav_jml_rencana === 0 ? ' sembunyi' : ''; ?>" id="badge-rencana"><?php echo $nav_jml_rencana; ?></span>
                 </a>
                 <?php if ($_SESSION["role"] === "admin") { ?>
-                    <a href="<?php echo BASE_URL; ?>admin/index.php">Admin</a>
+                    <a href="<?php echo BASE_URL; ?>admin/index.php">
+                        <svg class="nav-ikon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        <span>Admin</span>
+                    </a>
                 <?php } ?>
                 <a class="nav-profil<?php echo $menu_aktif === 'profil' ? ' aktif' : ''; ?>" href="<?php echo BASE_URL; ?>user/profil.php">
                     <?php if ($nav_foto !== "") { ?>

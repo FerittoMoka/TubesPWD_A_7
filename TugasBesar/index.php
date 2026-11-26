@@ -176,6 +176,8 @@ foreach ($daftar_kat as $k) {
     if (in_array((int) $k["id"], $kat_list, true)) { $label_filter[] = e($k["nama"]); }
 }
 
+
+
 foreach ($wil_list as $w) { $label_filter[] = e($wilayah_all[$w]); }
 
 // Destinasi unggulan (3 rating tertinggi), hanya ditampilkan saat tidak ada filter
@@ -276,6 +278,8 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             <?php } ?>
         </div>
     </div>
+
+    
 
     <?php if (count($unggulan) === 3) { $besar = $unggulan[0]; ?>
     <div id="bagian-unggulan"<?php if ($ada_filter) { echo ' class="sembunyi"'; } ?>>
