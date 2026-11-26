@@ -213,7 +213,8 @@ img { max-width: 100%; }
 .breadcrumb a { text-decoration: none; }
 .breadcrumb a:hover { text-decoration: underline; }
 .breadcrumb .sekarang { color: var(--soga-gelap); font-weight: 600; }
-.terkait-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 14px; }
+.terkait-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 14px; }
+.terkait-grid .baris-kecil > .foto-bingkai { width: 92px; height: 92px; }
 
 /* ===== Badge Buka / Tutup ===== */
 .badge-buka { display: inline-block; margin-left: 6px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .04em; vertical-align: middle; }
@@ -424,3 +425,17 @@ a.chip.aktif:hover { background: var(--coklat-jawa); border-color: var(--coklat-
 @media (prefers-reduced-motion: reduce) {
   .baris, .unggulan, #pesan-kosong { animation: none; }
 }
+
+/* ===== Widget Bintang Interaktif & Tampil Ulasan ===== */
+.rating-input-grup { display: flex; align-items: center; gap: 14px; margin: 6px 0 14px; flex-wrap: wrap; }
+.bintang-pilih { display: inline-flex; flex-direction: row-reverse; gap: 4px; position: relative; }
+.bintang-pilih input { position: absolute; opacity: 0; pointer-events: none; }
+.bintang-pilih label { font-size: 30px; line-height: 1; color: var(--pasir); cursor: pointer; transition: color .15s ease, transform .15s ease; user-select: none; margin: 0; }
+.bintang-pilih label:hover,
+.bintang-pilih label:hover ~ label,
+.bintang-pilih input:checked ~ label { color: var(--emas); }
+.bintang-pilih label:hover { transform: scale(1.15); }
+
+.bintang-tampil { display: inline-flex; gap: 2px; font-size: 15px; line-height: 1; margin-left: 6px; vertical-align: middle; }
+.bintang-tampil .isi { color: var(--emas); }
+.bintang-tampil .kosong { color: var(--pasir); }

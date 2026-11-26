@@ -89,6 +89,52 @@ window.addEventListener("load", function () {
     setTimeout(function () {
         for (var m = 0; m < pesan.length; m++) { pesan[m].style.display = "none"; }
     }, 5000);
+
+        // Sinkronisasi label skor widget bintang pada halaman detail
+    var labelSkor = document.getElementById("labelSkorBintang");
+    var radioBintang = document.querySelectorAll('.bintang-pilih input[name="rating"]');
+    if (labelSkor && radioBintang.length > 0) {
+        var ketBintang = {
+            "5": "5/5 \u00B7 Luar biasa",
+            "4": "4/5 \u00B7 Sangat bagus",
+            "3": "3/5 \u00B7 Cukup bagus",
+            "2": "2/5 \u00B7 Kurang",
+            "1": "1/5 \u00B7 Mengecewakan"
+        };
+        for (var b = 0; b < radioBintang.length; b++) {
+            radioBintang[b].addEventListener("change", function () {
+                if (ketBintang[this.value]) {
+                    labelSkor.textContent = ketBintang[this.value];
+                }
+            });
+        }
+    }
+
+    // Filter & urutkan ulasan tanpa reload halaman (fetch + DOMParser)
+    var wadahUlasan = document.getElementById("wadah-ulasan");
+    if (wadahUlasan && window.fetch && window.DOMParser) {
+        wadahUlasan.addEventListener("click", function (e) {
+            var link = e.target.closest ? e.target.closest(".ulasan-filter a.chip") : null;
+            if (!link) { return; }
+            if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) { return; }
+            e.preventDefault();
+            wadahUlasan.style.opacity = "0.6";
+            fetch(link.href)
+                .then(function (res) { return res.text(); })
+                .then(function (html) {
+                    var doc = new DOMParser().parseFromString(html, "text/html");
+                    var baru = doc.getElementById("wadah-ulasan");
+                    if (baru) {
+                        wadahUlasan.innerHTML = baru.innerHTML;
+                        try { history.replaceState(null, "", link.href); } catch (err) {}
+                    }
+                    wadahUlasan.style.opacity = "1";
+                })
+                .catch(function () {
+                    window.location.href = link.href;
+                });
+        });
+    }
 });
 
 window.addEventListener("pageshow", function (e) {

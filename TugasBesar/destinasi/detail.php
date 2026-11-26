@@ -91,45 +91,112 @@ require_once __DIR__ . "/../includes/header.php";
         <?php } ?>
     </div>
 
-    <div class="panel" id="ulasan">
-        <h3>Ulasan (<?php echo count($ulasan); ?>)</h3>
+        <div class="panel" id="ulasan">
+        <h3>Ulasan (<?php echo count($ulasan_semua); ?>)</h3>
         <?php tampil_pesan(); ?>
 
-        <?php if (sudah_login()) { ?>
-            <form method="post" action="<?php echo BASE_URL; ?>review/simpan.php" class="form-isi">
-                <?php echo csrf_field(); ?>
-                <input type="hidden" name="destination_id" value="<?php echo (int) $d["id"]; ?>" />
-                <p><label for="rating"><?php echo $milik ? "Ubah ulasan Anda" : "Tulis ulasan"; ?></label>
-                <select id="rating" name="rating">
-                    <?php for ($i = 5; $i >= 1; $i--) { ?>
-                        <option value="<?php echo $i; ?>"<?php if ($milik && (int) $milik["rating"] === $i) { echo ' selected="selected"'; } ?>><?php echo $i; ?> bintang</option>
+        <?php if (count($ulasan_semua) > 0) { ?>
+            <div class="rating-ringkas">
+                <div class="rating-skor-besar">
+                    <strong><?php echo e(number_format((float) $d["rata"], 1)); ?></strong>
+                    <span>dari 5 &middot; <?php echo count($ulasan_semua); ?> ulasan</span>
+                </div>
+                <div class="rating-bar-daftar">
+                    <?php for ($b = 5; $b >= 1; $b--) {
+                        $jml_b = $distribusi[$b];
+                        $persen = (int) round(($jml_b / count($ulasan_semua)) * 100);
+                    ?>
+                        <div class="rating-bar-baris">
+                            <span class="rating-bar-label"><?php echo $b; ?> bintang</span>
+                            <div class="rating-bar-jalur"><div class="rating-bar-isi" style="width:<?php echo $persen; ?>%"></div></div>
+                            <span class="rating-bar-jumlah"><?php echo $jml_b; ?></span>
+                        </div>
                     <?php } ?>
-                </select></p>
-                <p><textarea name="komentar" rows="3" maxlength="1000" placeholder="Ceritakan pengalamanmu"><?php echo e($milik ? $milik["komentar"] : ""); ?></textarea></p>
-                <p><input type="submit" value="<?php echo $milik ? "Perbarui ulasan" : "Kirim ulasan"; ?>" /></p>
+                </div>
+            </div>
+        <?php } ?>
+
+        <?php if (sudah_login()) {
+            $skor_awal = $milik ? (int) $milik["rating"] : 5;
+            $ket_bintang = array(
+                5 => "5/5 \u{00B7} Luar biasa",
+                4 => "4/5 \u{00B7} Sangat bagus",
+                3 => "3/5 \u{00B7} Cukup bagus",
+                2 => "2/5 \u{00B7} Kurang",
+                1 => "1/5 \u{00B7} Mengecewakan",
+            );
+        ?>
+            <form method="post" action="<?php echo BASE_URL; ?>review/simpan.php" class="form-isi">
+                <div>
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="destination_id" value="<?php echo (int) $d["id"]; ?>" />
+                    <label><?php echo $milik ? "Ubah ulasan Anda" : "Tulis ulasan"; ?></label>
+                    <div class="rating-input-grup">
+                        <div class="bintang-pilih">
+                            <?php for ($i = 5; $i >= 1; $i--) { ?>
+                                <input type="radio" id="star<?php echo $i; ?>" name="rating" value="<?php echo $i; ?>"<?php if ($skor_awal === $i) { echo ' checked="checked"'; } ?> />
+                                <label for="star<?php echo $i; ?>" title="<?php echo e($ket_bintang[$i]); ?>">&#9733;</label>
+                            <?php } ?>
+                        </div>
+                        <span class="kecil" id="labelSkorBintang"><?php echo e($ket_bintang[$skor_awal]); ?></span>
+                    </div>
+                    <p><textarea name="komentar" rows="3" maxlength="1000" placeholder="Ceritakan pengalamanmu"><?php echo e($milik ? $milik["komentar"] : ""); ?></textarea></p>
+                    <p><input type="submit" value="<?php echo $milik ? "Perbarui ulasan" : "Kirim ulasan"; ?>" /></p>
+                </div>
             </form>
         <?php } else { ?>
             <p class="kecil"><a href="<?php echo BASE_URL; ?>auth/login.php">Masuk</a> untuk menulis ulasan.</p>
         <?php } ?>
 
-        <?php if (count($ulasan) === 0) { ?>
-            <p class="kosong">Belum ada ulasan.</p>
-        <?php } ?>
-        <?php foreach ($ulasan as $r) { ?>
-            <div style="border-top:1px solid #E8DCC4;padding:12px 0;">
-                <strong><?php echo e($r["username"]); ?></strong> &middot; <?php echo (int) $r["rating"]; ?>/5
-                <span class="kecil"> &middot; <?php echo e(date("d M Y", strtotime($r["created_at"]))); ?></span>
-                <p><?php echo nl2br(e($r["komentar"])); ?></p>
-                <?php if (sudah_login() && ((int) $r["user_id"] === (int) $_SESSION["user_id"] || $_SESSION["role"] === "admin")) { ?>
-                    <form method="post" action="<?php echo BASE_URL; ?>review/hapus.php" class="inline" onsubmit="return konfirmasiHapus('ulasan ini');">
-                        <?php echo csrf_field(); ?>
-                        <input type="hidden" name="id" value="<?php echo (int) $r["id"]; ?>" />
-                        <input type="hidden" name="kembali" value="detail" />
-                        <button type="submit" class="btn-kecil btn-bahaya">Hapus</button>
-                    </form>
-                <?php } ?>
-            </div>
-        <?php } ?>
+        <div id="wadah-ulasan">
+            <?php if (count($ulasan_semua) > 0) { ?>
+                <div class="ulasan-filter">
+                    <?php
+                    $base_ulasan = BASE_URL . "destinasi/detail.php?id=" . (int) $d["id"];
+                    $opsi_urut = array("terbaru" => "Terbaru", "tertinggi" => "Rating Tertinggi", "terendah" => "Rating Terendah");
+                    foreach ($opsi_urut as $k_urut => $lbl_urut) {
+                        $href = $base_ulasan . "&urut=" . $k_urut . ($filter_bintang > 0 ? "&bintang=" . $filter_bintang : "") . "#ulasan";
+                    ?>
+                        <a class="chip<?php echo $urut_ulasan === $k_urut ? ' aktif' : ''; ?>" href="<?php echo e($href); ?>"><?php echo e($lbl_urut); ?></a>
+                    <?php } ?>
+                    <?php if ($filter_bintang > 0) { ?>
+                        <a class="chip" href="<?php echo e($base_ulasan . "&urut=" . $urut_ulasan . "#ulasan"); ?>">Semua bintang (Reset)</a>
+                    <?php } else { ?>
+                        <?php for ($b = 5; $b >= 1; $b--) { if ($distribusi[$b] > 0) { ?>
+                            <a class="chip" href="<?php echo e($base_ulasan . "&urut=" . $urut_ulasan . "&bintang=" . $b . "#ulasan"); ?>"><?php echo $b; ?>&#9733; (<?php echo $distribusi[$b]; ?>)</a>
+                        <?php } } ?>
+                    <?php } ?>
+                </div>
+            <?php } ?>
+
+            <?php if (count($ulasan) === 0) { ?>
+                <p class="kosong"><?php echo $filter_bintang > 0 ? "Tidak ada ulasan dengan rating " . $filter_bintang . " bintang." : "Belum ada ulasan."; ?></p>
+            <?php } ?>
+            <?php foreach ($ulasan as $r) {
+                $nilai_rt = (int) $r["rating"];
+            ?>
+                <div style="border-top:1px solid #E8DCC4;padding:12px 0;">
+                    <strong><?php echo e($r["username"]); ?></strong>
+                    <span class="bintang-tampil" title="<?php echo $nilai_rt; ?>/5">
+                        <?php for ($s = 1; $s <= 5; $s++) { ?>
+                            <span class="<?php echo $s <= $nilai_rt ? 'isi' : 'kosong'; ?>">&#9733;</span>
+                        <?php } ?>
+                    </span>
+                    <span class="kecil"> &middot; <?php echo e(date("d M Y", strtotime($r["created_at"]))); ?></span>
+                    <p><?php echo nl2br(e($r["komentar"])); ?></p>
+                    <?php if (sudah_login() && ((int) $r["user_id"] === (int) $_SESSION["user_id"] || $_SESSION["role"] === "admin")) { ?>
+                        <form method="post" action="<?php echo BASE_URL; ?>review/hapus.php" class="inline" onsubmit="return konfirmasiHapus('ulasan ini');">
+                            <div class="inline">
+                                <?php echo csrf_field(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $r["id"]; ?>" />
+                                <input type="hidden" name="kembali" value="detail" />
+                                <button type="submit" class="btn-kecil btn-bahaya">Hapus</button>
+                            </div>
+                        </form>
+                    <?php } ?>
+                </div>
+            <?php } ?>
+        </div>
     </div>
 
     <?php if (count($terkait) > 0) { ?>
