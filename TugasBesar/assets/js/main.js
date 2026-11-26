@@ -73,13 +73,16 @@ window.addEventListener("load", function () {
         })(foto[j]);
     }
 
-    var form = document.querySelector(".form-cari");
-    if (form) {
-        form.addEventListener("submit", function () { tampilSkeleton("daftar-hasil", 4); });
-    }
-    var chip = document.querySelectorAll(".chip");
-    for (var k = 0; k < chip.length; k++) {
-        chip[k].addEventListener("click", function () { tampilSkeleton("daftar-hasil", 4); });
+        // Hanya tampilkan skeleton jika halaman tidak memakai filter dinamis sisi klien
+    if (!document.querySelector("a.chip[data-grup]")) {
+        var form = document.querySelector(".form-cari");
+        if (form) {
+            form.addEventListener("submit", function () { tampilSkeleton("daftar-hasil", 4); });
+        }
+        var chip = document.querySelectorAll(".chip");
+        for (var k = 0; k < chip.length; k++) {
+            chip[k].addEventListener("click", function () { tampilSkeleton("daftar-hasil", 4); });
+        }
     }
 
     var pesan = document.querySelectorAll(".sukses, .error");

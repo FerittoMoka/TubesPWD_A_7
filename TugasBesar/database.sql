@@ -150,5 +150,3 @@ UPDATE destinations SET tag = 'hidden-gem'                WHERE nama = 'Goa Pind
 UPDATE destinations SET tag = 'keluarga'                  WHERE nama = 'Gembira Loka Zoo';
 UPDATE destinations SET tag = 'malam,keluarga'            WHERE nama = 'Jalan Malioboro';
 
--- Untuk database.sql final: tambahkan "tag VARCHAR(100) DEFAULT NULL," di CREATE TABLE destinations
--- (setelah jam_buka) dan isi kolom tag pada INSERT, supaya bisa diimpor ulang dari nol.
