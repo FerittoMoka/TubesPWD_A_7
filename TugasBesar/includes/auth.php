@@ -1,20 +1,31 @@
 <?php
 
 if (session_status() === PHP_SESSION_NONE) {
-    ini_set("session.cookie_httponly", "1");
-    ini_set("session.use_only_cookies", "1");
-    ini_set("session.cookie_samesite", "Lax");
-    if (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off") {
-        ini_set("session.cookie_secure", "1");
-    }
     session_start();
 }
 
-$root = str_replace("\\", "/", realpath(__DIR__ . "/.."));
-$docroot = str_replace("\\", "/", (string) realpath($_SERVER["DOCUMENT_ROOT"]));
-$base = "/";
-if ($docroot !== "" && stripos($root, $docroot) === 0) {
-    $base = substr($root, strlen($docroot)) . "/";
+/*
+ * BASE_URL: alamat dasar proyek, mis. "/TugasBesar/".
+ * Dihitung dari alamat skrip yang sedang berjalan (SCRIPT_NAME) dikurangi posisi skrip itu di dalam proyek,
+ * sehingga tetap benar walaupun folder proyek berupa junction/symlink ke lokasi lain (mis. OneDrive).
+ */
+$root  = str_replace("\\", "/", (string) realpath(__DIR__ . "/.."));
+$skrip = str_replace("\\", "/", (string) realpath($_SERVER["SCRIPT_FILENAME"] ?? ""));
+$nama  = str_replace("\\", "/", $_SERVER["SCRIPT_NAME"] ?? "");
+$base  = "/";
+
+if ($root !== "" && $skrip !== "" && stripos($skrip, $root) === 0) {
+    $relatif = substr($skrip, strlen($root)); // mis. "/index.php" atau "/auth/login.php"
+    if ($relatif !== "" && substr($nama, -strlen($relatif)) === $relatif) {
+        $base = substr($nama, 0, strlen($nama) - strlen($relatif)) . "/";
+    }
+}
+// Cadangan: cara lama (proyek berada langsung di dalam DOCUMENT_ROOT)
+if ($base === "/") {
+    $docroot = str_replace("\\", "/", (string) realpath($_SERVER["DOCUMENT_ROOT"] ?? ""));
+    if ($docroot !== "" && stripos($root, $docroot) === 0) {
+        $base = substr($root, strlen($docroot)) . "/";
+    }
 }
 define("BASE_URL", $base);
 

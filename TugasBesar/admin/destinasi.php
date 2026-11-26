@@ -1,11 +1,12 @@
 <?php
 require_once __DIR__ . "/../includes/init.php";
 require_once __DIR__ . "/../includes/mood.php";
+require_once __DIR__ . "/../includes/wilayah.php";
 wajib_admin();
 
 $id = (int) ($_GET["id"] ?? 0);
 $d = array("nama" => "", "category_id" => 0, "lokasi" => "", "deskripsi" => "", "harga_tiket" => 0,
-           "harga_maks" => "", "jam_buka" => "", "tag" => "", "latitude" => "", "longitude" => "", "foto" => null);
+           "harga_maks" => "", "jam_buka" => "", "tag" => "", "wilayah" => "", "status" => "aktif", "latitude" => "", "longitude" => "", "foto" => null);
 if ($id) {
     $s = $conn->prepare("SELECT * FROM destinations WHERE id=?");
     $s->bind_param("i", $id);
@@ -15,6 +16,8 @@ if ($id) {
     $d = $found;
 }
 $daftar_kategori = $conn->query("SELECT id, nama FROM categories ORDER BY nama")->fetch_all(MYSQLI_ASSOC);
+$daftar_wilayah = daftar_wilayah();
+$daftar_status  = daftar_status();
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -31,10 +34,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Tag mood: hanya nilai yang ada di daftar_mood() yang diterima (whitelist)
     $tag_pilih = array_values(array_intersect(array_keys(daftar_mood()), (array) ($_POST["tag"] ?? array())));
     $tag_str = implode(",", $tag_pilih);
+    $wilayah_in = trim($_POST["wilayah"] ?? "");
+    $status_in  = $_POST["status"] ?? "aktif";
 
     /* tampilkan kembali input jika ada error */
     $d = array_merge($d, array("nama" => $nama, "lokasi" => $lokasi, "deskripsi" => $desc, "category_id" => $cat,
-        "jam_buka" => $jam, "harga_tiket" => $tiket_s, "harga_maks" => $maks_s, "latitude" => $lat_s, "longitude" => $lng_s, "tag" => $tag_str));
+        "jam_buka" => $jam, "harga_tiket" => $tiket_s, "harga_maks" => $maks_s, "latitude" => $lat_s, "longitude" => $lng_s, "tag" => $tag_str, "wilayah" => $wilayah_in, "status" => $status_in));
 
     $kategori_valid = false;
     foreach ($daftar_kategori as $k) { if ((int) $k["id"] === $cat) { $kategori_valid = true; } }
@@ -43,6 +48,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Nama dan lokasi wajib diisi (nama maks. 100, lokasi maks. 200 karakter).";
     } elseif (!$kategori_valid) {
         $error = "Pilih kategori yang valid.";
+    } elseif ($wilayah_in !== "" && !in_array($wilayah_in, $daftar_wilayah, true)) {
+        $error = "Pilih wilayah yang valid.";
+    } elseif (!isset($daftar_status[$status_in])) {
+        $error = "Pilih status publikasi yang valid.";
     } elseif (!ctype_digit($tiket_s) || ($maks_s !== "" && !ctype_digit($maks_s))) {
         $error = "Harga tiket harus berupa angka bulat (Rupiah).";
     } elseif (($lat_s !== "" && (!is_numeric($lat_s) || $lat_s < -90 || $lat_s > 90))
@@ -59,17 +68,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $lat   = $lat_s === "" ? null : (float) $lat_s;
             $lng   = $lng_s === "" ? null : (float) $lng_s;
             $tag   = $tag_str === "" ? null : $tag_str;
+            $wilayah = $wilayah_in === "" ? null : $wilayah_in;
             $foto_lama = $d["foto"];
             if (!empty($_POST["hapus_foto"]) && $foto_baru === null) { hapus_gambar("destinasi", $foto_lama); $foto_final = null; }
             elseif ($foto_baru !== null) { hapus_gambar("destinasi", $foto_lama); $foto_final = $foto_baru; }
             else { $foto_final = $foto_lama; }
 
             if ($id) {
-                $s = $conn->prepare("UPDATE destinations SET category_id=?, nama=?, lokasi=?, deskripsi=?, harga_tiket=?, harga_maks=?, jam_buka=?, tag=?, latitude=?, longitude=?, foto=? WHERE id=?");
-                $s->bind_param("isssiissddsi", $cat, $nama, $lokasi, $desc, $tiket, $maks, $jam, $tag, $lat, $lng, $foto_final, $id);
+                $s = $conn->prepare("UPDATE destinations SET category_id=?, nama=?, lokasi=?, deskripsi=?, harga_tiket=?, harga_maks=?, jam_buka=?, tag=?, wilayah=?, status=?, latitude=?, longitude=?, foto=? WHERE id=?");
+                $s->bind_param("isssiissssddsi", $cat, $nama, $lokasi, $desc, $tiket, $maks, $jam, $tag, $wilayah, $status_in, $lat, $lng, $foto_final, $id);
             } else {
-                $s = $conn->prepare("INSERT INTO destinations (category_id,nama,lokasi,deskripsi,harga_tiket,harga_maks,jam_buka,tag,latitude,longitude,foto) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-                $s->bind_param("isssiissdds", $cat, $nama, $lokasi, $desc, $tiket, $maks, $jam, $tag, $lat, $lng, $foto_final);
+                $s = $conn->prepare("INSERT INTO destinations (category_id,nama,lokasi,deskripsi,harga_tiket,harga_maks,jam_buka,tag,wilayah,status,latitude,longitude,foto) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                $s->bind_param("isssiissssdds", $cat, $nama, $lokasi, $desc, $tiket, $maks, $jam, $tag, $wilayah, $status_in, $lat, $lng, $foto_final);
             }
             $s->execute();
             flash("success", $id ? "Destinasi berhasil diperbarui." : "Destinasi berhasil ditambahkan.");
@@ -114,6 +124,26 @@ header_web($id ? "Edit Destinasi" : "Tambah Destinasi");
       <div><label for="jam_buka">Jam buka</label><input type="text" id="jam_buka" name="jam_buka" maxlength="100" value="<?php echo e($d["jam_buka"]); ?>" /></div>
       <div><label for="latitude">Latitude</label><input type="text" id="latitude" name="latitude" value="<?php echo e($d["latitude"]); ?>" /></div>
       <div><label for="longitude">Longitude</label><input type="text" id="longitude" name="longitude" value="<?php echo e($d["longitude"]); ?>" /></div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <label for="wilayah">Wilayah (Kabupaten/Kota)</label>
+        <select id="wilayah" name="wilayah">
+          <option value="">-- Pilih wilayah --</option>
+          <?php foreach ($daftar_wilayah as $w) { ?>
+          <option value="<?php echo e($w); ?>"<?php echo ($d["wilayah"] ?? "") === $w ? ' selected="selected"' : ""; ?>><?php echo e($w); ?></option>
+          <?php } ?>
+        </select>
+      </div>
+      <div>
+        <label for="status">Status Publikasi</label>
+        <select id="status" name="status">
+          <?php foreach ($daftar_status as $ks => $ls) { ?>
+          <option value="<?php echo e($ks); ?>"<?php echo ($d["status"] ?? "aktif") === $ks ? ' selected="selected"' : ""; ?>><?php echo e($ls); ?></option>
+          <?php } ?>
+        </select>
+      </div>
     </div>
 
     <label>Cocok untuk (mood &amp; waktu kunjungan)</label>

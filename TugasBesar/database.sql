@@ -154,3 +154,17 @@ UPDATE destinations SET tag = 'malam,keluarga'            WHERE nama = 'Jalan Ma
 INSERT INTO users (username, email, password, nama_lengkap, role) VALUES
 ('admin_demo', 'admin@dolanjogja.test', '$2y$10$gXYSLETR5zDfrUb7u2zOPu08t6xVE3qbi79/OxZMIW4JvEue.jQL6', 'Admin Dolan Jogja', 'admin'),
 ('user_demo',  'user@dolanjogja.test',  '$2y$10$gXYSLETR5zDfrUb7u2zOPu08t6xVE3qbi79/OxZMIW4JvEue.jQL6', 'Wisatawan Demo',    'user');
+
+ALTER TABLE destinations
+  ADD COLUMN wilayah ENUM('Kota Yogyakarta','Sleman','Bantul','Gunungkidul','Kulon Progo') DEFAULT NULL AFTER lokasi,
+  ADD COLUMN status ENUM('aktif','arsip') NOT NULL DEFAULT 'aktif' AFTER foto;
+
+UPDATE destinations SET wilayah = 'Sleman'          WHERE nama IN ('Candi Prambanan', 'Tebing Breksi');
+UPDATE destinations SET wilayah = 'Kota Yogyakarta' WHERE nama IN ('Keraton Yogyakarta', 'Gembira Loka Zoo', 'Jalan Malioboro');
+UPDATE destinations SET wilayah = 'Bantul'          WHERE nama IN ('Pantai Parangtritis', 'Hutan Pinus Mangunan');
+UPDATE destinations SET wilayah = 'Gunungkidul'     WHERE nama IN ('HeHa Ocean View', 'Goa Pindul');
+UPDATE destinations SET wilayah = 'Kulon Progo'     WHERE nama = 'Tumpeng Menoreh';
+
+CREATE INDEX idx_reviews_dest ON reviews (destination_id);
+CREATE INDEX idx_wishlists_user ON wishlists (user_id);
+CREATE INDEX idx_dest_kategori ON destinations (category_id);

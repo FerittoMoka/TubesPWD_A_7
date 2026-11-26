@@ -16,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $s->execute();
             hapus_gambar("destinasi", $row["foto"]);
             flash("success", "Destinasi berhasil dihapus.");
-        }
+        } 
     }
     redirect("admin/index.php");
 }
