@@ -13,17 +13,15 @@
     var usernameInput = document.getElementById("username");
     var emailInput = document.getElementById("email");
     var passInput = document.getElementById("password");
-    var konfInput = document.getElementById("confirm_password");
     var toggleBtn = document.getElementById("togglePass");
 
     var statusUser = document.getElementById("statusUsername");
     var statusEmail = document.getElementById("statusEmail");
-    var statusKonf = document.getElementById("statusKonfirmasi");
     var strengthBar = document.getElementById("strengthBar");
     var strengthLabel = document.getElementById("strengthLabel");
 
     // Atribut ARIA diset lewat JS (tidak ada di DTD XHTML 1.0, tapi tetap membantu pembaca layar)
-    [statusUser, statusEmail, statusKonf].forEach(function (el) {
+    [statusUser, statusEmail].forEach(function (el) {
         if (el) { el.setAttribute("aria-live", "polite"); }
     });
     if (toggleBtn) { toggleBtn.setAttribute("aria-label", "Tampilkan atau sembunyikan password"); }
@@ -131,39 +129,19 @@
         }
     }
 
-    function updateKonfirmasi() {
-        if (!passInput || !konfInput || !statusKonf) { return; }
-        if (konfInput.value === "") {
-            setStatus(statusKonf, "", "");
-            return;
-        }
-        if (passInput.value === konfInput.value) {
-            setStatus(statusKonf, "Password cocok.", "ok");
-        } else {
-            setStatus(statusKonf, "Konfirmasi password belum cocok.", "error");
-        }
-    }
-
     if (passInput) {
-        passInput.addEventListener("input", function () {
-            updateStrength();
-            updateKonfirmasi();
-        });
-    }
-    if (konfInput) {
-        konfInput.addEventListener("input", updateKonfirmasi);
+        passInput.addEventListener("input", updateStrength);
     }
 
     if (toggleBtn && passInput) {
         toggleBtn.addEventListener("click", function () {
             var tersembunyi = passInput.type === "password";
             passInput.type = tersembunyi ? "text" : "password";
-            if (konfInput) { konfInput.type = tersembunyi ? "text" : "password"; }
             this.textContent = tersembunyi ? "Sembunyikan" : "Lihat";
         });
     }
 
-    // Validasi sebelum kirim (sama dengan validasiForm() versi inline sebelumnya)
+    // Validasi sebelum kirim (tanpa konfirmasi password)
     form.addEventListener("submit", function (ev) {
         var gagal = function (pesan, el) {
             ev.preventDefault();
@@ -188,9 +166,6 @@
         }
         if (passInput.value.length < 6) {
             return gagal("Password minimal harus 6 karakter!", passInput);
-        }
-        if (passInput.value !== konfInput.value) {
-            return gagal("Konfirmasi password tidak cocok!", konfInput);
         }
     });
 })();

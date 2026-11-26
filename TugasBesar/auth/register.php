@@ -2,6 +2,7 @@
 require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
+require_once __DIR__ . "/../includes/pesan.php";
 
 if (sudah_login()) {
     header("Location: " . BASE_URL . "index.php");
@@ -17,6 +18,7 @@ require_once __DIR__ . "/../includes/header.php";
         <p class="eyebrow">Bergabung dengan Dolan Jogja</p>
         <h1>Daftar Akun</h1>
         <p class="muted auth-sub">Buat akun untuk menulis ulasan dan menyimpan rencana perjalanan Jogjamu.</p>
+        <?php tampil_pesan(); ?>
 
         <form id="formRegister" action="proses_register.php" method="post" class="form-isi">
             <div>
@@ -49,12 +51,6 @@ require_once __DIR__ . "/../includes/header.php";
                         <div class="strength-bar" id="strengthBar"></div>
                     </div>
                     <small id="strengthLabel" class="status-cek">Kekuatan password: -</small>
-                </div>
-
-                <div class="field-grup">
-                    <label for="confirm_password">Konfirmasi Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required="required" />
-                    <small id="statusKonfirmasi" class="status-cek"></small>
                 </div>
 
                 <div class="auth-submit-baris">

@@ -5,6 +5,7 @@ require_once "config/koneksi.php";
 require_once "includes/header.php";
 require_once "includes/mood.php";
 require_once "includes/jam_buka.php";
+require_once "includes/pesan.php";
 
 /* Baca parameter berisi daftar nilai dipisah koma (mis. ?mood=sunset,malam).
    Mengembalikan array, atau null jika formatnya bukan teks (mis. ?mood[]=a). */
@@ -148,7 +149,7 @@ try {
     }
 
     // Semua destinasi dimuat sekali; penyaringan dilakukan di PHP (tampilan awal) dan JavaScript (saat chip diklik)
-    $sql = "SELECT d.id, d.category_id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, d.tag, d.wilayah, c.nama AS kategori,
+    $sql = "SELECT d.id, d.category_id, d.nama, d.lokasi, d.deskripsi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, d.tag, d.wilayah, c.nama AS kategori,
             (SELECT AVG(r.rating) FROM reviews r WHERE r.destination_id = d.id) AS rata,
             (SELECT COUNT(*) FROM reviews r WHERE r.destination_id = d.id) AS jml_ulasan
             FROM destinations d JOIN categories c ON d.category_id = c.id
@@ -216,9 +217,14 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
 
 <div class="hero">
     <div class="hero-isi">
+        <?php tampil_pesan(); ?>
         <div class="hero-grid">
             <div class="hero-kiri">
-                <p class="atas">Informasi Pariwisata Yogyakarta</p>
+                <?php if (sudah_login()) { ?>
+                    <p class="atas">Sugeng rawuh, <?php echo e($_SESSION["username"]); ?>!</p>
+                <?php } else { ?>
+                    <p class="atas">Informasi Pariwisata Yogyakarta</p>
+                <?php } ?>
                 <h1>Jogja lebih seru kalau tahu mau ke mana.</h1>
                 <p class="pengantar">Cari destinasi, cek harga tiket dan jam buka, lalu baca ulasan pengunjung sebelum berangkat.</p>
 
@@ -241,41 +247,50 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             </div>
 
             <?php if (count($hero_kartu) > 0) { ?>
-            <div class="hero-carousel-wrap">
-                <div class="hero-track" id="heroTrack">
-                    <?php foreach ($hero_kartu as $hk) {
-                        $skor_h = ((int) $hk["jml_ulasan"] > 0) ? number_format((float) $hk["rata"], 1) : "Baru";
-                    ?>
-                        <a class="hero-kartu" href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $hk["id"]; ?>">
-                            <?php echo tampil_foto($hk["foto"], $hk["kategori"], $hk["nama"]); ?>
-                            <div class="hero-kartu-gradasi"></div>
-                            <div class="hero-kartu-atas">
-                                <span class="label"><?php echo e($hk["kategori"]); ?></span>
-                                <?php echo badge_buka($hk["jam_buka"]); ?>
-                            </div>
-                            <div class="hero-kartu-bawah">
-                                <h3><?php echo e($hk["nama"]); ?></h3>
-                                <p class="hero-kartu-lokasi"><?php echo e($hk["lokasi"]); ?></p>
-                                <div class="hero-kartu-meta">
-                                    <span>&#9733; <?php echo e($skor_h); ?> (<?php echo (int) $hk["jml_ulasan"]; ?>)</span>
-                                    <span><?php echo e(rentang_harga($hk["harga_tiket"], $hk["harga_maks"])); ?></span>
-                                </div>
-                            </div>
-                        </a>
+            <div class="hero-showcase" id="heroShowcase">
+                <div class="hero-dots" id="heroDots">
+                    <?php foreach ($hero_kartu as $idx_d => $hd) { ?>
+                        <button type="button" class="hero-dot<?php echo $idx_d === 0 ? ' aktif' : ''; ?>" data-slide="<?php echo $idx_d; ?>" aria-label="Slide <?php echo $idx_d + 1; ?>"></button>
                     <?php } ?>
                 </div>
 
-                <div class="hero-nav-baris">
-                    <div class="hero-progress-wrap">
-                        <span class="hero-progress-teks" id="heroProgressTeks">1 / <?php echo count($hero_kartu); ?></span>
-                        <div class="hero-progress-jalur">
-                            <div class="hero-progress-isi" id="heroProgressIsi" style="width:<?php echo (int) round(100 / count($hero_kartu)); ?>%"></div>
+                <button type="button" class="hero-nav-melayang hero-nav-kiri" id="heroPrev" title="Sebelumnya" aria-label="Slide sebelumnya">&larr;</button>
+                <button type="button" class="hero-nav-melayang hero-nav-kanan" id="heroNext" title="Berikutnya" aria-label="Slide berikutnya">&rarr;</button>
+
+                <div class="hero-track" id="heroTrack">
+                    <?php foreach ($hero_kartu as $hk) {
+                        $skor_h = ((int) $hk["jml_ulasan"] > 0) ? number_format((float) $hk["rata"], 1) : "Baru";
+                        $label_kurasi = "";
+                        if ((int) $hk["harga_tiket"] === 0) {
+                            $label_kurasi = "Wisata Gratis";
+                        } elseif ((float) $hk["rata"] >= 4.7 && (int) $hk["jml_ulasan"] >= 3) {
+                            $label_kurasi = "Favorit Wisatawan";
+                        }
+                    ?>
+                        <div class="hero-slide">
+                            <?php echo tampil_foto($hk["foto"], $hk["kategori"], $hk["nama"]); ?>
+                            <div class="hero-slide-gradasi"></div>
+                            <div class="hero-slide-atas">
+                                <div>
+                                    <span class="label"><?php echo e($hk["kategori"]); ?></span>
+                                    <?php if ($label_kurasi !== "") { ?>
+                                        <span class="label label-kurasi"><?php echo e($label_kurasi); ?></span>
+                                    <?php } ?>
+                                </div>
+                                <?php echo badge_buka($hk["jam_buka"]); ?>
+                            </div>
+                            <div class="hero-slide-bawah">
+                                <h3><?php echo e($hk["nama"]); ?></h3>
+                                <p class="hero-slide-deskripsi"><?php echo e($hk["deskripsi"] ?: $hk["lokasi"]); ?></p>
+                                <div class="hero-slide-bawah-baris">
+                                    <div class="hero-kartu-meta">
+                                        <span>&#9733; <?php echo e($skor_h); ?> (<?php echo (int) $hk["jml_ulasan"]; ?>) &middot; <?php echo e(rentang_harga($hk["harga_tiket"], $hk["harga_maks"])); ?></span>
+                                    </div>
+                                    <a class="tombol" href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $hk["id"]; ?>">Jelajahi Detail</a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="hero-panah-grup">
-                        <button type="button" class="hero-panah" id="heroPrev" title="Sebelumnya" aria-label="Kartu sebelumnya">&larr;</button>
-                        <button type="button" class="hero-panah" id="heroNext" title="Berikutnya" aria-label="Kartu berikutnya">&rarr;</button>
-                    </div>
+                    <?php } ?>
                 </div>
             </div>
             <?php } ?>

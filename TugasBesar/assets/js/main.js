@@ -197,72 +197,92 @@ window.addEventListener("pageshow", function (e) {
     });
 })();
 
-/* ---------- Hero Swipeable Cards + Progress Pill ---------- */
+/* ---------- Hero Single-Slide Carousel + Auto-Slide ---------- */
 (function () {
     "use strict";
+    var showcase = document.getElementById("heroShowcase");
     var track = document.getElementById("heroTrack");
     var btnPrev = document.getElementById("heroPrev");
     var btnNext = document.getElementById("heroNext");
-    var teksProg = document.getElementById("heroProgressTeks");
-    var isiProg = document.getElementById("heroProgressIsi");
-    if (!track) { return; }
+    var dots = document.querySelectorAll(".hero-dot");
+    if (!track || !showcase) { return; }
 
-    var kartuList = track.querySelectorAll(".hero-kartu");
-    var totalKartu = kartuList.length;
+    var slides = track.querySelectorAll(".hero-slide");
+    var total = slides.length;
+    var indexAktif = 0;
+    var timer = null;
     var isDown = false;
     var startX = 0;
     var scrollLeft = 0;
-    var sudahGeser = false;
 
-    function updateProgress() {
-        if (totalKartu === 0) { return; }
-        var step = 283;
-        var aktif = Math.min(totalKartu, Math.max(1, Math.round(track.scrollLeft / step) + 1));
-        if (teksProg) { teksProg.textContent = aktif + " / " + totalKartu; }
-        if (isiProg) { isiProg.style.width = Math.round((aktif / totalKartu) * 100) + "%"; }
+    function setDot(idx) {
+        indexAktif = idx;
+        Array.prototype.forEach.call(dots, function (d, i) {
+            d.classList.toggle("aktif", i === idx);
+        });
     }
 
-    track.addEventListener("scroll", updateProgress);
+    function keSlide(idx) {
+        if (total === 0) { return; }
+        var target = ((idx % total) + total) % total;
+        track.scrollTo({ left: target * track.clientWidth, behavior: "smooth" });
+        setDot(target);
+    }
+
+    function mulaiAuto() {
+        hentiAuto();
+        if (total <= 1 || document.hidden) { return; }
+        timer = setInterval(function () { keSlide(indexAktif + 1); }, 5000);
+    }
+    function hentiAuto() {
+        if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    track.addEventListener("scroll", function () {
+        if (track.clientWidth > 0) {
+            var idx = Math.round(track.scrollLeft / track.clientWidth);
+            if (idx !== indexAktif && idx >= 0 && idx < total) { setDot(idx); }
+        }
+    });
+
+    Array.prototype.forEach.call(dots, function (d) {
+        d.addEventListener("click", function () {
+            keSlide(parseInt(d.getAttribute("data-slide"), 10) || 0);
+        });
+    });
+
+    if (btnPrev) { btnPrev.addEventListener("click", function () { keSlide(indexAktif - 1); }); }
+    if (btnNext) { btnNext.addEventListener("click", function () { keSlide(indexAktif + 1); }); }
 
     track.addEventListener("mousedown", function (e) {
         isDown = true;
-        sudahGeser = false;
         track.classList.add("sedang-geser");
         startX = e.pageX - track.offsetLeft;
         scrollLeft = track.scrollLeft;
+        hentiAuto();
     });
-
     window.addEventListener("mouseup", function () {
         if (!isDown) { return; }
         isDown = false;
         track.classList.remove("sedang-geser");
+        mulaiAuto();
     });
-
     track.addEventListener("mousemove", function (e) {
         if (!isDown) { return; }
         e.preventDefault();
-        var x = e.pageX - track.offsetLeft;
-        var walk = (x - startX) * 1.4;
-        if (Math.abs(walk) > 6) { sudahGeser = true; }
+        var walk = (e.pageX - track.offsetLeft - startX) * 1.3;
         track.scrollLeft = scrollLeft - walk;
     });
 
-    Array.prototype.forEach.call(kartuList, function (link) {
-        link.addEventListener("click", function (e) {
-            if (sudahGeser) { e.preventDefault(); }
-        });
+    showcase.addEventListener("mouseenter", hentiAuto);
+    showcase.addEventListener("mouseleave", mulaiAuto);
+    showcase.addEventListener("touchstart", hentiAuto, { passive: true });
+    showcase.addEventListener("touchend", mulaiAuto);
+    document.addEventListener("visibilitychange", function () {
+        if (document.hidden) { hentiAuto(); } else { mulaiAuto(); }
     });
 
-    if (btnPrev) {
-        btnPrev.addEventListener("click", function () {
-            track.scrollBy({ left: -283, behavior: "smooth" });
-        });
-    }
-    if (btnNext) {
-        btnNext.addEventListener("click", function () {
-            track.scrollBy({ left: 283, behavior: "smooth" });
-        });
-    }
+    mulaiAuto();
 })();
 
 /* ---------- Autocomplete Dropdown Form Cari Hero ---------- */
