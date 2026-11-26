@@ -445,3 +445,27 @@ tr.baris-arsip td { opacity: .65; }
 .badge-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .badge-status.aktif { background: #E3EEDC; color: #3F6B2B; }
 .badge-status.arsip { background: #EADFD2; color: #79513B; }
+
+
+/* Navbar: Mini-avatar profil & badge jumlah rencana */
+.nav-profil { display: inline-flex; align-items: center; gap: 7px; }
+.nav-avatar, .nav-inisial {
+    width: 24px; height: 24px; border-radius: 50%; object-fit: cover;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--emas); color: var(--kakao); font-weight: 700; font-size: 12px;
+}
+.badge-nav {
+    display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px;
+    background: var(--emas); color: var(--kakao); font-size: 11px; font-weight: 700; line-height: 1.4;
+}
+
+/* Detail destinasi: tombol Favorit & Rencana Dolan */
+.aksi-destinasi-grup { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.btn-favorit.aktif { border-color: #B64238; color: #B64238; background: #FDF2F1; }
+.btn-favorit.aktif:hover { background: #F9E3E1; color: #962E25; border-color: #962E25; }
+
+/* Profil: statistik 3 kolom & area keluar */
+.profil-statistik-3 { grid-template-columns: repeat(3, 1fr); }
+.profil-logout-area { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--pasir); }
+.btn-keluar-profil { width: 100%; text-align: center; color: #962E25; border-color: #DFB5B0; }
+.btn-keluar-profil:hover { border-color: #B64238; color: #FFFFFF; background-color: #B64238; background-image: none; }

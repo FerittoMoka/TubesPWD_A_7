@@ -11,7 +11,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -65,6 +65,16 @@ CREATE TABLE wishlists (
   user_id INT NOT NULL,
   destination_id INT NOT NULL,
   UNIQUE (user_id, destination_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (destination_id) REFERENCES destinations(id) ON DELETE CASCADE
+);
+
+CREATE TABLE favorites (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  destination_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unik_favorit (user_id, destination_id),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (destination_id) REFERENCES destinations(id) ON DELETE CASCADE
 );
@@ -134,7 +144,6 @@ ALTER TABLE wishlists
   ADD COLUMN hari_ke TINYINT NOT NULL DEFAULT 1 AFTER destination_id,
   ADD COLUMN urutan INT NOT NULL DEFAULT 0 AFTER hari_ke;
 
--- Jalankan sekali di phpMyAdmin (database db_wisata).
 ALTER TABLE destinations
   ADD COLUMN tag VARCHAR(100) DEFAULT NULL AFTER jam_buka;
 

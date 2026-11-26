@@ -203,6 +203,33 @@ if ($q_rcn) {
 }
 
 $jml_ulasan = count($riwayat_ulasan);
+
+$daftar_favorit = array();
+$q_fav = mysqli_prepare(
+    $conn,
+    "SELECT d.id, d.nama, d.lokasi, d.foto, d.harga_tiket, d.harga_maks, c.nama AS kategori
+     FROM favorites f
+     JOIN destinations d ON f.destination_id = d.id
+     JOIN categories c ON d.category_id = c.id
+     WHERE f.user_id = ?
+     ORDER BY f.created_at DESC"
+);
+if ($q_fav) {
+    mysqli_stmt_bind_param($q_fav, "i", $user_id);
+    mysqli_stmt_execute($q_fav);
+    $daftar_favorit = mysqli_fetch_all(mysqli_stmt_get_result($q_fav), MYSQLI_ASSOC);
+    mysqli_stmt_close($q_fav);
+}
+$jml_favorit = count($daftar_favorit);
+
+$jml_rencana = 0;
+$q_rcn = mysqli_prepare($conn, "SELECT COUNT(*) AS n FROM wishlists WHERE user_id = ?");
+if ($q_rcn) {
+    mysqli_stmt_bind_param($q_rcn, "i", $user_id);
+    mysqli_stmt_execute($q_rcn);
+    $jml_rencana = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($q_rcn))["n"];
+    mysqli_stmt_close($q_rcn);
+}
 if ($jml_ulasan === 0) {
     $badge_traveler = "Wisatawan Baru";
     $badge_kelas = "badge-baru";
@@ -266,29 +293,7 @@ require_once "../includes/header.php";
                 <h2 class="profil-nama"><?php echo e($user["nama_lengkap"]); ?></h2>
                 <p class="profil-handle">@<?php echo e($user["username"]); ?></p>
 
-                <div class="profil-statistik">
-                    <div>
-                        <strong><?php echo $jml_ulasan; ?></strong>
-                        <span>Ulasan Ditulis</span>
-                    </div>
-                    <div>
-                        <strong><?php echo e($tgl_gabung); ?></strong>
-                        <span>Bergabung</span>
-                    </div>
-                </div>
-
-                <div class="profil-meta-list">
-                    <div class="profil-meta-item">
-                        <span>Email</span>
-                        <strong><?php echo e($user["email"]); ?></strong>
-                    </div>
-                    <div class="profil-meta-item">
-                        <span>Nomor HP</span>
-                        <strong><?php echo e(!empty($user["no_hp"]) ? $user["no_hp"] : "Belum diisi"); ?></strong>
-                    </div>
-                </div>
-
-                                <div class="profil-statistik profil-statistik-3">
+                <div class="profil-statistik profil-statistik-3">
                     <div>
                         <strong><?php echo $jml_ulasan; ?></strong>
                         <span>Ulasan</span>
@@ -328,6 +333,7 @@ require_once "../includes/header.php";
                     <button type="button" class="profil-tab<?php echo $tab_aktif === "biodata" ? " aktif" : ""; ?>" data-tab="biodata">Edit Biodata &amp; Foto</button>
                     <button type="button" class="profil-tab<?php echo $tab_aktif === "keamanan" ? " aktif" : ""; ?>" data-tab="keamanan">Keamanan Akun</button>
                     <button type="button" class="profil-tab<?php echo $tab_aktif === "ulasan" ? " aktif" : ""; ?>" data-tab="ulasan">Riwayat Ulasan (<?php echo $jml_ulasan; ?>)</button>
+                    <button type="button" class="profil-tab<?php echo $tab_aktif === "favorit" ? " aktif" : ""; ?>" data-tab="favorit">Destinasi Favorit (<?php echo $jml_favorit; ?>)</button>
                 </div>
 
                 <!-- TAB 1: BIODATA & FOTO -->
@@ -403,6 +409,12 @@ require_once "../includes/header.php";
                             <input type="submit" value="Perbarui Password" />
                         </div>
                     </form>
+
+                    <div class="profil-bagian-pisah">
+                        <h3>Sesi Login</h3>
+                        <p class="kecil">Akhiri sesi akun Anda pada perangkat ini setelah selesai menggunakan Dolan Jogja.</p>
+                        <a class="btn-kecil btn-bahaya" href="<?php echo BASE_URL; ?>auth/logout.php" onclick="return confirm('Keluar dari akun sekarang?');">Keluar dari Akun</a>
+                    </div>
                 </div>
 
                 <!-- TAB 3: RIWAYAT ULASAN -->
@@ -434,6 +446,36 @@ require_once "../includes/header.php";
                                     <?php } ?>
                                     <div class="profil-ulasan-aksi">
                                         <a class="btn-kecil" href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $u["destination_id"]; ?>#ulasan">Lihat / Kelola di Halaman Destinasi</a>
+                                    </div>
+                                </div>
+                            <?php } ?>
+                        </div>
+                    <?php } ?>
+                </div>
+
+                <!-- TAB 4: DESTINASI FAVORIT -->
+                <div class="profil-tab-konten<?php echo $tab_aktif !== "favorit" ? " sembunyi" : ""; ?>" id="tab-favorit">
+                    <h2>Destinasi Favorit Saya</h2>
+                    <p class="muted profil-sub">Koleksi destinasi yang pernah Anda tandai suka.</p>
+
+                    <?php if ($jml_favorit === 0) { ?>
+                        <div class="profil-kosong">
+                            <p>Belum ada destinasi yang ditandai favorit.</p>
+                            <a class="tombol" href="<?php echo BASE_URL; ?>index.php#destinasi">Cari Destinasi</a>
+                        </div>
+                    <?php } else { ?>
+                        <div class="profil-ulasan-daftar">
+                            <?php foreach ($daftar_favorit as $fav) { ?>
+                                <div class="profil-ulasan-item">
+                                    <div class="profil-ulasan-atas">
+                                        <div>
+                                            <h3><a href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $fav["id"]; ?>"><?php echo e($fav["nama"]); ?></a></h3>
+                                            <p class="kecil"><?php echo e($fav["kategori"]); ?> &middot; <?php echo e($fav["lokasi"]); ?></p>
+                                        </div>
+                                        <span class="label"><?php echo e(rentang_harga($fav["harga_tiket"], $fav["harga_maks"])); ?></span>
+                                    </div>
+                                    <div class="profil-ulasan-aksi">
+                                        <a class="btn-kecil" href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $fav["id"]; ?>">Lihat Detail</a>
                                     </div>
                                 </div>
                             <?php } ?>

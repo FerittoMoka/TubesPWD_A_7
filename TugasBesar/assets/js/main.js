@@ -140,3 +140,59 @@ window.addEventListener("load", function () {
 window.addEventListener("pageshow", function (e) {
     if (e.persisted) { window.location.reload(); }
 });
+
+
+/* ---------- Toggle AJAX Favorit & Rencana Dolan ---------- */
+(function () {
+    "use strict";
+    document.addEventListener("click", function (e) {
+        var btnFav = e.target.closest ? e.target.closest(".btn-favorit") : null;
+        var btnRcn = e.target.closest ? e.target.closest(".btn-rencana-toggle") : null;
+        var btn = btnFav || btnRcn;
+        if (!btn) { return; }
+
+        var endpoint = btn.getAttribute("data-endpoint");
+        var id = btn.getAttribute("data-id");
+        var csrf = btn.getAttribute("data-csrf");
+        if (!endpoint || !id || !csrf) { return; }
+
+        btn.disabled = true;
+        var body = new URLSearchParams();
+        body.append("destination_id", id);
+        body.append("csrf_token", csrf);
+
+        fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: body.toString()
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                btn.disabled = false;
+                if (!res || !res.ok) { return; }
+
+                if (btnFav) {
+                    var aktif = res.status === "added";
+                    btn.classList.toggle("aktif", aktif);
+                    var ikon = btn.querySelector(".ikon-hati");
+                    var teks = btn.querySelector(".teks-fav");
+                    var hitung = btn.querySelector(".hitung-fav");
+                    if (ikon) { ikon.innerHTML = aktif ? "&#9829;" : "&#9825;"; }
+                    if (teks) { teks.textContent = aktif ? "Difavoritkan" : "Favorit"; }
+                    if (hitung) { hitung.textContent = res.total_favorit; }
+                }
+
+                if (btnRcn) {
+                    var tersimpan = res.status === "added";
+                    btn.classList.toggle("tombol-garis", tersimpan);
+                    btn.innerHTML = tersimpan ? "&#10003; Tersimpan di Rencana" : "+ Rencana Dolan";
+                    var badge = document.getElementById("badge-rencana");
+                    if (badge) {
+                        badge.textContent = res.total_rencana;
+                        badge.classList.toggle("sembunyi", res.total_rencana <= 0);
+                    }
+                }
+            })
+            .catch(function () { btn.disabled = false; });
+    });
+})();

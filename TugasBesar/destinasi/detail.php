@@ -74,6 +74,21 @@ if (sudah_login()) {
     mysqli_stmt_close($st);
 }
 
+$st = mysqli_prepare($conn, "SELECT COUNT(*) AS n FROM favorites WHERE destination_id = ?");
+mysqli_stmt_bind_param($st, "i", $id);
+mysqli_stmt_execute($st);
+$jml_favorit = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($st))["n"];
+mysqli_stmt_close($st);
+
+$difavoritkan = false;
+if (sudah_login()) {
+    $st = mysqli_prepare($conn, "SELECT id FROM favorites WHERE user_id = ? AND destination_id = ? LIMIT 1");
+    mysqli_stmt_bind_param($st, "ii", $_SESSION["user_id"], $id);
+    mysqli_stmt_execute($st);
+    $difavoritkan = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+    mysqli_stmt_close($st);
+}
+
 
 // Terkait: kategori yang sama dulu, lalu sisanya (maks. 3)
 $st = mysqli_prepare($conn, "SELECT d.id, d.nama, d.foto, d.harga_tiket, d.harga_maks, c.nama AS kategori,
@@ -111,17 +126,32 @@ require_once __DIR__ . "/../includes/header.php";
         <?php if ($d["latitude"] !== null && $d["longitude"] !== null) { ?>
             <p><a class="tombol tombol-garis" href="https://www.google.com/maps?q=<?php echo e($d["latitude"]); ?>,<?php echo e($d["longitude"]); ?>" target="_blank" rel="noopener noreferrer">Buka di Google Maps</a></p>
         <?php } ?>
-        <?php if (sudah_login()) { ?>
-            <form method="post" action="<?php echo BASE_URL; ?>user/wishlist.php" class="inline">
-                <div class="inline">
-                    <?php echo csrf_field(); ?>
-                    <input type="hidden" name="destination_id" value="<?php echo (int) $d["id"]; ?>" />
-                    <button type="submit" class="tombol<?php echo $tersimpan ? ' tombol-garis' : ''; ?>"><?php echo $tersimpan ? "&#10003; Tersimpan (klik untuk hapus)" : "Simpan ke favorit"; ?></button>
-                </div>
-            </form>
-        <?php } else { ?>
-            <p><a class="tombol" href="<?php echo BASE_URL; ?>auth/login.php">Masuk untuk menyimpan ke favorit</a></p>
-        <?php } ?>
+        <div class="aksi-destinasi-grup">
+            <?php if (sudah_login()) {
+                $token_aksi = generate_csrf_token();
+            ?>
+                <button type="button"
+                        class="tombol tombol-garis btn-favorit<?php echo $difavoritkan ? ' aktif' : ''; ?>"
+                        data-endpoint="<?php echo BASE_URL; ?>user/toggle_favorit.php"
+                        data-id="<?php echo (int) $d["id"]; ?>"
+                        data-csrf="<?php echo e($token_aksi); ?>">
+                    <span class="ikon-hati"><?php echo $difavoritkan ? "&#9829;" : "&#9825;"; ?></span>
+                    <span class="teks-fav"><?php echo $difavoritkan ? "Difavoritkan" : "Favorit"; ?></span>
+                    (<span class="hitung-fav"><?php echo $jml_favorit; ?></span>)
+                </button>
+
+                <button type="button"
+                        class="tombol btn-rencana-toggle<?php echo $tersimpan ? ' tombol-garis' : ''; ?>"
+                        data-endpoint="<?php echo BASE_URL; ?>user/toggle_rencana.php"
+                        data-id="<?php echo (int) $d["id"]; ?>"
+                        data-csrf="<?php echo e($token_aksi); ?>">
+                    <?php echo $tersimpan ? "&#10003; Tersimpan di Rencana" : "+ Rencana Dolan"; ?>
+                </button>
+            <?php } else { ?>
+                <span class="kecil">&#9829; <?php echo $jml_favorit; ?> menyukai</span>
+                <a class="tombol" href="<?php echo BASE_URL; ?>auth/login.php">Masuk untuk Favorit &amp; Rencana Dolan</a>
+            <?php } ?>
+        </div>
     </div>
 
         <div class="panel" id="ulasan">
