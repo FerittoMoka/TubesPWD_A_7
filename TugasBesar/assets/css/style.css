@@ -656,3 +656,35 @@ input[type="password"]::-ms-clear {
     .hero-grid { grid-template-columns: 1fr; gap: 24px; }
     .hero-slide { height: 360px; }
 }
+
+/* ===== Terakhir Kamu Lihat (Recently Viewed) ===== */
+.recent-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;
+}
+.recent-kartu {
+    display: flex; flex-direction: column; gap: 6px; padding: 14px 16px;
+    border-radius: 14px; border: 1px solid var(--pasir); background: #FFFFFF;
+    text-decoration: none; color: var(--kakao); transition: border-color .2s, transform .15s;
+}
+.recent-kartu:hover { border-color: var(--emas); transform: translateY(-2px); }
+.recent-kartu strong { font-size: 16px; color: var(--soga-gelap); }
+
+/* ===== Kalkulator Patungan Rencana Dolan ===== */
+.patungan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.patungan-grid label { display: block; font-size: 13px; margin-bottom: 4px; color: var(--coklat-jawa); }
+.patungan-grid input { width: 100%; padding: 8px 10px; border: 1px solid var(--pasir); border-radius: 10px; }
+.patungan-hasil {
+    display: flex; flex-wrap: wrap; gap: 16px; margin: 10px 0 12px;
+    padding: 10px 14px; border-radius: 10px; background: #FAF5EC; border: 1px solid var(--pasir);
+    font-size: 14px; color: var(--soga-gelap);
+}
+@media (max-width: 600px) { .patungan-grid { grid-template-columns: 1fr; } }
+
+/* ===== Lencana 5 Wilayah DIY di Paspor Profil ===== */
+.paspor-wilayah { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--pasir); text-align: left; }
+.paspor-wilayah-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.paspor-pill {
+    font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 999px;
+    background: #EFE7D8; color: #8A7665; border: 1px solid #DFD3BE;
+}
+.paspor-pill.aktif { background: var(--emas); color: var(--kakao); border-color: var(--emas); }

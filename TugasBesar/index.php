@@ -150,9 +150,15 @@ try {
 
     // Semua destinasi dimuat sekali; penyaringan dilakukan di PHP (tampilan awal) dan JavaScript (saat chip diklik)
     $sql = "SELECT d.id, d.category_id, d.nama, d.lokasi, d.deskripsi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, d.tag, d.wilayah, c.nama AS kategori,
-            (SELECT AVG(r.rating) FROM reviews r WHERE r.destination_id = d.id) AS rata,
-            (SELECT COUNT(*) FROM reviews r WHERE r.destination_id = d.id) AS jml_ulasan
-            FROM destinations d JOIN categories c ON d.category_id = c.id
+            COALESCE(rev.rata, 0) AS rata,
+            COALESCE(rev.jml_ulasan, 0) AS jml_ulasan
+            FROM destinations d
+            JOIN categories c ON d.category_id = c.id
+            LEFT JOIN (
+                SELECT destination_id, AVG(rating) AS rata, COUNT(*) AS jml_ulasan
+                FROM reviews
+                GROUP BY destination_id
+            ) rev ON rev.destination_id = d.id
             WHERE d.status = 'aktif'
             ORDER BY d.created_at DESC, d.id DESC";
     $hasil = mysqli_query($conn, $sql);
@@ -220,11 +226,19 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
         <?php tampil_pesan(); ?>
         <div class="hero-grid">
             <div class="hero-kiri">
-                <?php if (sudah_login()) { ?>
-                    <p class="atas">Sugeng rawuh, <?php echo e($_SESSION["username"]); ?>!</p>
-                <?php } else { ?>
-                    <p class="atas">Informasi Pariwisata Yogyakarta</p>
-                <?php } ?>
+                <?php
+                $jam_sekarang = (int) date("G");
+                if ($jam_sekarang >= 5 && $jam_sekarang < 11) {
+                    $sapa_jawa = "Sugeng enjang, siap njajah Jogja hari ini?";
+                } elseif ($jam_sekarang >= 11 && $jam_sekarang < 15) {
+                    $sapa_jawa = "Sugeng siang, mau ngadem di mana siang ini?";
+                } elseif ($jam_sekarang >= 15 && $jam_sekarang < 18) {
+                    $sapa_jawa = "Sugeng sonten, saatnya berburu senja di Jogja.";
+                } else {
+                    $sapa_jawa = "Sugeng dalu, yuk cek kuliner & suasana malam Jogja.";
+                }
+                ?>
+                <p class="atas"><?php echo sudah_login() ? e($_SESSION["username"] . " · " . $sapa_jawa) : e($sapa_jawa); ?></p>
                 <h1>Jogja lebih seru kalau tahu mau ke mana.</h1>
                 <p class="pengantar">Cari destinasi, cek harga tiket dan jam buka, lalu baca ulasan pengunjung sebelum berangkat.</p>
 
@@ -435,6 +449,12 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
         </div>
     </div>
 
+    <div class="bagian sembunyi" id="terakhir-dilihat">
+        <p class="eyebrow">Riwayat Jelajah</p>
+        <h2>Terakhir kamu lihat</h2>
+        <div class="recent-grid" id="recent-grid"></div>
+    </div>
+
     <div class="ajakan">
         <div>
             <h2>Lagi di Jogja sekarang?</h2>
@@ -506,6 +526,30 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             btn.textContent = "Acak Lagi!";
         }, 950);
     });
+})();
+//]]>
+</script>
+<script type="text/javascript">
+//<![CDATA[
+(function () {
+    var box = document.getElementById("terakhir-dilihat");
+    var grid = document.getElementById("recent-grid");
+    if (!box || !grid || !window.localStorage) { return; }
+    try {
+        var daftar = JSON.parse(localStorage.getItem("dolan_recent") || "[]");
+        if (!Array.isArray(daftar) || daftar.length === 0) { return; }
+        var esc = function (s) {
+            return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        };
+        grid.innerHTML = daftar.map(function (it) {
+            return '<a class="recent-kartu" href="' + esc(it.url) + '">' +
+                '<span class="label">' + esc(it.kategori) + '</span>' +
+                '<strong>' + esc(it.nama) + '</strong>' +
+                '<span class="kecil">' + esc(it.harga) + '</span>' +
+            '</a>';
+        }).join("");
+        box.classList.remove("sembunyi");
+    } catch (e) {}
 })();
 //]]>
 </script>

@@ -282,4 +282,27 @@ require_once __DIR__ . "/../includes/header.php";
     </div>
     <?php } ?>
 </div></div>
+
+<script type="text/javascript">
+//<![CDATA[
+(function () {
+    if (!window.localStorage) { return; }
+    try {
+        var item = {
+            id: <?php echo (int) $d["id"]; ?>,
+            nama: <?php echo json_encode($d["nama"], JSON_UNESCAPED_UNICODE); ?>,
+            kategori: <?php echo json_encode($d["kategori"], JSON_UNESCAPED_UNICODE); ?>,
+            harga: <?php echo json_encode(rentang_harga($d["harga_tiket"], $d["harga_maks"]), JSON_UNESCAPED_UNICODE); ?>,
+            url: <?php echo json_encode(BASE_URL . "destinasi/detail.php?id=" . (int) $d["id"], JSON_UNESCAPED_UNICODE); ?>
+        };
+        var daftar = JSON.parse(localStorage.getItem("dolan_recent") || "[]");
+        if (!Array.isArray(daftar)) { daftar = []; }
+        daftar = daftar.filter(function (x) { return x && x.id !== item.id; });
+        daftar.unshift(item);
+        localStorage.setItem("dolan_recent", JSON.stringify(daftar.slice(0, 4)));
+    } catch (e) {}
+})();
+//]]>
+</script>
+
 <?php require_once __DIR__ . "/../includes/footer.php"; ?>

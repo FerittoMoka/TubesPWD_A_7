@@ -176,6 +176,24 @@ if ($q_rev) {
 }
 
 $daftar_favorit = array();
+
+$wilayah_diy = array("Kota Yogyakarta", "Sleman", "Bantul", "Gunungkidul", "Kulon Progo");
+$wilayah_terjelajah = array();
+foreach ($riwayat_ulasan as $ru) {
+    foreach ($wilayah_diy as $wd) {
+        if (stripos((string) ($ru["lokasi_destinasi"] ?? ""), $wd) !== false) {
+            $wilayah_terjelajah[$wd] = true;
+        }
+    }
+}
+foreach ($daftar_favorit as $df) {
+    foreach ($wilayah_diy as $wd) {
+        if (stripos((string) ($df["lokasi"] ?? ""), $wd) !== false) {
+            $wilayah_terjelajah[$wd] = true;
+        }
+    }
+}
+
 $q_fav = mysqli_prepare(
     $conn,
     "SELECT d.id, d.nama, d.lokasi, d.foto, d.harga_tiket, d.harga_maks, c.nama AS kategori
@@ -229,6 +247,23 @@ if ($q_rcn) {
     mysqli_stmt_execute($q_rcn);
     $jml_rencana = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($q_rcn))["n"];
     mysqli_stmt_close($q_rcn);
+}
+
+$wilayah_diy = array("Kota Yogyakarta", "Sleman", "Bantul", "Gunungkidul", "Kulon Progo");
+$wilayah_terjelajah = array();
+foreach ($riwayat_ulasan as $ru) {
+    foreach ($wilayah_diy as $wd) {
+        if (stripos((string) ($ru["lokasi_destinasi"] ?? ""), $wd) !== false) {
+            $wilayah_terjelajah[$wd] = true;
+        }
+    }
+}
+foreach ($daftar_favorit as $df) {
+    foreach ($wilayah_diy as $wd) {
+        if (stripos((string) ($df["lokasi"] ?? ""), $wd) !== false) {
+            $wilayah_terjelajah[$wd] = true;
+        }
+    }
 }
 if ($jml_ulasan === 0) {
     $badge_traveler = "Wisatawan Baru";
@@ -320,6 +355,15 @@ require_once "../includes/header.php";
                     <div class="profil-meta-item">
                         <span>Bergabung Sejak</span>
                         <strong><?php echo e($tgl_gabung); ?></strong>
+                    </div>
+                </div>
+
+                <div class="paspor-wilayah">
+                    <span class="kecil">Jelajah Wilayah DIY (<?php echo count($wilayah_terjelajah); ?>/5)</span>
+                    <div class="paspor-wilayah-list">
+                        <?php foreach ($wilayah_diy as $wd) { ?>
+                            <span class="paspor-pill<?php echo isset($wilayah_terjelajah[$wd]) ? ' aktif' : ''; ?>"><?php echo e($wd); ?></span>
+                        <?php } ?>
                     </div>
                 </div>
 

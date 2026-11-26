@@ -160,8 +160,24 @@ require_once __DIR__ . "/../includes/header.php";
                         <input type="submit" value="Hitung" />
                     </div>
                 </form>
+                <div class="patungan-grid tidak-dicetak">
+                    <div>
+                        <label for="biaya-transport">Estimasi transportasi / bensin (Rp)</label>
+                        <input type="number" id="biaya-transport" min="0" step="5000" value="0" />
+                    </div>
+                    <div>
+                        <label for="biaya-konsumsi">Estimasi makan &amp; jajan (Rp)</label>
+                        <input type="number" id="biaya-konsumsi" min="0" step="5000" value="0" />
+                    </div>
+                </div>
+
                 <p class="total-label">Total estimasi tiket untuk <?php echo $orang; ?> orang</p>
                 <p class="total-angka"><?php echo e(rencana_harga($total_min * $orang, $total_maks * $orang)); ?></p>
+
+                <div class="patungan-hasil" id="patungan-hasil">
+                    <span>Total keseluruhan: <strong id="total-gabungan"><?php echo e(rencana_harga($total_min * $orang, $total_maks * $orang)); ?></strong></span>
+                    <span>Patungan per orang: <strong id="patungan-orang"><?php echo e(rencana_harga($total_min, $total_maks)); ?></strong></span>
+                </div>
                 <p class="kecil">Perkiraan dari data harga tiket; harga bisa berbeda saat hari libur. Belum termasuk transportasi dan makan.</p>
                 <div class="rencana-aksi tidak-dicetak">
                     <button type="button" class="tombol" onclick="cetakRencana();">Cetak</button>
@@ -241,6 +257,32 @@ function salinRingkasan() {
     try { document.execCommand("copy") ? ok() : gagal(); } catch (e) { gagal(); }
     document.body.removeChild(t);
 }
+
+(function () {
+    var inTrans = document.getElementById("biaya-transport");
+    var inKons  = document.getElementById("biaya-konsumsi");
+    var elTotal = document.getElementById("total-gabungan");
+    var elOrang = document.getElementById("patungan-orang");
+    if (!inTrans || !inKons || !elTotal || !elOrang) { return; }
+
+    var tiketMin = <?php echo (int) ($total_min * $orang); ?>;
+    var tiketMaks = <?php echo (int) ($total_maks * $orang); ?>;
+    var jmlOrang = <?php echo (int) $orang; ?>;
+
+    function rp(n) { return "Rp " + Math.round(n).toLocaleString("id-ID"); }
+    function fmt(a, b) { return a <= 0 && b <= 0 ? "Gratis" : (a === b ? rp(a) : rp(a) + " - " + rp(b)); }
+
+    function update() {
+        var extra = Math.max(0, parseInt(inTrans.value, 10) || 0) + Math.max(0, parseInt(inKons.value, 10) || 0);
+        var totMin = tiketMin + extra;
+        var totMaks = tiketMaks + extra;
+        elTotal.textContent = fmt(totMin, totMaks);
+        elOrang.textContent = fmt(totMin / jmlOrang, totMaks / jmlOrang);
+    }
+
+    inTrans.addEventListener("input", update);
+    inKons.addEventListener("input", update);
+})();
 //]]>
 </script>
 <?php require_once __DIR__ . "/../includes/footer.php"; ?>
