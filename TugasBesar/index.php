@@ -196,6 +196,7 @@ if (count($semua) >= 3) {
     $unggulan = array_slice($urut, 0, 3);
     $id_unggulan = array_map("intval", array_column($unggulan, "id"));
 }
+$hero_kartu = count($semua) >= 3 ? array_slice($urut, 0, 6) : array_slice($semua, 0, 6);
 
 $hero_kartu = count($semua) >= 3 ? array_slice($urut, 0, 6) : array_slice($semua, 0, 6);
 
@@ -215,22 +216,69 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
 
 <div class="hero">
     <div class="hero-isi">
-        <p class="atas">Informasi Pariwisata Yogyakarta</p>
-        <h1>Jogja lebih seru kalau tahu mau ke mana.</h1>
-        <p class="pengantar">Cari destinasi, cek harga tiket dan jam buka, lalu baca ulasan pengunjung sebelum berangkat.</p>
+        <div class="hero-grid">
+            <div class="hero-kiri">
+                <p class="atas">Informasi Pariwisata Yogyakarta</p>
+                <h1>Jogja lebih seru kalau tahu mau ke mana.</h1>
+                <p class="pengantar">Cari destinasi, cek harga tiket dan jam buka, lalu baca ulasan pengunjung sebelum berangkat.</p>
 
-        <form method="get" action="index.php#destinasi" class="form-cari" id="form-cari">
-            <input type="text" id="cari-input" name="cari" value="<?php echo e($cari); ?>" placeholder="Cari nama atau lokasi" maxlength="100" />
-            <input type="hidden" id="in-kategori" name="kategori" value="<?php echo e(implode(",", $kat_list)); ?>" />
-            <input type="hidden" id="in-mood" name="mood" value="<?php echo e(implode(",", $mood_list)); ?>" />
-            <input type="hidden" id="in-wilayah" name="wilayah" value="<?php echo e(implode(",", $wil_list)); ?>" />
-            <button type="submit" class="tombol">Cari</button>
-        </form>
+                <form method="get" action="index.php#destinasi" class="form-cari" id="form-cari">
+                    <div class="cari-bungkus">
+                        <input type="text" id="cari-input" name="cari" value="<?php echo e($cari); ?>" placeholder="Cari nama atau lokasi" maxlength="100" autocomplete="off" />
+                        <div class="cari-saran sembunyi" id="cari-saran"></div>
+                    </div>
+                    <input type="hidden" id="in-kategori" name="kategori" value="<?php echo e(implode(",", $kat_list)); ?>" />
+                    <input type="hidden" id="in-mood" name="mood" value="<?php echo e(implode(",", $mood_list)); ?>" />
+                    <input type="hidden" id="in-wilayah" name="wilayah" value="<?php echo e(implode(",", $wil_list)); ?>" />
+                    <button type="submit" class="tombol">Cari</button>
+                </form>
 
-        <div class="hero-angka">
-            <div><strong><?php echo $jml_dest; ?></strong><span>destinasi</span></div>
-            <div><strong><?php echo $jml_kat; ?></strong><span>kategori</span></div>
-            <div><strong><?php echo $jml_ulasan; ?></strong><span>ulasan</span></div>
+                <div class="hero-angka">
+                    <div><strong><?php echo $jml_dest; ?></strong><span>destinasi</span></div>
+                    <div><strong><?php echo $jml_kat; ?></strong><span>kategori</span></div>
+                    <div><strong><?php echo $jml_ulasan; ?></strong><span>ulasan</span></div>
+                </div>
+            </div>
+
+            <?php if (count($hero_kartu) > 0) { ?>
+            <div class="hero-carousel-wrap">
+                <div class="hero-track" id="heroTrack">
+                    <?php foreach ($hero_kartu as $hk) {
+                        $skor_h = ((int) $hk["jml_ulasan"] > 0) ? number_format((float) $hk["rata"], 1) : "Baru";
+                    ?>
+                        <a class="hero-kartu" href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $hk["id"]; ?>">
+                            <?php echo tampil_foto($hk["foto"], $hk["kategori"], $hk["nama"]); ?>
+                            <div class="hero-kartu-gradasi"></div>
+                            <div class="hero-kartu-atas">
+                                <span class="label"><?php echo e($hk["kategori"]); ?></span>
+                                <?php echo badge_buka($hk["jam_buka"]); ?>
+                            </div>
+                            <div class="hero-kartu-bawah">
+                                <h3><?php echo e($hk["nama"]); ?></h3>
+                                <p class="hero-kartu-lokasi"><?php echo e($hk["lokasi"]); ?></p>
+                                <div class="hero-kartu-meta">
+                                    <span>&#9733; <?php echo e($skor_h); ?> (<?php echo (int) $hk["jml_ulasan"]; ?>)</span>
+                                    <span><?php echo e(rentang_harga($hk["harga_tiket"], $hk["harga_maks"])); ?></span>
+                                </div>
+                            </div>
+                        </a>
+                    <?php } ?>
+                </div>
+
+                <div class="hero-nav-baris">
+                    <div class="hero-progress-wrap">
+                        <span class="hero-progress-teks" id="heroProgressTeks">1 / <?php echo count($hero_kartu); ?></span>
+                        <div class="hero-progress-jalur">
+                            <div class="hero-progress-isi" id="heroProgressIsi" style="width:<?php echo (int) round(100 / count($hero_kartu)); ?>%"></div>
+                        </div>
+                    </div>
+                    <div class="hero-panah-grup">
+                        <button type="button" class="hero-panah" id="heroPrev" title="Sebelumnya" aria-label="Kartu sebelumnya">&larr;</button>
+                        <button type="button" class="hero-panah" id="heroNext" title="Berikutnya" aria-label="Kartu berikutnya">&rarr;</button>
+                    </div>
+                </div>
+            </div>
+            <?php } ?>
         </div>
     </div>
     <div class="gelombang"></div>
