@@ -435,3 +435,8 @@ a.chip.aktif:hover { background: var(--coklat-jawa); border-color: var(--coklat-
 
 /* Baris pengurutan dan filter ulasan */
 .ulasan-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; }
+
+/* Status destinasi di tabel admin */
+.tag-aktif { background: #E3EEDC; color: #3F6B3A; }
+.tag-arsip { background: #F3DEDA; color: #9B2C2C; }
+tr.baris-arsip td { opacity: .65; }
