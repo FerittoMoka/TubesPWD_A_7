@@ -197,6 +197,8 @@ if (count($semua) >= 3) {
     $id_unggulan = array_map("intval", array_column($unggulan, "id"));
 }
 
+$hero_kartu = count($semua) >= 3 ? array_slice($urut, 0, 6) : array_slice($semua, 0, 6);
+
 // Tentukan baris mana yang tampil pada kondisi awal
 $jml_cocok = 0;
 foreach ($semua as $i => $d) {

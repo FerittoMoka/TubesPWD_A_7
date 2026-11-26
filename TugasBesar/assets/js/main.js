@@ -196,3 +196,129 @@ window.addEventListener("pageshow", function (e) {
             .catch(function () { btn.disabled = false; });
     });
 })();
+
+/* ---------- Hero Swipeable Cards + Progress Pill ---------- */
+(function () {
+    "use strict";
+    var track = document.getElementById("heroTrack");
+    var btnPrev = document.getElementById("heroPrev");
+    var btnNext = document.getElementById("heroNext");
+    var teksProg = document.getElementById("heroProgressTeks");
+    var isiProg = document.getElementById("heroProgressIsi");
+    if (!track) { return; }
+
+    var kartuList = track.querySelectorAll(".hero-kartu");
+    var totalKartu = kartuList.length;
+    var isDown = false;
+    var startX = 0;
+    var scrollLeft = 0;
+    var sudahGeser = false;
+
+    function updateProgress() {
+        if (totalKartu === 0) { return; }
+        var step = 283;
+        var aktif = Math.min(totalKartu, Math.max(1, Math.round(track.scrollLeft / step) + 1));
+        if (teksProg) { teksProg.textContent = aktif + " / " + totalKartu; }
+        if (isiProg) { isiProg.style.width = Math.round((aktif / totalKartu) * 100) + "%"; }
+    }
+
+    track.addEventListener("scroll", updateProgress);
+
+    track.addEventListener("mousedown", function (e) {
+        isDown = true;
+        sudahGeser = false;
+        track.classList.add("sedang-geser");
+        startX = e.pageX - track.offsetLeft;
+        scrollLeft = track.scrollLeft;
+    });
+
+    window.addEventListener("mouseup", function () {
+        if (!isDown) { return; }
+        isDown = false;
+        track.classList.remove("sedang-geser");
+    });
+
+    track.addEventListener("mousemove", function (e) {
+        if (!isDown) { return; }
+        e.preventDefault();
+        var x = e.pageX - track.offsetLeft;
+        var walk = (x - startX) * 1.4;
+        if (Math.abs(walk) > 6) { sudahGeser = true; }
+        track.scrollLeft = scrollLeft - walk;
+    });
+
+    Array.prototype.forEach.call(kartuList, function (link) {
+        link.addEventListener("click", function (e) {
+            if (sudahGeser) { e.preventDefault(); }
+        });
+    });
+
+    if (btnPrev) {
+        btnPrev.addEventListener("click", function () {
+            track.scrollBy({ left: -283, behavior: "smooth" });
+        });
+    }
+    if (btnNext) {
+        btnNext.addEventListener("click", function () {
+            track.scrollBy({ left: 283, behavior: "smooth" });
+        });
+    }
+})();
+
+/* ---------- Autocomplete Dropdown Form Cari Hero ---------- */
+(function () {
+    "use strict";
+    var input = document.getElementById("cari-input");
+    var box = document.getElementById("cari-saran");
+    var rows = document.querySelectorAll("#daftar-hasil .baris[data-teks]");
+    if (!input || !box || rows.length === 0) { return; }
+
+    var data = [];
+    Array.prototype.forEach.call(rows, function (r) {
+        var judul = r.querySelector("h3");
+        var meta = r.querySelector(".baris-meta");
+        var harga = r.querySelector(".baris-harga");
+        var link = r.querySelector("a[href]");
+        if (judul && link) {
+            data.push({
+                nama: judul.textContent.trim(),
+                meta: meta ? meta.textContent.trim() : "",
+                harga: harga ? harga.textContent.trim() : "",
+                url: link.getAttribute("href"),
+                teks: r.getAttribute("data-teks") || ""
+            });
+        }
+    });
+
+    function esc(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    input.addEventListener("input", function () {
+        var q = input.value.trim().toLowerCase();
+        if (q.length < 2) {
+            box.classList.add("sembunyi");
+            box.innerHTML = "";
+            return;
+        }
+        var cocok = data.filter(function (d) { return d.teks.indexOf(q) !== -1; }).slice(0, 5);
+        if (cocok.length === 0) {
+            box.classList.add("sembunyi");
+            box.innerHTML = "";
+            return;
+        }
+        box.innerHTML = cocok.map(function (d) {
+            return '<a class="cari-saran-item" href="' + esc(d.url) + '">' +
+                '<div><strong>' + esc(d.nama) + '</strong><span>' + esc(d.meta) + '</span></div>' +
+                '<span>' + esc(d.harga) + '</span>' +
+            '</a>';
+        }).join("");
+        box.classList.remove("sembunyi");
+    });
+
+    document.addEventListener("click", function (e) {
+        if (!box.contains(e.target) && e.target !== input) {
+            box.classList.add("sembunyi");
+        }
+    });
+})();

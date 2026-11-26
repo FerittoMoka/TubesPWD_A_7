@@ -545,3 +545,98 @@ tr.baris-arsip td { opacity: .65; }
 .acak-kartu { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
 .acak-nama { font-size: 18px; color: var(--soga-gelap); margin-left: 6px; }
 .acak-animasi { font-size: 14px; color: var(--coklat-jawa); }
+
+/* ===== Hero Split-Layout & Swipeable Cards ===== */
+.hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 36px;
+    align-items: center;
+}
+.hero-carousel-wrap { position: relative; min-width: 0; }
+.hero-track {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding: 8px 4px 16px;
+    scrollbar-width: none;
+    cursor: grab;
+}
+.hero-track::-webkit-scrollbar { display: none; }
+.hero-track.sedang-geser { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
+
+.hero-kartu {
+    position: relative;
+    flex: 0 0 265px;
+    height: 365px;
+    border-radius: 20px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    border: 1px solid rgba(197, 161, 90, 0.42);
+    box-shadow: 0 16px 32px rgba(24, 15, 10, 0.35);
+    transition: transform .25s ease, border-color .25s ease;
+    user-select: none;
+    display: block;
+    text-decoration: none;
+}
+.hero-kartu:hover { transform: translateY(-5px); border-color: var(--emas); }
+.hero-kartu > img,
+.hero-kartu > .foto-bingkai {
+    width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; pointer-events: none;
+}
+.hero-kartu-gradasi {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(38, 24, 18, 0.96) 0%, rgba(38, 24, 18, 0.35) 52%, rgba(38, 24, 18, 0.12) 100%);
+}
+.hero-kartu-atas {
+    position: absolute; top: 14px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+}
+.hero-kartu-bawah { position: absolute; left: 16px; right: 16px; bottom: 16px; color: var(--krem); }
+.hero-kartu-bawah h3 { color: var(--krem); font-size: 20px; margin: 0 0 4px; line-height: 1.25; }
+.hero-kartu-lokasi {
+    font-size: 13px; color: var(--pasir); margin: 0 0 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hero-kartu-meta { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--emas); }
+
+/* Navigasi panah & progress pill */
+.hero-nav-baris { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 6px; }
+.hero-progress-wrap { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 240px; }
+.hero-progress-teks { font-size: 12px; font-weight: 600; color: var(--pasir); white-space: nowrap; }
+.hero-progress-jalur { flex: 1; height: 4px; background: rgba(247, 242, 232, 0.18); border-radius: 999px; overflow: hidden; }
+.hero-progress-isi { height: 100%; background: var(--emas); border-radius: 999px; transition: width .2s ease; }
+.hero-panah-grup { display: flex; gap: 8px; }
+.hero-panah {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(197, 161, 90, 0.5);
+    background: rgba(247, 242, 232, 0.08);
+    color: var(--krem); font-size: 16px; cursor: pointer;
+    transition: background-color .2s ease, color .2s ease;
+}
+.hero-panah:hover { background: var(--emas); color: var(--kakao); }
+
+/* Autocomplete Dropdown Form Cari Hero */
+.cari-bungkus { position: relative; flex: 1; min-width: 0; }
+.cari-bungkus input[type="text"] { width: 100%; }
+.cari-saran {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+    background: #FFFFFF; border: 1px solid var(--pasir); border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(42, 26, 20, 0.18); overflow: hidden; text-align: left;
+}
+.cari-saran-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 10px 14px; text-decoration: none; color: var(--kakao);
+    border-bottom: 1px solid #F3ECE0; font-size: 14px;
+}
+.cari-saran-item:last-child { border-bottom: none; }
+.cari-saran-item:hover { background: #FAF5EC; }
+.cari-saran-item strong { display: block; color: var(--soga-gelap); }
+.cari-saran-item span { font-size: 12px; color: var(--coklat-jawa); }
+
+@media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 24px; }
+    .hero-kartu { flex: 0 0 240px; height: 330px; }
+}
