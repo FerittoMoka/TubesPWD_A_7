@@ -25,13 +25,30 @@ if (!$d) {
 $st = mysqli_prepare($conn, "SELECT r.id, r.user_id, r.rating, r.komentar, r.created_at, u.username FROM reviews r JOIN users u ON u.id = r.user_id WHERE r.destination_id = ? ORDER BY r.created_at DESC");
 mysqli_stmt_bind_param($st, "i", $id);
 mysqli_stmt_execute($st);
-$ulasan = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
+$ulasan_semua = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
 
+$distribusi = array(5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0);
 $milik = null;
-if (sudah_login()) {
-    foreach ($ulasan as $r) {
-        if ((int) $r["user_id"] === (int) $_SESSION["user_id"]) { $milik = $r; }
-    }
+foreach ($ulasan_semua as $r) {
+    $rt = (int) $r["rating"];
+    if (isset($distribusi[$rt])) { $distribusi[$rt]++; }
+    if (sudah_login() && (int) $r["user_id"] === (int) $_SESSION["user_id"]) { $milik = $r; }
+}
+
+$urut_ulasan = $_GET["urut"] ?? "terbaru";
+if (!in_array($urut_ulasan, array("terbaru", "tertinggi", "terendah"), true)) {
+    $urut_ulasan = "terbaru";
+}
+$filter_bintang = (int) ($_GET["bintang"] ?? 0);
+if ($filter_bintang < 1 || $filter_bintang > 5) { $filter_bintang = 0; }
+
+$ulasan = array_values(array_filter($ulasan_semua, function ($r) use ($filter_bintang) {
+    return $filter_bintang === 0 || (int) $r["rating"] === $filter_bintang;
+}));
+if ($urut_ulasan === "tertinggi") {
+    usort($ulasan, function ($a, $b) { return (int) $b["rating"] <=> (int) $a["rating"]; });
+} elseif ($urut_ulasan === "terendah") {
+    usort($ulasan, function ($a, $b) { return (int) $a["rating"] <=> (int) $b["rating"]; });
 }
 
 $tersimpan = false;
