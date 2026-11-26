@@ -12,3 +12,22 @@ if (!function_exists("daftar_mood")) {
         );
     }
 }
+
+// Wilayah (kabupaten/kota). Kunci = slug untuk URL dan atribut data, nilai = isi ENUM kolom destinations.wilayah.
+if (!function_exists("daftar_wilayah")) {
+    function daftar_wilayah() {
+        return array(
+            "kota-yogyakarta" => "Kota Yogyakarta",
+            "sleman"          => "Sleman",
+            "bantul"          => "Bantul",
+            "gunungkidul"     => "Gunungkidul",
+            "kulon-progo"     => "Kulon Progo",
+        );
+    }
+}
+if (!function_exists("slug_wilayah")) {
+    function slug_wilayah($label) {
+        $s = array_search((string) $label, daftar_wilayah(), true);
+        return $s === false ? "" : $s;
+    }
+}

@@ -1,10 +1,18 @@
 <?php
 require_once __DIR__ . "/../includes/init.php";
-require_once __DIR__ . "/../includes/wilayah.php";
 wajib_admin();
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     cek_csrf();
+    $aksi_post = $_POST["aksi"] ?? "";
+    if ($aksi_post === "arsip" || $aksi_post === "aktifkan") {
+        $id = (int) ($_POST["id"] ?? 0);
+        $status_baru = ($aksi_post === "arsip") ? "arsip" : "aktif";
+        $s = $conn->prepare("UPDATE destinations SET status=? WHERE id=?");
+        $s->bind_param("si", $status_baru, $id);
+        $s->execute();
+        flash("success", $status_baru === "arsip" ? "Destinasi diarsipkan dan disembunyikan dari pengunjung." : "Destinasi diaktifkan kembali.");
+    }
     if (($_POST["aksi"] ?? "") === "hapus") {
         $id = (int) ($_POST["id"] ?? 0);
         $s = $conn->prepare("SELECT foto FROM destinations WHERE id=?");
@@ -17,24 +25,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $s->execute();
             hapus_gambar("destinasi", $row["foto"]);
             flash("success", "Destinasi berhasil dihapus.");
-        } 
-    } elseif (($_POST["aksi"] ?? "") === "arsip") {
-        $id = (int) ($_POST["id"] ?? 0);
-        $s = $conn->prepare("UPDATE destinations SET status = IF(status = 'aktif', 'arsip', 'aktif') WHERE id = ?");
-        $s->bind_param("i", $id);
-        $s->execute();
-        flash("success", "Status destinasi berhasil diubah.");
+        }
     }
     redirect("admin/index.php");
 }
 
 function hitung($conn, $tabel) { return (int) $conn->query("SELECT COUNT(*) n FROM " . $tabel)->fetch_assoc()["n"]; }
-$n_aktif = (int) $conn->query("SELECT COUNT(*) n FROM destinations WHERE status='aktif'")->fetch_assoc()["n"];
-$n_arsip = (int) $conn->query("SELECT COUNT(*) n FROM destinations WHERE status='arsip'")->fetch_assoc()["n"];
 $stat = array(
     "Pengguna"  => hitung($conn, "users"),
-    "Destinasi aktif" => $n_aktif,
-    "Diarsipkan" => $n_arsip,
+    "Destinasi aktif" => (int) $conn->query("SELECT COUNT(*) n FROM destinations WHERE status='aktif'")->fetch_assoc()["n"],
     "Kategori"  => hitung($conn, "categories"),
     "Ulasan"    => hitung($conn, "reviews"),
     "Favorit"   => hitung($conn, "wishlists"),
@@ -51,29 +50,21 @@ $ulasan_baru = $conn->query("SELECT r.rating, r.komentar, r.created_at, u.userna
 // Pencarian & filter kategori untuk tabel "Data destinasi"
 $cari_admin = trim($_GET["q"] ?? "");
 $kat_admin = (int) ($_GET["kategori"] ?? 0);
-$wil_admin = $_GET["wilayah"] ?? "";
-if (!in_array($wil_admin, daftar_wilayah(), true)) { $wil_admin = ""; }
-$daftar_status_admin = daftar_status();
 $status_admin = $_GET["status"] ?? "";
-if (!isset($daftar_status_admin[$status_admin])) { $status_admin = ""; }
-$ada_filter_admin = ($cari_admin !== "" || $kat_admin > 0 || $wil_admin !== "" || $status_admin !== "");
+if (!in_array($status_admin, array("aktif", "arsip"), true)) { $status_admin = ""; }
+$ada_filter_admin = ($cari_admin !== "" || $kat_admin > 0 || $status_admin !== "");
 $daftar_kat = $conn->query("SELECT id, nama FROM categories ORDER BY nama")->fetch_all(MYSQLI_ASSOC);
 
 $sql_dest = "SELECT d.id, d.nama, d.lokasi, d.wilayah, d.status, d.harga_tiket, d.harga_maks, c.nama AS kategori
         FROM destinations d JOIN categories c ON c.id=d.category_id
-        WHERE (d.nama LIKE ? OR d.lokasi LIKE ? OR COALESCE(d.wilayah,'') LIKE ?)";
+        WHERE (d.nama LIKE ? OR d.lokasi LIKE ?)";
 $like_admin = "%" . $cari_admin . "%";
-$tipe_admin = "sss";
-$param_admin = array($like_admin, $like_admin, $like_admin);
+$tipe_admin = "ss";
+$param_admin = array($like_admin, $like_admin);
 if ($kat_admin > 0) {
     $sql_dest .= " AND d.category_id = ?";
     $tipe_admin .= "i";
     $param_admin[] = $kat_admin;
-}
-if ($wil_admin !== "") {
-    $sql_dest .= " AND d.wilayah = ?";
-    $tipe_admin .= "s";
-    $param_admin[] = $wil_admin;
 }
 if ($status_admin !== "") {
     $sql_dest .= " AND d.status = ?";
@@ -138,17 +129,10 @@ header_web("Panel Admin");
         <option value="<?php echo (int) $k["id"]; ?>"<?php if ($kat_admin === (int) $k["id"]) { echo ' selected="selected"'; } ?>><?php echo e($k["nama"]); ?></option>
         <?php } ?>
       </select>
-      <select name="wilayah">
-        <option value="">Semua wilayah</option>
-        <?php foreach (daftar_wilayah() as $w) { ?>
-        <option value="<?php echo e($w); ?>"<?php if ($wil_admin === $w) { echo ' selected="selected"'; } ?>><?php echo e($w); ?></option>
-        <?php } ?>
-      </select>
       <select name="status">
         <option value="">Semua status</option>
-        <?php foreach ($daftar_status_admin as $ks => $ls) { ?>
-        <option value="<?php echo e($ks); ?>"<?php if ($status_admin === $ks) { echo ' selected="selected"'; } ?>><?php echo e(ucfirst($ks)); ?></option>
-        <?php } ?>
+        <option value="aktif"<?php if ($status_admin === "aktif") { echo ' selected="selected"'; } ?>>Aktif</option>
+        <option value="arsip"<?php if ($status_admin === "arsip") { echo ' selected="selected"'; } ?>>Arsip</option>
       </select>
       <input type="submit" value="Cari" />
       <?php if ($ada_filter_admin) { ?><a href="<?php echo url("admin/index.php"); ?>#data-destinasi">Reset</a><?php } ?>
@@ -156,23 +140,23 @@ header_web("Panel Admin");
   </form>
   <p class="kecil"><?php echo (int) $rows->num_rows; ?> destinasi<?php echo $ada_filter_admin ? " cocok dengan filter" : ""; ?></p>
   <table>
-    <thead><tr><th>Nama destinasi</th><th>Kategori</th><th>Lokasi</th><th>Wilayah</th><th>Tiket</th><th>Status</th><th>Aksi</th></tr></thead>
+    <thead><tr><th>Nama destinasi</th><th>Kategori</th><th>Wilayah</th><th>Status</th><th>Lokasi</th><th>Tiket</th><th>Aksi</th></tr></thead>
     <tbody>
       <?php if ($rows->num_rows === 0) { ?>
       <tr><td colspan="7">Tidak ada destinasi yang cocok.</td></tr>
       <?php } ?>
       <?php while ($d = $rows->fetch_assoc()) { ?>
-      <tr<?php echo $d["status"] === "arsip" ? ' class="baris-arsip"' : ""; ?>>
+      <tr>
         <td><?php echo e($d["nama"]); ?></td>
         <td><?php echo e($d["kategori"]); ?></td>
+        <td><?php echo e($d["wilayah"] ?: "-"); ?></td>
+        <td><span class="badge-status <?php echo $d["status"] === "arsip" ? "arsip" : "aktif"; ?>"><?php echo $d["status"] === "arsip" ? "Arsip" : "Aktif"; ?></span></td>
         <td><?php echo e($d["lokasi"]); ?></td>
-        <td><?php echo e($d["wilayah"] ?? "-"); ?></td>
         <td><?php echo harga($d["harga_tiket"], $d["harga_maks"]); ?></td>
-        <td><span class="tag tag-<?php echo e($d["status"]); ?>"><?php echo $d["status"] === "aktif" ? "Aktif" : "Arsip"; ?></span></td>
         <td class="aksi">
           <a href="<?php echo url("admin/destinasi.php?id=" . (int) $d["id"]); ?>">Edit</a>
-          <?php echo form_aksi(url("admin/index.php"), "arsip", $d["id"], $d["status"] === "aktif" ? "Arsipkan" : "Aktifkan", $d["status"] === "aktif" ? "Sembunyikan destinasi ini dari situs?" : ""); ?>
-          <?php echo form_aksi(url("admin/index.php"), "hapus", $d["id"], "Hapus", "Hapus destinasi ini beserta ulasannya?"); ?>
+          <?php if ($d["status"] === "arsip") { echo form_aksi(url("admin/index.php"), "aktifkan", $d["id"], "Aktifkan"); } else { echo form_aksi(url("admin/index.php"), "arsip", $d["id"], "Arsipkan", "Arsipkan destinasi ini? Destinasi akan disembunyikan dari pengunjung, ulasan dan favorit tetap tersimpan."); } ?>
+          <?php echo form_aksi(url("admin/index.php"), "hapus", $d["id"], "Hapus permanen", "Hapus destinasi ini beserta ulasannya secara permanen?"); ?>
         </td>
       </tr>
       <?php } ?>

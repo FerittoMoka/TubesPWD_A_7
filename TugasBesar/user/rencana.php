@@ -60,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     } elseif ($aksi === "naik" || $aksi === "turun") {
         $hari = (int) $w["hari_ke"];
-        $st = mysqli_prepare($conn, "SELECT id FROM wishlists WHERE user_id = ? AND hari_ke = ? ORDER BY urutan, id");
+        $st = mysqli_prepare($conn, "SELECT w.id FROM wishlists w JOIN destinations d ON d.id = w.destination_id WHERE w.user_id = ? AND w.hari_ke = ? AND d.status = 'aktif' ORDER BY w.urutan, w.id");
         mysqli_stmt_bind_param($st, "ii", $uid, $hari);
         mysqli_stmt_execute($st);
         $ids = array_map("intval", array_column(mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC), "id"));
@@ -89,7 +89,7 @@ $st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.loka
     FROM wishlists w
     JOIN destinations d ON d.id = w.destination_id
     JOIN categories c ON c.id = d.category_id
-    WHERE w.user_id = ?
+    WHERE w.user_id = ? AND d.status = 'aktif'
     ORDER BY w.hari_ke, w.urutan, w.id");
 mysqli_stmt_bind_param($st, "i", $uid);
 mysqli_stmt_execute($st);

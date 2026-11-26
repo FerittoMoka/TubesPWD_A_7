@@ -16,7 +16,7 @@ if ($valid) {
     $sql = "SELECT d.id, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.foto, d.latitude, d.longitude, c.nama AS kategori,
         (6371 * ACOS(LEAST(1, COS(RADIANS(?)) * COS(RADIANS(d.latitude)) * COS(RADIANS(d.longitude) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(d.latitude))))) AS jarak
         FROM destinations d JOIN categories c ON c.id = d.category_id
-        WHERE d.latitude IS NOT NULL AND d.longitude IS NOT NULL";
+        WHERE d.latitude IS NOT NULL AND d.longitude IS NOT NULL AND d.status = 'aktif'";
 
     if ($maks_km > 0) {
         $sql .= " HAVING jarak <= ? ORDER BY jarak ASC LIMIT 20";
