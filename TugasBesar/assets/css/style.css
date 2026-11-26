@@ -439,3 +439,15 @@ a.chip.aktif:hover { background: var(--coklat-jawa); border-color: var(--coklat-
 .bintang-tampil { display: inline-flex; gap: 2px; font-size: 15px; line-height: 1; margin-left: 6px; vertical-align: middle; }
 .bintang-tampil .isi { color: var(--emas); }
 .bintang-tampil .kosong { color: var(--pasir); }
+
+/* Ringkasan rating di halaman detail */
+.rating-ringkas { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; margin: 6px 0 22px; padding-bottom: 18px; border-bottom: 1px solid var(--pasir); }
+.rating-skor-besar { text-align: center; min-width: 140px; }
+.rating-skor-besar strong { display: block; font-family: var(--font-judul); font-size: 52px; line-height: 1; color: var(--soga-gelap); }
+.rating-skor-besar span { font-size: 13px; color: var(--coklat-jawa); }
+.rating-bar-daftar { flex: 1; min-width: 240px; max-width: 520px; }
+.rating-bar-baris { display: grid; grid-template-columns: 64px 1fr 28px; gap: 10px; align-items: center; margin: 5px 0; font-size: 13px; }
+.rating-bar-label { color: var(--coklat-jawa); white-space: nowrap; }
+.rating-bar-jalur { height: 8px; background: var(--pasir); border-radius: 999px; overflow: hidden; }
+.rating-bar-isi { height: 100%; background: var(--emas); border-radius: 999px; }
+.rating-bar-jumlah { text-align: right; color: var(--coklat-jawa); }
