@@ -219,7 +219,7 @@ img { max-width: 100%; }
 /* ===== Badge Buka / Tutup ===== */
 .badge-buka { display: inline-block; margin-left: 6px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .04em; vertical-align: middle; }
 .badge-buka.buka { background: #E3EEDC; color: #3F6B3A; }
-.badge-buka .tutup { background: #F3DEDA; color: #9B2C2C; }
+.badge-buka.tutup { background: #F3DEDA; color: #9B2C2C; }
 
 /* ===== Rencana Dolan ===== */
 .total-label { margin: 8px 0 0; font-size: 13px; color: var(--coklat-jawa); }
@@ -390,25 +390,6 @@ img { max-width: 100%; }
 .filter-admin input[type="text"] { flex: 1 1 220px; min-width: 0; }
 .filter-admin select { padding: 10px 12px; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: inherit; color: var(--kakao); }
 
-.unggulan-teks .badge-buka .tutup { position: static; background: #F3DEDA; color: #9B2C2C; }
-
-/* ===== Filter beranda dinamis (ganti blok filter sebelumnya dengan ini, tempel di akhir style.css) ===== */
-.sembunyi { display: none !important; }
-
-.chip { cursor: pointer; }
-.chip .chip-x { display: none; margin-left: 8px; opacity: .7; font-weight: 700; }
-.chip.aktif .chip-x { display: inline; }
-a.chip.aktif:hover { background: var(--coklat-jawa); border-color: var(--coklat-jawa); color: var(--krem); }
-.chip.chip-terkunci { cursor: default; }
-.chip.chip-terkunci:hover { transform: none; background: var(--soga-gelap); border-color: var(--soga-gelap); color: var(--krem); }
-
-/* Transisi ringan saat baris/bagian muncul kembali setelah filter berubah */
-@keyframes muncul { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.baris, .unggulan, #pesan-kosong { animation: muncul .3s ease backwards; }
-@media (prefers-reduced-motion: reduce) {
-  .baris, .unggulan, #pesan-kosong { animation: none; }
-}
-
 /* ===== Filter beranda dinamis ===== */
 .sembunyi { display: none !important; }
 
@@ -451,3 +432,6 @@ a.chip.aktif:hover { background: var(--coklat-jawa); border-color: var(--coklat-
 .rating-bar-jalur { height: 8px; background: var(--pasir); border-radius: 999px; overflow: hidden; }
 .rating-bar-isi { height: 100%; background: var(--emas); border-radius: 999px; }
 .rating-bar-jumlah { text-align: right; color: var(--coklat-jawa); }
+
+/* Baris pengurutan dan filter ulasan */
+.ulasan-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; }
