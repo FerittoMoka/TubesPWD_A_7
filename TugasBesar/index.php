@@ -277,6 +277,23 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
                 <?php echo chip_filter($nama_wil, "wilayah", $slug, in_array($slug, $wil_list, true), url_beranda($cari, $mood_list, $kat_list, ganti_nilai($wil_list, $slug))); ?>
             <?php } ?>
         </div>
+
+        <div class="acak-kotak">
+            <div class="acak-kontrol">
+                <div>
+                    <strong>Bingung mau ke mana?</strong>
+                    <span class="kecil">Biarkan sistem memilihkan 1 destinasi kejutan untuk Anda.</span>
+                </div>
+                <div class="acak-tombol-grup">
+                    <select id="acak-anggaran" title="Filter anggaran">
+                        <option value="semua">Semua harga</option>
+                        <option value="hemat">Hemat (&lt;= Rp 15.000)</option>
+                    </select>
+                    <button type="button" class="tombol" id="btn-acak-destinasi">Acak Destinasi!</button>
+                </div>
+            </div>
+            <div class="acak-hasil sembunyi" id="acak-hasil"></div>
+        </div>
     </div>
 
     
@@ -363,4 +380,68 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
 </div>
 
 <script type="text/javascript" src="<?php echo BASE_URL; ?>assets/js/filter-beranda.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+(function () {
+    var btn = document.getElementById("btn-acak-destinasi");
+    var hasil = document.getElementById("acak-hasil");
+    var anggaran = document.getElementById("acak-anggaran");
+    if (!btn || !hasil) { return; }
+
+    var sumber = <?php
+        $pool = array();
+        foreach ($semua as $item) {
+            $pool[] = array(
+                "id" => (int) $item["id"],
+                "nama" => $item["nama"],
+                "kategori" => $item["kategori"],
+                "lokasi" => $item["lokasi"],
+                "harga_angka" => (int) $item["harga_tiket"],
+                "harga" => rentang_harga($item["harga_tiket"], $item["harga_maks"]),
+                "url" => BASE_URL . "destinasi/detail.php?id=" . (int) $item["id"]
+            );
+        }
+        echo json_encode($pool, JSON_UNESCAPED_UNICODE);
+    ?>;
+
+    function esc(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    btn.addEventListener("click", function () {
+        var mode = anggaran ? anggaran.value : "semua";
+        var kandidat = sumber.filter(function (d) {
+            return mode !== "hemat" || d.harga_angka <= 15000;
+        });
+        if (kandidat.length === 0) { kandidat = sumber; }
+        if (kandidat.length === 0) { return; }
+
+        btn.disabled = true;
+        btn.textContent = "Mengacak...";
+        hasil.classList.remove("sembunyi");
+
+        var putar = setInterval(function () {
+            var tmp = kandidat[Math.floor(Math.random() * kandidat.length)];
+            hasil.innerHTML = '<div class="acak-animasi">Memilih: <strong>' + esc(tmp.nama) + '</strong>...</div>';
+        }, 90);
+
+        setTimeout(function () {
+            clearInterval(putar);
+            var pilih = kandidat[Math.floor(Math.random() * kandidat.length)];
+            hasil.innerHTML =
+                '<div class="acak-kartu">' +
+                    '<div>' +
+                        '<span class="label">' + esc(pilih.kategori) + '</span> ' +
+                        '<strong class="acak-nama">' + esc(pilih.nama) + '</strong>' +
+                        '<p class="kecil">' + esc(pilih.lokasi) + ' &middot; <strong>' + esc(pilih.harga) + '</strong></p>' +
+                    '</div>' +
+                    '<a class="tombol" href="' + esc(pilih.url) + '">Lihat Detail</a>' +
+                '</div>';
+            btn.disabled = false;
+            btn.textContent = "Acak Lagi!";
+        }, 950);
+    });
+})();
+//]]>
+</script>
 <?php require_once "includes/footer.php"; ?>
