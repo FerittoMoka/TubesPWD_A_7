@@ -6,12 +6,10 @@
 
 > `TubesPWD_<Kelas>_<Kelompok>`.
 
-| No | Nama Lengkap | NPM | Bagian yang dikerjakan |
-|----|--------------|-----|-------|------------------------|
-| 1 | *Daniel Valentino Yonathan* | *250713197* | *Register, proses register, dan bonus* |
-| 2 | *Nama Anggota 2* | *NPM* | ** |
-| 3 | *Nama Anggota 3* | *NPM* | ** |
-| 4 | *Nama Anggota 4* | *NPM* | ** |
+| Nama | NPM | Bagian |
+|-------|----------|-------|
+| Daniel Valentino Y | 250713197 | Register, proses register, bonus |
+| Nama | NPM | bagian |
 
 
 ---
