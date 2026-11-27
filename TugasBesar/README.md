@@ -8,8 +8,9 @@
 |----|--------------|-----|-------|------------------------|
 | 1 | *Daniel Valentino Yonathan* | *250713197* | *Register, proses register, dan bonus* |
 | 2 | *Nama Anggota 2* | *NPM* | *mis. auth, profil, ulasan* |
-| 3 | *Nama Anggota 3* | *NM* | *mis. admin, database, rencana* |
+| 3 | *Nama Anggota 3* | *NPM* | *mis. admin, database, rencana* |
 | 4 | *Nama Anggota 4* | *NPM* | *mis. admin, database, rencana* |
+|----|--------------|-----|------------------------|
 
 ---
 
