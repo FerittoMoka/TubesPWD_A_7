@@ -274,3 +274,36 @@ CREATE TABLE IF NOT EXISTS rencana_hari (
     UNIQUE KEY unik_hari_rencana (user_id, hari_ke),
     CONSTRAINT fk_hari_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===== Jam buka destinasi batch kedua =====
+-- Perkiraan dari informasi publik (dicek November 2026); perbarui bila pengelola mengubahnya.
+-- Syarat "jam_buka kosong" membuat data yang sudah diisi admin tidak tertimpa saat impor ulang.
+UPDATE destinations SET jam_buka = '24 jam' WHERE nama IN (
+    'Jalan Malioboro', 'Tugu Pal Putih Yogyakarta', 'Alun-Alun Kidul Yogyakarta', 'Waduk Sermo',
+    'Pantai Glagah', 'Pantai Parangtritis', 'Gumuk Pasir Parangkusumo', 'Pantai Indrayanti',
+    'Pantai Pok Tunggal', 'Pantai Wediombo'
+) AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+
+UPDATE destinations SET jam_buka = '08.30 - 14.30 (Senin tutup)'
+ WHERE nama = 'Keraton Ngayogyakarta Hadiningrat' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '09.00 - 15.00'
+ WHERE nama = 'Taman Sari Yogyakarta' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '08.00 - 20.00 (Selasa - Kamis), 08.00 - 21.00 (Jumat - Minggu), Senin tutup'
+ WHERE nama = 'Museum Benteng Vredeburg' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '08.30 - 15.30'
+ WHERE nama = 'Taman Pintar Yogyakarta' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '08.00 - 17.00'
+ WHERE nama = 'Pasar Beringharjo' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '08.00 - 16.00'
+ WHERE nama IN ('Gembira Loka Zoo', 'Candi Sambisari') AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '06.30 - 16.30'
+ WHERE nama = 'Candi Ratu Boko' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '06.00 - 18.00'
+ WHERE nama IN ('Candi Ijo', 'Hutan Pinus Mangunan', 'Kebun Buah Mangunan', 'Puncak Becici')
+   AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '08.00 - 21.00 (akhir pekan 07.00)'
+ WHERE nama = 'Tebing Breksi' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '07.00 - 17.00'
+ WHERE nama IN ('Kalibiru', 'Goa Pindul') AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+UPDATE destinations SET jam_buka = '08.00 - 16.00 (Selasa - Minggu, Senin tutup)'
+ WHERE nama = 'Air Terjun Sri Gethuk' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');

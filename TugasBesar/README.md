@@ -107,6 +107,7 @@ TugasBesar/
 - Setiap hari punya jam mulai sendiri (disimpan di tabel `rencana_hari`, dibuat otomatis oleh `includes/rencana_jadwal.php`).
 - Dari jam mulai itu, halaman menghitung perkiraan **waktu tiba dan selesai** tiap destinasi memakai estimasi durasi per kategori dan kecepatan rata-rata 30 km/jam, termasuk jarak tempuh antartitik.
 - Jadwal dibandingkan dengan teks `jam_buka`: muncul peringatan bila tiba sebelum destinasi buka, tiba setelah tutup, atau perkiraan selesai melewati jam tutup. Destinasi tanpa data jam buka ditandai sekali per hari, bukan berulang di setiap baris.
+- Seluruh destinasi kini punya teks `jam_buka`. Data batch kedua diisi lewat blok `UPDATE` di akhir `database.sql` yang hanya menyentuh kolom kosong; nilainya perkiraan dari informasi publik (November 2026) dan sebaiknya dicek ulang sebelum dipakai sungguhan.
 - Jam mulai ikut tercetak di itinerary dan di teks tombol **Salin ringkasan**.
 
 ### Estimasi jarak & biaya transport (Rencana Dolan)
