@@ -230,6 +230,9 @@ require_once __DIR__ . "/../includes/header.php";
                 <span class="info-ikon" aria-hidden="true">&#128336;</span>
                 <span class="info-label">Jam operasional</span>
                 <strong><?php echo e($d["jam_buka"] ?: "Tidak tersedia"); ?></strong>
+                <?php if (label_hari_tutup($d["hari_tutup"] ?? "") !== "") { ?>
+                    <span class="kecil">Tutup setiap <?php echo e(label_hari_tutup($d["hari_tutup"])); ?></span>
+                <?php } ?>
             </div>
             <div class="info-praktis-item">
                 <span class="info-ikon" aria-hidden="true">&#9203;</span>

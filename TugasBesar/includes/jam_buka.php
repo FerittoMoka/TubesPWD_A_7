@@ -48,3 +48,45 @@ function badge_buka($jam) {
         ? '<span class="badge-buka buka" title="Berdasarkan waktu WIB">Buka sekarang</span>'
         : '<span class="badge-buka tutup" title="Berdasarkan waktu WIB">Tutup</span>';
 }
+
+/* ---------- Hari tutup destinasi ---------- */
+
+/* 1 = Senin ... 7 = Minggu, mengikuti date("N"). */
+function daftar_hari_pekan() {
+    return array(1 => "Senin", 2 => "Selasa", 3 => "Rabu", 4 => "Kamis", 5 => "Jumat", 6 => "Sabtu", 7 => "Minggu");
+}
+
+function slug_hari_pekan($n) {
+    $hari = daftar_hari_pekan();
+    $n = (int) $n;
+    return isset($hari[$n]) ? strtolower($hari[$n]) : "";
+}
+
+function label_hari_pekan($n) {
+    $hari = daftar_hari_pekan();
+    $n = (int) $n;
+    return isset($hari[$n]) ? $hari[$n] : "";
+}
+
+/* Isi kolom destinations.hari_tutup ("senin,rabu") -> daftar slug hari yang valid. */
+function hari_tutup_slug($teks) {
+    $sah = array();
+    foreach (daftar_hari_pekan() as $n => $label) { $sah[] = slug_hari_pekan($n); }
+    $hasil = array();
+    foreach (explode(",", (string) $teks) as $x) {
+        $x = strtolower(trim($x));
+        if (in_array($x, $sah, true) && !in_array($x, $hasil, true)) { $hasil[] = $x; }
+    }
+    return $hasil;
+}
+
+/* Label hari tutup untuk ditampilkan, mis. "Senin, Rabu". */
+function label_hari_tutup($teks) {
+    $label = array();
+    foreach (hari_tutup_slug($teks) as $slug) {
+        foreach (daftar_hari_pekan() as $n => $nama) {
+            if (slug_hari_pekan($n) === $slug) { $label[] = $nama; break; }
+        }
+    }
+    return implode(", ", $label);
+}

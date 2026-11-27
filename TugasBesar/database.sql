@@ -271,6 +271,7 @@ CREATE TABLE IF NOT EXISTS rencana_hari (
     user_id INT NOT NULL,
     hari_ke TINYINT NOT NULL,
     jam_mulai TIME NOT NULL DEFAULT '08:00:00',
+    hari_pekan TINYINT DEFAULT NULL,
     UNIQUE KEY unik_hari_rencana (user_id, hari_ke),
     CONSTRAINT fk_hari_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -307,3 +308,13 @@ UPDATE destinations SET jam_buka = '07.00 - 17.00'
  WHERE nama IN ('Kalibiru', 'Goa Pindul') AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
 UPDATE destinations SET jam_buka = '08.00 - 16.00 (Selasa - Minggu, Senin tutup)'
  WHERE nama = 'Air Terjun Sri Gethuk' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
+
+-- ===== Hari tutup destinasi =====
+-- Kolom berisi daftar hari tutup, mis. 'senin' atau 'senin,rabu'. NULL = buka setiap hari.
+ALTER TABLE destinations
+  ADD COLUMN hari_tutup SET('senin','selasa','rabu','kamis','jumat','sabtu','minggu') DEFAULT NULL AFTER jam_buka;
+
+UPDATE destinations SET hari_tutup = 'senin' WHERE nama IN (
+    'Keraton Yogyakarta', 'Keraton Ngayogyakarta Hadiningrat', 'Museum Benteng Vredeburg',
+    'Taman Pintar Yogyakarta', 'Air Terjun Sri Gethuk'
+);

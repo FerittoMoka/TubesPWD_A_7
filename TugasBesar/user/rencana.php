@@ -32,14 +32,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($aksi === "jam_hari") {
         $hari_jam  = (int) ($_POST["hari"] ?? 0);
         $mulai_jam = jam_ke_menit($_POST["jam_mulai"] ?? "");
+        $pekan_jam = (int) ($_POST["hari_pekan"] ?? 0);
+        if ($pekan_jam < 0 || $pekan_jam > 7) { $pekan_jam = 0; }
         if ($hari_jam < 1 || $hari_jam > $maks_hari) {
             $_SESSION["rencana_pesan"] = array("error", "Hari tidak valid.");
         } elseif ($mulai_jam === null) {
             $_SESSION["rencana_pesan"] = array("error", "Format jam mulai tidak valid (contoh 08:00).");
-        } elseif (!simpan_jam_mulai_hari($conn, $uid, $hari_jam, $mulai_jam)) {
+        } elseif (!simpan_jam_mulai_hari($conn, $uid, $hari_jam, $mulai_jam, $pekan_jam)) {
             $_SESSION["rencana_pesan"] = array("error", "Jam mulai gagal disimpan. Silakan coba lagi.");
         } else {
-            $_SESSION["rencana_pesan"] = array("sukses", "Hari ke-" . $hari_jam . " dimulai pukul " . menit_ke_jam($mulai_jam) . ".");
+            $_SESSION["rencana_pesan"] = array("sukses", "Hari ke-" . $hari_jam . " dimulai pukul " . menit_ke_jam($mulai_jam)
+                . ($pekan_jam > 0 ? " hari " . label_hari_pekan($pekan_jam) : "") . ".");
         }
         header("Location: " . $kembali);
         exit;
@@ -105,7 +108,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 /* ---------- Ambil data ---------- */
-$st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.jam_buka, d.harga_tiket, d.harga_maks, d.foto, d.latitude, d.longitude, c.nama AS kategori
+$st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.jam_buka, d.hari_tutup, d.harga_tiket, d.harga_maks, d.foto, d.latitude, d.longitude, c.nama AS kategori
     FROM wishlists w
     JOIN destinations d ON d.id = w.destination_id
     JOIN categories c ON c.id = d.category_id
@@ -137,14 +140,15 @@ foreach ($rows as $r) {
 ksort($hari_list);
 
 /* Jadwal jam per hari: waktu tiba/keluar tiap destinasi, jarak tempuh, dan peringatan jam buka. */
-$jam_mulai_hari = ambil_jam_mulai_hari($conn, $uid);
+$pengaturan_hari = ambil_pengaturan_hari($conn, $uid);
 $jadwal_hari = array();
 $jarak_hari = array();
 $jarak_total = 0.0;
 foreach ($hari_list as $h_j => $blok_j) {
-    $mulai_j = jam_ke_menit($jam_mulai_hari[$h_j] ?? "08:00");
+    $atur_j = $pengaturan_hari[$h_j] ?? array("jam" => "08:00", "pekan" => 0);
+    $mulai_j = jam_ke_menit($atur_j["jam"]);
     if ($mulai_j === null) { $mulai_j = 8 * 60; }
-    $jadwal_hari[$h_j] = susun_jadwal_hari($blok_j["item"], $mulai_j);
+    $jadwal_hari[$h_j] = susun_jadwal_hari($blok_j["item"], $mulai_j, (int) $atur_j["pekan"]);
     $jarak_hari[$h_j] = $jadwal_hari[$h_j]["km"];
     $jarak_total += $jadwal_hari[$h_j]["km"];
 }
@@ -161,7 +165,8 @@ $moda_transport = array(
 $teks = array("Rencana Dolan Jogja (" . $orang . " orang)", "");
 foreach ($hari_list as $h => $blok) {
     $jad_h_teks = $jadwal_hari[$h];
-    $teks[] = "Hari ke-" . $h . " (" . menit_ke_jam($jad_h_teks["mulai"]) . "-" . menit_ke_jam($jad_h_teks["selesai"])
+    $teks[] = "Hari ke-" . $h . " (" . ($jad_h_teks["pekan"] > 0 ? label_hari_pekan($jad_h_teks["pekan"]) . ", " : "")
+            . menit_ke_jam($jad_h_teks["mulai"]) . "-" . menit_ke_jam($jad_h_teks["selesai"])
             . ", " . number_format($jad_h_teks["km"], 1, ",", ".") . " km)";
     foreach ($blok["item"] as $i => $r) {
         $teks[] = ($i + 1) . ". " . menit_ke_jam($jad_h_teks["item"][$i]["tiba"]) . " " . $r["nama"] . " - " . $r["lokasi"]
@@ -269,7 +274,7 @@ require_once __DIR__ . "/../includes/header.php";
 
             <?php foreach ($hari_list as $h => $blok) { $jad_h = $jadwal_hari[$h]; ?>
                 <div class="panel">
-                    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; <?php echo e(menit_ke_jam($jad_h["mulai"])); ?>&ndash;<?php echo e(menit_ke_jam($jad_h["selesai"])); ?><?php if ($jad_h["km"] > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jad_h["km"], 1, ",", ".")); ?> km<?php } ?> &middot; subtotal <?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?></span></h3>
+                    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; <?php if ($jad_h["pekan"] > 0) { ?><?php echo e(label_hari_pekan($jad_h["pekan"])); ?> &middot; <?php } ?><?php echo e(menit_ke_jam($jad_h["mulai"])); ?>&ndash;<?php echo e(menit_ke_jam($jad_h["selesai"])); ?><?php if ($jad_h["km"] > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jad_h["km"], 1, ",", ".")); ?> km<?php } ?> &middot; subtotal <?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?></span></h3>
 
                     <form method="post" action="rencana.php" class="jadwal-hari tidak-dicetak">
                         <div class="inline">
@@ -277,6 +282,13 @@ require_once __DIR__ . "/../includes/header.php";
                             <input type="hidden" name="hari" value="<?php echo (int) $h; ?>" />
                             <label for="jam-hari-<?php echo (int) $h; ?>">Mulai pukul</label>
                             <input type="time" id="jam-hari-<?php echo (int) $h; ?>" name="jam_mulai" value="<?php echo e(jam_input($jad_h["mulai"])); ?>" step="300" />
+                            <label for="pekan-hari-<?php echo (int) $h; ?>">pada hari</label>
+                            <select id="pekan-hari-<?php echo (int) $h; ?>" name="hari_pekan" title="Hari kunjungan, dipakai untuk mengecek hari tutup">
+                                <option value="0">-</option>
+                                <?php foreach (daftar_hari_pekan() as $n_hari => $nama_hari) { ?>
+                                    <option value="<?php echo (int) $n_hari; ?>"<?php echo ((int) $jad_h["pekan"] === (int) $n_hari) ? ' selected="selected"' : ""; ?>><?php echo e($nama_hari); ?></option>
+                                <?php } ?>
+                            </select>
                             <button type="submit" name="aksi" value="jam_hari" class="btn-kecil">Atur jam</button>
                             <span class="kecil"><?php echo count($blok["item"]); ?> destinasi &middot; &plusmn; <?php echo e(jam_ringkas($jad_h["menit_kunjungan"])); ?> jam di lokasi<?php if ($jad_h["menit_jalan"] > 0) { ?> &middot; <?php echo (int) $jad_h["menit_jalan"]; ?> menit perjalanan<?php } ?></span>
                         </div>

@@ -1,13 +1,14 @@
 <?php
 require_once __DIR__ . "/../includes/init.php";
 require_once __DIR__ . "/../includes/mood.php";
+require_once __DIR__ . "/../includes/jam_buka.php";
 require_once __DIR__ . "/../includes/galeri.php";
 wajib_admin();
 pastikan_galeri_destinasi($conn);
 
 $id = (int) ($_GET["id"] ?? 0);
 $d = array("nama" => "", "category_id" => 0, "lokasi" => "", "deskripsi" => "", "harga_tiket" => 0,
-           "harga_maks" => "", "jam_buka" => "", "tag" => "", "wilayah" => "", "status" => "aktif", "latitude" => "", "longitude" => "", "foto" => null);
+           "harga_maks" => "", "jam_buka" => "", "hari_tutup" => "", "tag" => "", "wilayah" => "", "status" => "aktif", "latitude" => "", "longitude" => "", "foto" => null);
 if ($id) {
     $s = $conn->prepare("SELECT * FROM destinations WHERE id=?");
     $s->bind_param("i", $id);
@@ -35,11 +36,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $tag_str = implode(",", $tag_pilih);
     $wil_s = trim($_POST["wilayah"] ?? "");
     $wilayah_valid = ($wil_s === "" || in_array($wil_s, daftar_wilayah(), true));
+    // Hari tutup: hanya hari yang dikenal yang diterima.
+    $hari_sah = array();
+    foreach (daftar_hari_pekan() as $n_hari => $label_hari) { $hari_sah[] = slug_hari_pekan($n_hari); }
+    $tutup_pilih = array_values(array_intersect($hari_sah, (array) ($_POST["hari_tutup"] ?? array())));
+    $tutup_str = count($tutup_pilih) > 0 ? implode(",", $tutup_pilih) : null;
     $status_s = (($_POST["status"] ?? "aktif") === "arsip") ? "arsip" : "aktif";
 
     /* tampilkan kembali input jika ada error */
     $d = array_merge($d, array("nama" => $nama, "lokasi" => $lokasi, "deskripsi" => $desc, "category_id" => $cat,
-        "jam_buka" => $jam, "harga_tiket" => $tiket_s, "harga_maks" => $maks_s, "latitude" => $lat_s, "longitude" => $lng_s, "tag" => $tag_str, "wilayah" => $wil_s, "status" => $status_s));
+        "jam_buka" => $jam, "hari_tutup" => $tutup_str, "harga_tiket" => $tiket_s, "harga_maks" => $maks_s, "latitude" => $lat_s, "longitude" => $lng_s, "tag" => $tag_str, "wilayah" => $wil_s, "status" => $status_s));
 
     $kategori_valid = false;
     foreach ($daftar_kategori as $k) { if ((int) $k["id"] === $cat) { $kategori_valid = true; } }
@@ -74,11 +80,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             else { $foto_final = $foto_lama; }
 
             if ($id) {
-                $s = $conn->prepare("UPDATE destinations SET category_id=?, nama=?, lokasi=?, wilayah=?, deskripsi=?, harga_tiket=?, harga_maks=?, jam_buka=?, tag=?, status=?, latitude=?, longitude=?, foto=? WHERE id=?");
-                $s->bind_param("issssiisssddsi", $cat, $nama, $lokasi, $wilayah, $desc, $tiket, $maks, $jam, $tag, $status, $lat, $lng, $foto_final, $id);
+                $s = $conn->prepare("UPDATE destinations SET category_id=?, nama=?, lokasi=?, wilayah=?, deskripsi=?, harga_tiket=?, harga_maks=?, jam_buka=?, hari_tutup=?, tag=?, status=?, latitude=?, longitude=?, foto=? WHERE id=?");
+                $s->bind_param("issssiissssddsi", $cat, $nama, $lokasi, $wilayah, $desc, $tiket, $maks, $jam, $tutup_str, $tag, $status, $lat, $lng, $foto_final, $id);
             } else {
-                $s = $conn->prepare("INSERT INTO destinations (category_id,nama,lokasi,wilayah,deskripsi,harga_tiket,harga_maks,jam_buka,tag,status,latitude,longitude,foto) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-                $s->bind_param("issssiisssdds", $cat, $nama, $lokasi, $wilayah, $desc, $tiket, $maks, $jam, $tag, $status, $lat, $lng, $foto_final);
+                $s = $conn->prepare("INSERT INTO destinations (category_id,nama,lokasi,wilayah,deskripsi,harga_tiket,harga_maks,jam_buka,hari_tutup,tag,status,latitude,longitude,foto) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                $s->bind_param("issssiissssdds", $cat, $nama, $lokasi, $wilayah, $desc, $tiket, $maks, $jam, $tutup_str, $tag, $status, $lat, $lng, $foto_final);
             }
             $s->execute();
             $id_dest = $id ? $id : (int) mysqli_insert_id($conn);
@@ -119,6 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 $tag_aktif = ($d["tag"] ?? "") === "" ? array() : explode(",", $d["tag"]);
+$tutup_aktif = hari_tutup_slug($d["hari_tutup"] ?? "");
 
 header_web($id ? "Edit Destinasi" : "Tambah Destinasi");
 ?>
@@ -163,6 +170,14 @@ header_web($id ? "Edit Destinasi" : "Tambah Destinasi");
       <div><label for="latitude">Latitude</label><input type="text" id="latitude" name="latitude" value="<?php echo e($d["latitude"]); ?>" /></div>
       <div><label for="longitude">Longitude</label><input type="text" id="longitude" name="longitude" value="<?php echo e($d["longitude"]); ?>" /></div>
     </div>
+
+    <label>Hari tutup</label>
+    <div class="tag-pilihan">
+      <?php foreach (daftar_hari_pekan() as $n_hari => $label_hari) { $slug_hari = slug_hari_pekan($n_hari); ?>
+      <label class="cek"><input type="checkbox" name="hari_tutup[]" value="<?php echo e($slug_hari); ?>"<?php echo in_array($slug_hari, $tutup_aktif, true) ? ' checked="checked"' : ""; ?> /> <?php echo e($label_hari); ?></label>
+      <?php } ?>
+    </div>
+    <p class="kecil">Kosongkan bila destinasi buka setiap hari. Hari tutup dipakai untuk peringatan di Rencana Dolan.</p>
 
     <label>Cocok untuk (mood &amp; waktu kunjungan)</label>
     <div class="tag-pilihan">
