@@ -271,7 +271,6 @@ CREATE TABLE IF NOT EXISTS rencana_hari (
     user_id INT NOT NULL,
     hari_ke TINYINT NOT NULL,
     jam_mulai TIME NOT NULL DEFAULT '08:00:00',
-    hari_pekan TINYINT DEFAULT NULL,
     UNIQUE KEY unik_hari_rencana (user_id, hari_ke),
     CONSTRAINT fk_hari_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -325,6 +324,5 @@ UPDATE destinations SET hari_tutup = 'senin' WHERE nama IN (
 CREATE TABLE IF NOT EXISTS rencana_meta (
     user_id INT NOT NULL PRIMARY KEY,
     tanggal_mulai DATE DEFAULT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_meta_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
