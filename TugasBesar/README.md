@@ -29,12 +29,12 @@
 | Fitur | Keterangan singkat | Lokasi file |
 |-------|--------------------|-------------|
 | Beranda & pencarian | Hero, pencarian dengan autocomplete, chip filter suasana/kategori/wilayah, acak destinasi | `index.php`, `assets/js/main.js`, `assets/js/filter-beranda.js`, `includes/mood.php`, `includes/wilayah.php` |
-| Detail destinasi | Rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `destinasi/get.php` |
+| Detail destinasi | Galeri foto yang bisa digeser (slide), rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `includes/fungsi.php`, `assets/uploads/destinasi/galeri/<id>/` |
 | Ulasan | Tulis/ubah/hapus ulasan, filter bintang, urut terbaru/rating, vote "Membantu" & badge kontributor | `review/simpan.php`, `review/hapus.php`, `review/vote.php`, `includes/ulasan_bantuan.php` |
 | Peta interaktif | Leaflet + OpenStreetMap, filter kategori, pencarian, rute rencana, sorot destinasi dari halaman detail | `peta.php` |
-| Rencana Dolan | Simpan destinasi, atur hari & urutan, estimasi tiket, kalkulator patungan, cetak itinerary + QR | `user/rencana.php`, `user/toggle_rencana.php`, `assets/js/qrcode.js` |
+| Rencana Dolan | Simpan destinasi, atur hari & urutan, estimasi tiket, estimasi jarak & biaya transport, kalkulator patungan, cetak itinerary + QR | `user/rencana.php`, `user/toggle_rencana.php`, `assets/js/qrcode.js` |
 | Favorit | Tandai/lepas favorit tanpa reload, badge jumlah favorit | `user/toggle_favorit.php`, `user/wishlist.php` |
-| Terdekat | Geolocation browser + jarak Haversine | `destinasi/terdekat.php` |
+| Terdekat | Geolocation dua tahap + fallback Tugu Jogja, titik keberangkatan populer, hasil tanpa reload (AJAX), jarak Haversine | `destinasi/terdekat.php`, `assets/js/geolokasi.js` |
 | Akun | Registrasi (cek username/email real-time), login, logout, profil & foto, ganti password | `auth/*`, `user/profil.php` |
 | Admin | CRUD destinasi, kategori, moderasi ulasan, daftar pengguna | `admin/*`, `includes/init.php` |
 | Keamanan | Password `password_hash`, semua query `mysqli_prepare`, token CSRF di setiap form, escape output `e()` | `includes/auth.php`, `includes/csrf.php` |
@@ -69,3 +69,23 @@ TugasBesar/
 └── assets/                   css, js, dan upload gambar (dibuat otomatis saat unggah)
 ```
 
+
+---
+
+## 5. Catatan fitur terbaru
+
+### Galeri foto destinasi
+- Foto galeri disimpan per destinasi di `assets/uploads/destinasi/galeri/<id>/` (mis. `1.jpg`, `2.jpg`, `3.jpg`).
+- Halaman detail otomatis menampilkan semua foto di folder itu sebagai slide (panah, titik, dan geser). Bila folder kosong dipakai kolom `foto`; bila file itu juga tidak ada, tampil kartu monogram agar tidak ada ikon gambar rusak.
+- Contoh yang sudah terisi: Candi Prambanan (id 1), Pantai Parangtritis (id 3), Tebing Breksi (id 6), dan Jalan Malioboro (id 10).
+
+### Geolocation "Gunakan lokasi saya"
+- `assets/js/geolokasi.js` memakai dua tahap: lokasi jaringan (cepat) lalu akurasi tinggi, lengkap dengan pesan error spesifik dan tombol fallback Tugu Jogja.
+- Fitur ini hanya aktif di `http://localhost` / `http://127.0.0.1` atau HTTPS. Hasil terdekat dimuat tanpa reload halaman (JSON `terdekat.php?ajax=1`).
+- Untuk demo: DevTools > More tools > Sensors > Location = `-7.782889, 110.367083`.
+
+### Estimasi jarak & biaya transport (Rencana Dolan)
+- Jarak rute dihitung dari koordinat destinasi yang berurutan tiap hari (rumus Haversine), lalu dikalikan tarif moda: Motor Rp 1.500/km, Mobil Rp 2.500/km, Sewa mobil + driver Rp 6.000/km.
+
+### Indeks database
+- `database.sql` menambahkan indeks `idx_reviews_user`, `idx_wishlists_destination`, `idx_favorites_user`, `idx_favorites_destination`, dan `idx_dest_wilayah` untuk mempercepat join, filter wilayah, dan urutan rating.

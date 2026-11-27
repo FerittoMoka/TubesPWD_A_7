@@ -174,6 +174,17 @@ try {
     error_log("Dolan Jogja (index.php): " . $ex->getMessage());
 }
 
+/* Sebagian data lama belum mengisi kolom wilayah; tebak dari teks lokasi agar filter tetap berguna. */
+foreach ($semua as $i_w => $d_w) {
+    if ((string) ($d_w["wilayah"] ?? "") !== "") { continue; }
+    foreach ($wilayah_all as $slug_w => $nama_w) {
+        if (mb_stripos((string) $d_w["lokasi"], $nama_w, 0, "UTF-8") !== false) {
+            $semua[$i_w]["wilayah"] = $nama_w;
+            break;
+        }
+    }
+}
+
 $ada_filter = ($cari !== "" || count($mood_list) > 0 || count($kat_list) > 0 || count($wil_list) > 0);
 
 // Nama filter aktif untuk judul hasil
@@ -354,6 +365,33 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             <?php echo chip_filter("Semua wilayah", "wilayah", "", count($wil_list) === 0, url_beranda($cari, $mood_list, $kat_list, array())); ?>
             <?php foreach ($wilayah_all as $slug => $nama_wil) { ?>
                 <?php echo chip_filter($nama_wil, "wilayah", $slug, in_array($slug, $wil_list, true), url_beranda($cari, $mood_list, $kat_list, ganti_nilai($wil_list, $slug))); ?>
+            <?php } ?>
+        </div>
+
+        <?php
+        $ciri_wilayah = array(
+            "kota-yogyakarta" => "Budaya &amp; Kota",
+            "sleman"          => "Candi &amp; Lereng Merapi",
+            "bantul"          => "Hutan Pinus &amp; Gumuk Pasir",
+            "gunungkidul"     => "Pantai Pasir Putih &amp; Goa",
+            "kulon-progo"     => "Perbukitan Menoreh",
+        );
+        $jumlah_wilayah = array();
+        foreach ($wilayah_all as $slug_h => $nama_h) { $jumlah_wilayah[$slug_h] = 0; }
+        foreach ($semua as $d_h) {
+            $slug_h = slug_wilayah($d_h["wilayah"] ?? "");
+            if ($slug_h !== "" && isset($jumlah_wilayah[$slug_h])) { $jumlah_wilayah[$slug_h]++; }
+        }
+        ?>
+        <p class="muted">Mode jelajah wilayah <span class="kecil">(klik kartu untuk menyaring destinasi)</span></p>
+        <div class="wilayah-grid">
+            <?php foreach ($wilayah_all as $slug_j => $nama_j) { ?>
+                <a class="wilayah-kartu<?php echo in_array($slug_j, $wil_list, true) ? " aktif" : ""; ?>"
+                   href="<?php echo url_beranda($cari, $mood_list, $kat_list, array($slug_j)); ?>">
+                    <span class="wilayah-ciri"><?php echo $ciri_wilayah[$slug_j] ?? "Wilayah DIY"; ?></span>
+                    <strong><?php echo e($nama_j); ?></strong>
+                    <span class="wilayah-jumlah"><?php echo (int) $jumlah_wilayah[$slug_j]; ?> destinasi</span>
+                </a>
             <?php } ?>
         </div>
 

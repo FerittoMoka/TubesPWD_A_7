@@ -233,3 +233,10 @@ INSERT INTO destinations (
 (3, 'Pantai Wediombo', 'Jepitu, Girisubo, Gunungkidul', 10000, 15000, 'Pantai selatan Gunungkidul berbentuk teluk dengan pasir putih, batu karang, dan suasana alami.', -8.187718, 110.678831, 'pantai-wediombo.jpg'),
 (2, 'Goa Pindul', 'Bejiharjo, Karangmojo, Gunungkidul', 50000, 100000, 'Wisata susur sungai di dalam gua kapur menggunakan ban pelampung dengan pengalaman petualangan yang seru.', -7.928848, 110.646336, 'goa-pindul.jpg'),
 (2, 'Air Terjun Sri Gethuk', 'Bleberan, Playen, Gunungkidul', 20000, 30000, 'Air terjun di aliran Sungai Oyo, Gunungkidul, dengan suasana tebing alami dan akses wisata yang khas.', -7.893556, 110.547194, 'sri-gethuk.jpg');
+
+-- ===== Indeks tambahan untuk pencarian, filter wilayah, dan relasi antar tabel =====
+CREATE INDEX idx_reviews_user ON reviews (user_id);
+CREATE INDEX idx_wishlists_destination ON wishlists (destination_id);
+CREATE INDEX idx_favorites_user ON favorites (user_id);
+CREATE INDEX idx_favorites_destination ON favorites (destination_id);
+CREATE INDEX idx_dest_wilayah ON destinations (wilayah);

@@ -85,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 /* ---------- Ambil data ---------- */
-$st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.jam_buka, d.harga_tiket, d.harga_maks, d.foto, c.nama AS kategori
+$st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.jam_buka, d.harga_tiket, d.harga_maks, d.foto, d.latitude, d.longitude, c.nama AS kategori
     FROM wishlists w
     JOIN destinations d ON d.id = w.destination_id
     JOIN categories c ON c.id = d.category_id
@@ -116,6 +116,32 @@ foreach ($rows as $r) {
 }
 ksort($hari_list);
 
+/* Estimasi jarak rute: total jarak antar destinasi berurutan pada setiap hari. */
+$jarak_hari = array();
+$jarak_total = 0.0;
+foreach ($hari_list as $h_j => $blok_j) {
+    $km_hari = 0.0;
+    $sebelum = null;
+    foreach ($blok_j["item"] as $it_j) {
+        if ($sebelum !== null
+            && $it_j["latitude"] !== null && $it_j["longitude"] !== null
+            && $sebelum["latitude"] !== null && $sebelum["longitude"] !== null) {
+            $km_hari += jarak_km($sebelum["latitude"], $sebelum["longitude"], $it_j["latitude"], $it_j["longitude"]);
+        }
+        $sebelum = $it_j;
+    }
+    $jarak_hari[$h_j] = $km_hari;
+    $jarak_total += $km_hari;
+}
+$jarak_total = round($jarak_total, 1);
+
+/* Pilihan moda transportasi untuk perkiraan biaya per kilometer. */
+$moda_transport = array(
+    "motor" => array("label" => "Motor pribadi", "tarif" => 1500),
+    "mobil" => array("label" => "Mobil pribadi", "tarif" => 2500),
+    "sewa"  => array("label" => "Sewa mobil + driver", "tarif" => 6000),
+);
+
 // Teks ringkasan untuk tombol "Salin"
 $teks = array("Rencana Dolan Jogja (" . $orang . " orang)", "");
 foreach ($hari_list as $h => $blok) {
@@ -127,6 +153,7 @@ foreach ($hari_list as $h => $blok) {
     $teks[] = "";
 }
 $teks[] = "Total estimasi tiket: " . rencana_harga($total_min * $orang, $total_maks * $orang);
+$teks[] = "Estimasi jarak rute: " . number_format($jarak_total, 1, ",", ".") . " km (belum termasuk perjalanan pulang)";
 $ringkasan = implode("\n", $teks);
 
 $pesan = $_SESSION["rencana_pesan"] ?? null;
@@ -161,6 +188,8 @@ require_once __DIR__ . "/../includes/header.php";
             <div class="cetak-anggaran">
                 <span>Total estimasi tiket (<?php echo $orang; ?> orang): <strong><?php echo e(rencana_harga($total_min * $orang, $total_maks * $orang)); ?></strong></span>
                 <span>Patungan tiket per orang: <strong><?php echo e(rencana_harga($total_min, $total_maks)); ?></strong></span>
+                <span>Estimasi jarak rute: <strong><?php echo e(number_format($jarak_total, 1, ",", ".")); ?> km</strong></span>
+                <span class="cetak-biaya" id="cetak-biaya-transport">Estimasi transport: <strong>-</strong></span>
             </div>
         </div>
         <?php } ?>
@@ -183,6 +212,16 @@ require_once __DIR__ . "/../includes/header.php";
                     </div>
                 </form>
                 <div class="patungan-grid tidak-dicetak">
+                    <div>
+                        <label for="moda-transport">Moda transportasi (perkiraan biaya)</label>
+                        <select id="moda-transport">
+                            <option value="0">Isi biaya transport manual</option>
+                            <?php foreach ($moda_transport as $kunci_moda => $m) { ?>
+                                <option value="<?php echo (int) $m["tarif"]; ?>" data-moda="<?php echo e($kunci_moda); ?>"><?php echo e($m["label"]); ?> (&plusmn; <?php echo e(rupiah($m["tarif"])); ?>/km)</option>
+                            <?php } ?>
+                        </select>
+                        <p class="kecil moda-keterangan">Estimasi jarak rute: <strong><?php echo e(number_format($jarak_total, 1, ",", ".")); ?> km</strong>. Biaya transport terisi otomatis sesuai moda.</p>
+                    </div>
                     <div>
                         <label for="biaya-transport">Estimasi transportasi / bensin (Rp)</label>
                         <input type="number" id="biaya-transport" min="0" step="5000" value="0" />
@@ -212,7 +251,7 @@ require_once __DIR__ . "/../includes/header.php";
 
             <?php foreach ($hari_list as $h => $blok) { ?>
                 <div class="panel">
-                    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; subtotal <?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?></span></h3>
+                    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; subtotal <?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?><?php if (($jarak_hari[$h] ?? 0) > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jarak_hari[$h], 1, ",", ".")); ?> km<?php } ?></span></h3>
                     <div class="daftar">
                         <?php foreach ($blok["item"] as $i => $r) { ?>
                             <div class="baris baris-rencana">
@@ -291,27 +330,46 @@ function salinRingkasan() {
 (function () {
     var inTrans = document.getElementById("biaya-transport");
     var inKons  = document.getElementById("biaya-konsumsi");
+    var moda    = document.getElementById("moda-transport");
     var elTotal = document.getElementById("total-gabungan");
     var elOrang = document.getElementById("patungan-orang");
+    var cetakBiaya = document.getElementById("cetak-biaya-transport");
     if (!inTrans || !inKons || !elTotal || !elOrang) { return; }
 
     var tiketMin = <?php echo (int) ($total_min * $orang); ?>;
     var tiketMaks = <?php echo (int) ($total_maks * $orang); ?>;
     var jmlOrang = <?php echo (int) $orang; ?>;
+    var jarakKm = <?php echo json_encode((float) $jarak_total); ?>;
 
     function rp(n) { return "Rp " + Math.round(n).toLocaleString("id-ID"); }
     function fmt(a, b) { return a <= 0 && b <= 0 ? "Gratis" : (a === b ? rp(a) : rp(a) + " - " + rp(b)); }
 
     function update() {
-        var extra = Math.max(0, parseInt(inTrans.value, 10) || 0) + Math.max(0, parseInt(inKons.value, 10) || 0);
-        var totMin = tiketMin + extra;
-        var totMaks = tiketMaks + extra;
+        var trans = Math.max(0, parseInt(inTrans.value, 10) || 0);
+        var kons = Math.max(0, parseInt(inKons.value, 10) || 0);
+        var totMin = tiketMin + trans + kons;
+        var totMaks = tiketMaks + trans + kons;
         elTotal.textContent = fmt(totMin, totMaks);
         elOrang.textContent = fmt(totMin / jmlOrang, totMaks / jmlOrang);
+        if (cetakBiaya) {
+            cetakBiaya.innerHTML = "Estimasi transport: <strong>" + (trans > 0 ? rp(trans) : "-") + "</strong>";
+        }
+    }
+
+    /* Moda transportasi: biaya = jarak rute x tarif per km. */
+    if (moda) {
+        moda.addEventListener("change", function () {
+            var tarif = parseInt(moda.value, 10) || 0;
+            if (tarif > 0) {
+                inTrans.value = Math.round(jarakKm * tarif);
+            }
+            update();
+        });
     }
 
     inTrans.addEventListener("input", update);
     inKons.addEventListener("input", update);
+    update();
 })();
 
 /* Kode QR lokal untuk header cetak: dibuat di browser, tanpa layanan pihak ketiga */

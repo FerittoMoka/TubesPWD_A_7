@@ -107,6 +107,10 @@ require_once __DIR__ . "/includes/header.php";
                 <p class="peta-info-fokus">Menyorot: <strong><?php echo e($fokus_nama); ?></strong> &middot;
                     <a href="<?php echo BASE_URL; ?>peta.php">Tampilkan semua</a></p>
             <?php } ?>
+            <div class="peta-lokasi-baris">
+                <button type="button" class="tombol tombol-garis btn-kecil-peta" id="btnLokasiPeta">Gunakan lokasi saya</button>
+            </div>
+            <p class="kecil terdekat-status" id="status-lokasi-peta">Aktifkan lokasi untuk menandai posisi Anda di peta.</p>
             <input type="text" id="peta-cari" placeholder="Cari nama atau lokasi..." />
             <div class="peta-filter-kat" id="peta-filter-kat">
                 <button type="button" class="chip aktif" data-kat="0">Semua</button>
@@ -157,6 +161,51 @@ require_once __DIR__ . "/includes/header.php";
     var inputCari = document.getElementById("peta-cari");
     var filterKat = document.getElementById("peta-filter-kat");
     var btnRute = document.getElementById("btn-toggle-rute");
+
+    /* Posisi pengguna: pin biru "Posisi Anda" lalu kamera peta terbang ke titik itu. */
+    var btnLokasi = document.getElementById("btnLokasiPeta");
+    var statusLokasi = document.getElementById("status-lokasi-peta");
+    var markerSaya = null;
+
+    function setStatusLokasi(html, tipe) {
+        if (!statusLokasi) { return; }
+        statusLokasi.className = "kecil terdekat-status" + (tipe ? " status-" + tipe : "");
+        statusLokasi.innerHTML = html;
+    }
+
+    function tampilPosisi(lat, lng, sumber) {
+        if (markerSaya) { peta.removeLayer(markerSaya); }
+        var ikonSaya = L.divIcon({
+            className: "pin-anda-wrap",
+            html: '<div class="pin-anda"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
+        markerSaya = L.marker([lat, lng], { icon: ikonSaya, zIndexOffset: 1000 }).addTo(peta);
+        markerSaya.bindPopup('<strong>Posisi Anda</strong><br /><span class="kecil">Sumber: ' + esc(sumber) + '</span>');
+        markerSaya.openPopup();
+        peta.flyTo([lat, lng], 14, { duration: 0.8 });
+        setStatusLokasi("Posisi Anda: <strong>" + Number(lat).toFixed(5) + ", " + Number(lng).toFixed(5) + "</strong> (" + esc(sumber) + ")", "sukses");
+    }
+
+    if (btnLokasi && window.DolanLokasi) {
+        btnLokasi.addEventListener("click", function () {
+            window.DolanLokasi.cari({
+                status: statusLokasi,
+                tombol: btnLokasi,
+                onSukses: function (lat, lng, sumber) { tampilPosisi(lat, lng, sumber); }
+            });
+        });
+    }
+
+    document.addEventListener("click", function (e) {
+        var btn = e.target.closest ? e.target.closest("button.btn-titik-acuan") : null;
+        if (!btn) { return; }
+        var lat = parseFloat(btn.getAttribute("data-lat"));
+        var lng = parseFloat(btn.getAttribute("data-lng"));
+        if (isNaN(lat) || isNaN(lng)) { return; }
+        tampilPosisi(lat, lng, btn.getAttribute("data-label") || "titik acuan");
+    });
 
     var katAktif = 0;
     var markerMap = {};

@@ -44,6 +44,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" />
     <link rel="stylesheet" type="text/css" href="<?php echo BASE_URL; ?>assets/css/style.css" />
     <script type="text/javascript" src="<?php echo BASE_URL; ?>assets/js/main.js" defer="defer"></script>
+    <script type="text/javascript" src="<?php echo BASE_URL; ?>assets/js/geolokasi.js" defer="defer"></script>
 </head>
 <body>
 <div class="navbar">
