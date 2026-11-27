@@ -109,6 +109,7 @@ TugasBesar/
 - Jadwal dibandingkan dengan teks `jam_buka`: muncul peringatan bila tiba sebelum destinasi buka, tiba setelah tutup, atau perkiraan selesai melewati jam tutup. Destinasi tanpa data jam buka ditandai sekali per hari, bukan berulang di setiap baris.
 - Seluruh destinasi kini punya teks `jam_buka`. Data batch kedua diisi lewat blok `UPDATE` di akhir `database.sql` yang hanya menyentuh kolom kosong; nilainya perkiraan dari informasi publik (November 2026) dan sebaiknya dicek ulang sebelum dipakai sungguhan.
 - **Hari tutup** disimpan di kolom `destinations.hari_tutup` (SET hari, mis. `senin`; kosong = buka setiap hari) dan bisa diatur lewat centang di `admin/destinasi.php`. Halaman detail menampilkan "Tutup setiap …", sedangkan Rencana Dolan memakai pilihan hari per hari rencana (`rencana_hari.hari_pekan`) untuk memberi peringatan bila jadwal jatuh di hari tutup — bukan hanya membandingkan jam.
+- **Tanggal mulai** (`rencana_meta.tanggal_mulai`) memetakan hari ke-1, ke-2, dan seterusnya ke hari kalender, sehingga peringatan hari tutup muncul otomatis tanpa memilih hari tiap hari. Tanggal ikut tampil di judul hari, teks salin, dan header cetak; pilihan hari manual hanya dipakai bila tanggal mulai dikosongkan.
 - Jam mulai ikut tercetak di itinerary dan di teks tombol **Salin ringkasan**.
 
 ### Estimasi jarak & biaya transport (Rencana Dolan)

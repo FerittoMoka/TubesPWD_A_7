@@ -21,6 +21,15 @@ function pastikan_rencana_hari($conn) {
     if ($kolom && mysqli_num_rows($kolom) === 0) {
         @mysqli_query($conn, "ALTER TABLE rencana_hari ADD COLUMN hari_pekan TINYINT DEFAULT NULL AFTER jam_mulai");
     }
+
+    /* Tanggal mulai rencana: satu nilai per pengguna. */
+    @mysqli_query($conn, "CREATE TABLE IF NOT EXISTS rencana_meta (
+        user_id INT NOT NULL PRIMARY KEY,
+        tanggal_mulai DATE DEFAULT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_meta_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
     return $ok;
 }
 
@@ -41,17 +50,71 @@ function ambil_pengaturan_hari($conn, $uid) {
     return $hasil;
 }
 
-/* $pekan = 1 (Senin) sampai 7 (Minggu), 0/null bila hari tidak ditentukan. */
-function simpan_jam_mulai_hari($conn, $uid, $hari, $menit, $pekan = null) {
+/* $pekan = 1 (Senin) sampai 7 (Minggu), 0/null bila hari tidak ditentukan.
+   $ubah_pekan = false dipakai saat hari diturunkan dari tanggal mulai, agar pilihan manual tidak tertimpa. */
+function simpan_jam_mulai_hari($conn, $uid, $hari, $menit, $pekan = null, $ubah_pekan = true) {
     $jam = jam_input($menit) . ":00";
     $pekan = ($pekan === null || (int) $pekan < 1 || (int) $pekan > 7) ? null : (int) $pekan;
-    $st = @mysqli_prepare($conn, "INSERT INTO rencana_hari (user_id, hari_ke, jam_mulai, hari_pekan) VALUES (?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE jam_mulai = VALUES(jam_mulai), hari_pekan = VALUES(hari_pekan)");
-    if (!$st) { return false; }
-    mysqli_stmt_bind_param($st, "iisi", $uid, $hari, $jam, $pekan);
+    if ($ubah_pekan) {
+        $st = @mysqli_prepare($conn, "INSERT INTO rencana_hari (user_id, hari_ke, jam_mulai, hari_pekan) VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE jam_mulai = VALUES(jam_mulai), hari_pekan = VALUES(hari_pekan)");
+        if (!$st) { return false; }
+        mysqli_stmt_bind_param($st, "iisi", $uid, $hari, $jam, $pekan);
+    } else {
+        $st = @mysqli_prepare($conn, "INSERT INTO rencana_hari (user_id, hari_ke, jam_mulai) VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE jam_mulai = VALUES(jam_mulai)");
+        if (!$st) { return false; }
+        mysqli_stmt_bind_param($st, "iis", $uid, $hari, $jam);
+    }
     $ok = mysqli_stmt_execute($st);
     mysqli_stmt_close($st);
     return (bool) $ok;
+}
+
+/* Tanggal mulai rencana berformat Y-m-d, atau "" bila belum diatur. */
+function ambil_tanggal_mulai($conn, $uid) {
+    $st = @mysqli_prepare($conn, "SELECT DATE_FORMAT(tanggal_mulai, '%Y-%m-%d') AS tgl FROM rencana_meta WHERE user_id = ?");
+    if (!$st) { return ""; }
+    mysqli_stmt_bind_param($st, "i", $uid);
+    mysqli_stmt_execute($st);
+    $baris = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+    mysqli_stmt_close($st);
+    return $baris && $baris["tgl"] ? $baris["tgl"] : "";
+}
+
+/* $tanggal = "Y-m-d" atau null untuk mengosongkan. */
+function simpan_tanggal_mulai($conn, $uid, $tanggal) {
+    $st = @mysqli_prepare($conn, "INSERT INTO rencana_meta (user_id, tanggal_mulai) VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE tanggal_mulai = VALUES(tanggal_mulai)");
+    if (!$st) { return false; }
+    mysqli_stmt_bind_param($st, "is", $uid, $tanggal);
+    $ok = mysqli_stmt_execute($st);
+    mysqli_stmt_close($st);
+    return (bool) $ok;
+}
+
+/* Hari pekan (1 Senin .. 7 Minggu) dari tanggal Y-m-d; 0 bila tidak valid. */
+function pekan_dari_tanggal($tanggal) {
+    $t = DateTime::createFromFormat("Y-m-d", (string) $tanggal);
+    if (!$t || $t->format("Y-m-d") !== (string) $tanggal) { return 0; }
+    return (int) $t->format("N");
+}
+
+/* Tanggal untuk hari ke-$n, dihitung dari tanggal mulai. */
+function tanggal_hari_ke($mulai, $n) {
+    $t = DateTime::createFromFormat("Y-m-d", (string) $mulai);
+    if (!$t) { return null; }
+    $n = max(1, (int) $n);
+    if ($n > 1) { $t->modify("+" . ($n - 1) . " day"); }
+    return $t->format("Y-m-d");
+}
+
+/* "2026-11-30" -> "30 Nov 2026". */
+function tanggal_ringkas($tanggal) {
+    $t = DateTime::createFromFormat("Y-m-d", (string) $tanggal);
+    if (!$t) { return ""; }
+    $bulan = array(1 => "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des");
+    return $t->format("j") . " " . $bulan[(int) $t->format("n")] . " " . $t->format("Y");
 }
 
 /* "08:00" / "08.00" -> menit sejak 00.00; null bila tidak valid. */
@@ -111,9 +174,10 @@ function catatan_jam_buka($teks_jam, $tiba, $pulang) {
 /* Susun jadwal satu hari dari daftar item berurutan.
    $pekan = hari kunjungan (1 Senin .. 7 Minggu, 0 = belum ditentukan) untuk cek hari tutup.
    Perkiraan perjalanan memakai kecepatan rata-rata 30 km/jam, dibulatkan ke 5 menit. */
-function susun_jadwal_hari($items, $mulai, $pekan = 0) {
+function susun_jadwal_hari($items, $mulai, $pekan = 0, $tanggal = null) {
     $jadwal = array(
         "mulai" => $mulai, "selesai" => $mulai, "km" => 0.0, "pekan" => (int) $pekan,
+        "tanggal" => $tanggal,
         "menit_jalan" => 0, "menit_kunjungan" => 0, "item" => array(),
     );
     $waktu = $mulai;

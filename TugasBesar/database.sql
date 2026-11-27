@@ -11,7 +11,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, rencana_hari, favorites, wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, rencana_meta, rencana_hari, favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -318,3 +318,13 @@ UPDATE destinations SET hari_tutup = 'senin' WHERE nama IN (
     'Keraton Yogyakarta', 'Keraton Ngayogyakarta Hadiningrat', 'Museum Benteng Vredeburg',
     'Taman Pintar Yogyakarta', 'Air Terjun Sri Gethuk'
 );
+
+-- ===== Tanggal mulai Rencana Dolan =====
+-- Satu nilai per pengguna; hari ke-1..N dipetakan ke hari kalender dari tanggal ini.
+-- Juga dibuat otomatis oleh includes/rencana_jadwal.php saat halaman rencana dibuka.
+CREATE TABLE IF NOT EXISTS rencana_meta (
+    user_id INT NOT NULL PRIMARY KEY,
+    tanggal_mulai DATE DEFAULT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_meta_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
