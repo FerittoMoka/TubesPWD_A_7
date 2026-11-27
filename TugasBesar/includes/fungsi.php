@@ -52,33 +52,107 @@ function tampil_foto($foto, $kategori, $nama) {
 
 /*
  * Daftar foto galeri satu destinasi.
- * Konvensi folder: assets/uploads/destinasi/galeri/<id>/ (jpg, jpeg, png, webp),
- * diurutkan menurut nama file sehingga 1.jpg tampil lebih dulu.
+ * Sumber: baris tabel destination_photos (unggahan admin, ada keterangan),
+ * lalu berkas di assets/uploads/destinasi/galeri/<id>/ yang belum tercatat.
  */
 function galeri_destinasi($id) {
+    global $conn;
     $id = (int) $id;
     $hasil = array();
     if ($id <= 0) { return $hasil; }
 
     $folder = __DIR__ . "/../assets/uploads/destinasi/galeri/" . $id;
-    if (!is_dir($folder)) { return $hasil; }
+    $url_folder = BASE_URL . "assets/uploads/destinasi/galeri/" . $id . "/";
+    $sudah = array();
 
-    $berkas = glob($folder . "/*");
-    if (!$berkas) { return $hasil; }
-    sort($berkas, SORT_NATURAL);
-
-    $izin = array("jpg", "jpeg", "png", "webp");
-    foreach ($berkas as $jalur) {
-        if (!is_file($jalur)) { continue; }
-        $ext = strtolower(pathinfo($jalur, PATHINFO_EXTENSION));
-        if (!in_array($ext, $izin, true)) { continue; }
-        $nama_file = basename($jalur);
-        $hasil[] = array(
-            "berkas" => $nama_file,
-            "url"    => BASE_URL . "assets/uploads/destinasi/galeri/" . $id . "/" . rawurlencode($nama_file),
-        );
+    /* 1. Foto yang dikelola lewat panel admin. */
+    if (isset($conn) && $conn instanceof mysqli) {
+        $st = @mysqli_prepare($conn, "SELECT id, nama_file, keterangan FROM destination_photos WHERE destination_id = ? ORDER BY urutan, id");
+        if ($st) {
+            mysqli_stmt_bind_param($st, "i", $id);
+            mysqli_stmt_execute($st);
+            $baris = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
+            mysqli_stmt_close($st);
+            foreach ($baris as $b) {
+                $nama_file = basename((string) $b["nama_file"]);
+                if ($nama_file === "" || isset($sudah[$nama_file])) { continue; }
+                if (!is_file($folder . "/" . $nama_file)) { continue; }
+                $sudah[$nama_file] = true;
+                $hasil[] = array(
+                    "id"         => (int) $b["id"],
+                    "berkas"     => $nama_file,
+                    "url"        => $url_folder . rawurlencode($nama_file),
+                    "keterangan" => $b["keterangan"],
+                );
+            }
+        }
     }
+
+    /* 2. Berkas folder yang belum punya baris database. */
+    if (is_dir($folder)) {
+        $berkas = glob($folder . "/*");
+        if ($berkas) {
+            sort($berkas, SORT_NATURAL);
+            $izin = array("jpg", "jpeg", "png", "webp");
+            foreach ($berkas as $jalur) {
+                if (!is_file($jalur)) { continue; }
+                $ext = strtolower(pathinfo($jalur, PATHINFO_EXTENSION));
+                if (!in_array($ext, $izin, true)) { continue; }
+                $nama_file = basename($jalur);
+                if (isset($sudah[$nama_file])) { continue; }
+                $sudah[$nama_file] = true;
+                $hasil[] = array(
+                    "id"         => null,
+                    "berkas"     => $nama_file,
+                    "url"        => $url_folder . rawurlencode($nama_file),
+                    "keterangan" => null,
+                );
+            }
+        }
+    }
+
     return $hasil;
+}
+
+/* Jumlah foto galeri (termasuk foto utama) untuk lencana kelengkapan di admin. */
+function jumlah_foto_galeri($id) {
+    global $conn;
+    $n = count(galeri_destinasi($id));
+    if ($n === 0 && isset($conn) && $conn instanceof mysqli) {
+        $st = @mysqli_prepare($conn, "SELECT foto FROM destinations WHERE id = ?");
+        if ($st) {
+            $id = (int) $id;
+            mysqli_stmt_bind_param($st, "i", $id);
+            mysqli_stmt_execute($st);
+            $baris = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+            mysqli_stmt_close($st);
+            if ($baris && foto_ada($baris["foto"])) { $n = 1; }
+        }
+    }
+    return $n;
+}
+
+/* Estimasi durasi kunjungan berdasarkan kategori (dipakai strip info praktis). */
+function durasi_kunjungan($kategori) {
+    $k = strtolower(trim((string) $kategori));
+    if (strpos($k, "budaya") !== false) { return "1,5 - 2 jam"; }
+    if (strpos($k, "pantai") !== false) { return "2 - 3 jam"; }
+    if (strpos($k, "alam") !== false) { return "2 - 3 jam"; }
+    if (strpos($k, "viral") !== false) { return "1,5 - 2 jam"; }
+    if (strpos($k, "keluarga") !== false) { return "3 - 4 jam"; }
+    if (strpos($k, "belanja") !== false) { return "1 - 2 jam"; }
+    return "1,5 - 2 jam";
+}
+
+/* Keterangan akses & parkir ringkas berdasarkan kategori. */
+function akses_parkir($kategori) {
+    $k = strtolower(trim((string) $kategori));
+    if (strpos($k, "budaya") !== false) { return "Motor, mobil & bus"; }
+    if (strpos($k, "pantai") !== false) { return "Motor & mobil"; }
+    if (strpos($k, "alam") !== false) { return "Motor & mobil (jalan menanjak)"; }
+    if (strpos($k, "keluarga") !== false) { return "Motor, mobil & bus"; }
+    if (strpos($k, "belanja") !== false) { return "Motor & mobil, parkir area"; }
+    return "Motor & mobil";
 }
 
 /* Jarak dua koordinat (km) dengan rumus Haversine. */

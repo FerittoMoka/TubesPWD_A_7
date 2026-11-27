@@ -5,6 +5,7 @@ require_once __DIR__ . "/../includes/csrf.php";
 require_once __DIR__ . "/../includes/pesan.php";
 require_once __DIR__ . "/../includes/jam_buka.php";
 require_once __DIR__ . "/../includes/ulasan_bantuan.php";
+require_once __DIR__ . "/../includes/galeri.php";
 
 $id = (int) ($_GET["id"] ?? 0);
 $st = mysqli_prepare($conn, "SELECT d.*, c.nama AS kategori,
@@ -25,6 +26,9 @@ if (!$d) {
 
 /* Fitur "ulasan terbantu": tabel dibuat sekali per request bila belum ada. */
 $ada_bantuan = pastikan_bantuan_ulasan($conn);
+
+/* Galeri multi-slide: pastikan tabel destination_photos sudah ada. */
+pastikan_galeri_destinasi($conn);
 
 $sql_ulasan = "SELECT r.id, r.user_id, r.rating, r.komentar, r.created_at, u.username";
 if ($ada_bantuan) {
@@ -148,41 +152,88 @@ require_once __DIR__ . "/../includes/header.php";
     <?php if ($wl === "gagal") { ?><p class="error">Gagal memproses favorit. Silakan coba lagi.</p><?php } ?>
     <div class="panel">
         <?php
-        /* Galeri: semua foto di assets/uploads/destinasi/galeri/<id>/, lalu foto utama bila ada. */
-        $slide_galeri = array();
-        foreach (galeri_destinasi($d["id"]) as $g_galeri) { $slide_galeri[] = $g_galeri["url"]; }
-        if (count($slide_galeri) === 0 && foto_ada($d["foto"])) {
-            $slide_galeri[] = BASE_URL . "assets/uploads/destinasi/" . rawurlencode(basename((string) $d["foto"]));
+        /* Galeri: foto admin (destination_photos) + folder galeri/<id>/, lalu foto utama. */
+        $daftar_foto = galeri_destinasi($d["id"]);
+        if (count($daftar_foto) === 0 && foto_ada($d["foto"])) {
+            $berkas_utama = basename((string) $d["foto"]);
+            $daftar_foto[] = array(
+                "id"         => null,
+                "berkas"     => $berkas_utama,
+                "url"        => BASE_URL . "assets/uploads/destinasi/" . rawurlencode($berkas_utama),
+                "keterangan" => "Foto utama " . $d["nama"],
+            );
         }
-        $jml_slide = count($slide_galeri);
+        $jml_slide = count($daftar_foto);
         ?>
         <?php if ($jml_slide > 0) { ?>
-        <div class="galeri-destinasi" id="galeriDestinasi">
-            <div class="galeri-track" id="galeriTrack">
-                <?php foreach ($slide_galeri as $i_slide => $url_slide) { ?>
-                    <div class="galeri-slide">
-                        <img src="<?php echo e($url_slide); ?>" alt="Foto <?php echo e($d["nama"]); ?> (<?php echo $i_slide + 1; ?> dari <?php echo $jml_slide; ?>)" width="1200" height="800" />
-                    </div>
+        <div class="galeri-detail" id="galeriDestinasi">
+            <div class="galeri-viewport">
+                <div class="galeri-track" id="galeriTrack">
+                    <?php foreach ($daftar_foto as $i_slide => $f_slide) { ?>
+                        <div class="galeri-slide" data-index="<?php echo $i_slide; ?>">
+                            <img src="<?php echo e($f_slide["url"]); ?>" alt="<?php echo e($d["nama"] . " - Foto " . ($i_slide + 1)); ?>" width="1280" height="853" loading="<?php echo $i_slide === 0 ? "eager" : "lazy"; ?>" />
+                            <?php if (!empty($f_slide["keterangan"])) { ?>
+                                <span class="galeri-caption"><?php echo e($f_slide["keterangan"]); ?></span>
+                            <?php } ?>
+                        </div>
+                    <?php } ?>
+                </div>
+                <?php if ($jml_slide > 1) { ?>
+                    <button type="button" class="galeri-nav galeri-prev" id="galeriPrev" title="Foto sebelumnya" aria-label="Foto sebelumnya">&#8249;</button>
+                    <button type="button" class="galeri-nav galeri-next" id="galeriNext" title="Foto berikutnya" aria-label="Foto berikutnya">&#8250;</button>
                 <?php } ?>
+                <button type="button" class="galeri-zoom" id="galeriZoom" title="Perbesar foto" aria-label="Perbesar foto">Perbesar</button>
+                <span class="galeri-counter" id="galeriCounter">1 / <?php echo $jml_slide; ?></span>
             </div>
             <?php if ($jml_slide > 1) { ?>
-                <button type="button" class="galeri-nav galeri-prev" id="galeriPrev" title="Foto sebelumnya" aria-label="Foto sebelumnya">&larr;</button>
-                <button type="button" class="galeri-nav galeri-next" id="galeriNext" title="Foto berikutnya" aria-label="Foto berikutnya">&rarr;</button>
+                <div class="galeri-thumbs" id="galeriThumbs">
+                    <?php foreach ($daftar_foto as $i_slide => $f_slide) { ?>
+                        <button type="button" class="galeri-thumb<?php echo $i_slide === 0 ? " aktif" : ""; ?>" data-target="<?php echo $i_slide; ?>" title="<?php echo e($f_slide["keterangan"] ?: "Foto " . ($i_slide + 1)); ?>" aria-label="Foto <?php echo $i_slide + 1; ?>">
+                            <img src="<?php echo e($f_slide["url"]); ?>" alt="Thumbnail <?php echo $i_slide + 1; ?>" width="92" height="62" loading="lazy" />
+                        </button>
+                    <?php } ?>
+                </div>
             <?php } ?>
-            <div class="galeri-bar">
-                <span class="galeri-hitung"><span id="galeriSekarang">1</span> / <?php echo $jml_slide; ?></span>
+        </div>
+        <div class="galeri-lightbox" id="galeriLightbox" aria-hidden="true">
+            <div class="galeri-lightbox-isi">
+                <button type="button" class="galeri-lightbox-tutup" id="galeriTutup" title="Tutup" aria-label="Tutup">&times;</button>
                 <?php if ($jml_slide > 1) { ?>
-                    <div class="galeri-titik" id="galeriTitik">
-                        <?php for ($i_dot = 0; $i_dot < $jml_slide; $i_dot++) { ?>
-                            <button type="button" class="galeri-dot<?php echo $i_dot === 0 ? " aktif" : ""; ?>" data-slide="<?php echo $i_dot; ?>" aria-label="Foto <?php echo $i_dot + 1; ?>"></button>
-                        <?php } ?>
-                    </div>
+                    <button type="button" class="galeri-lightbox-nav kiri" id="galeriLbPrev" title="Foto sebelumnya" aria-label="Foto sebelumnya">&#8249;</button>
+                    <button type="button" class="galeri-lightbox-nav kanan" id="galeriLbNext" title="Foto berikutnya" aria-label="Foto berikutnya">&#8250;</button>
                 <?php } ?>
+                <img id="galeriLbImg" src="<?php echo e($daftar_foto[0]["url"]); ?>" alt="<?php echo e($d["nama"]); ?>" />
+                <p class="galeri-lightbox-ket">
+                    <span id="galeriLbCaption"><?php echo e($daftar_foto[0]["keterangan"]); ?></span>
+                    <span class="galeri-lightbox-hitung" id="galeriLbHitung">1 / <?php echo $jml_slide; ?></span>
+                </p>
             </div>
         </div>
         <?php } else { ?>
             <div class="galeri-destinasi galeri-kosong"><?php echo tampil_monogram($d["kategori"], $d["nama"]); ?></div>
         <?php } ?>
+        <div class="info-praktis">
+            <div class="info-praktis-item">
+                <span class="info-ikon" aria-hidden="true">&#127903;</span>
+                <span class="info-label">Tiket masuk</span>
+                <strong><?php echo e(rentang_harga($harga_min, $harga_maks)); ?></strong>
+            </div>
+            <div class="info-praktis-item">
+                <span class="info-ikon" aria-hidden="true">&#128336;</span>
+                <span class="info-label">Jam operasional</span>
+                <strong><?php echo e($d["jam_buka"] ?: "Tidak tersedia"); ?></strong>
+            </div>
+            <div class="info-praktis-item">
+                <span class="info-ikon" aria-hidden="true">&#9203;</span>
+                <span class="info-label">Estimasi durasi</span>
+                <strong><?php echo e(durasi_kunjungan($d["kategori"])); ?></strong>
+            </div>
+            <div class="info-praktis-item">
+                <span class="info-ikon" aria-hidden="true">&#128663;</span>
+                <span class="info-label">Akses &amp; parkir</span>
+                <strong><?php echo e(akses_parkir($d["kategori"])); ?></strong>
+            </div>
+        </div>
         <span class="label"><?php echo e($d["kategori"]); ?></span><?php echo badge_buka($d["jam_buka"]); ?>
         <h2><?php echo e($d["nama"]); ?></h2>
         <p><?php echo e($d["lokasi"]); ?></p>
@@ -478,53 +529,208 @@ require_once __DIR__ . "/../includes/header.php";
     area.addEventListener("input", perbarui);
     perbarui();
 })();
-/* Galeri foto destinasi: panah, titik, dan geser (scroll) */
+/* Galeri foto destinasi: swipe/drag, thumbnail, panah, hash, lightbox, preload */
 (function () {
     var kotak = document.getElementById("galeriDestinasi");
     var track = document.getElementById("galeriTrack");
     if (!kotak || !track) { return; }
-    var slide = track.querySelectorAll(".galeri-slide");
+    var slide = track.getElementsByClassName("galeri-slide");
     var total = slide.length;
     if (total < 1) { return; }
 
-    var prev = document.getElementById("galeriPrev");
-    var next = document.getElementById("galeriNext");
-    var hitung = document.getElementById("galeriSekarang");
-    var dots = document.querySelectorAll("#galeriTitik .galeri-dot");
-    var idx = 0;
+    var navPrev = document.getElementById("galeriPrev");
+    var navNext = document.getElementById("galeriNext");
+    var zoom = document.getElementById("galeriZoom");
+    var hitung = document.getElementById("galeriCounter");
+    var wadahThumb = document.getElementById("galeriThumbs");
+    var thumb = wadahThumb ? wadahThumb.getElementsByClassName("galeri-thumb") : [];
+    var lb = document.getElementById("galeriLightbox");
+    var lbImg = document.getElementById("galeriLbImg");
+    var lbCap = document.getElementById("galeriLbCaption");
+    var lbHitung = document.getElementById("galeriLbHitung");
+    var lbPrev = document.getElementById("galeriLbPrev");
+    var lbNext = document.getElementById("galeriLbNext");
+    var lbTutup = document.getElementById("galeriTutup");
 
-    function perbarui() {
-        if (hitung) { hitung.textContent = idx + 1; }
-        for (var i = 0; i < dots.length; i++) {
-            dots[i].classList.toggle("aktif", i === idx);
+    var idx = 0;
+    var programatik = false;
+    var mulaiX = 0;
+    var mulaiScroll = 0;
+    var geserJauh = 0;
+    var sedangGeser = false;
+    var blokirKlik = false;
+    var terlihat = true;
+
+    function keterangan(i) {
+        var cap = slide[i].getElementsByClassName("galeri-caption")[0];
+        return cap ? cap.textContent : "";
+    }
+
+    function perbarui(tulisHash) {
+        if (hitung) { hitung.textContent = (idx + 1) + " / " + total; }
+        for (var i = 0; i < thumb.length; i++) {
+            thumb[i].className = (i === idx) ? "galeri-thumb aktif" : "galeri-thumb";
         }
+        for (var j = 0; j < total; j++) {
+            var gambar = slide[j].getElementsByTagName("img")[0];
+            if (!gambar) { continue; }
+            gambar.setAttribute("loading", (j >= idx - 1 && j <= idx + 1) ? "eager" : "lazy");
+        }
+        if (tulisHash !== false && window.history && window.history.replaceState) {
+            try { window.history.replaceState(null, "", "#foto-" + (idx + 1)); } catch (e) {}
+        }
+        if (lb && lb.className.indexOf("buka") !== -1) { isiLightbox(); }
     }
 
     function ke(i) {
         idx = ((i % total) + total) % total;
+        programatik = true;
         if (track.scrollTo) {
             track.scrollTo({ left: idx * track.clientWidth, behavior: "smooth" });
         } else {
             track.scrollLeft = idx * track.clientWidth;
         }
         perbarui();
+        window.setTimeout(function () { programatik = false; }, 650);
+    }
+
+    function isiLightbox() {
+        if (!lb || !lbImg) { return; }
+        var gambar = slide[idx].getElementsByTagName("img")[0];
+        if (gambar) {
+            lbImg.src = gambar.getAttribute("src");
+            lbImg.alt = gambar.getAttribute("alt");
+        }
+        if (lbCap) { lbCap.textContent = keterangan(idx); }
+        if (lbHitung) { lbHitung.textContent = (idx + 1) + " / " + total; }
+    }
+
+    function bukaLightbox(i) {
+        if (!lb) { return; }
+        if (i !== idx) { ke(i); } else { perbarui(); }
+        isiLightbox();
+        lb.className = "galeri-lightbox buka";
+        lb.setAttribute("aria-hidden", "false");
+        if (document.body.className.indexOf("tanpa-scroll") === -1) {
+            document.body.className = (document.body.className + " tanpa-scroll").replace(/^\s+/, "");
+        }
+        if (lbTutup) { lbTutup.focus(); }
+    }
+
+    function tutupLightbox() {
+        if (!lb) { return; }
+        lb.className = "galeri-lightbox";
+        lb.setAttribute("aria-hidden", "true");
+        document.body.className = document.body.className.replace(/\s*tanpa-scroll/, "");
+        if (zoom) { zoom.focus(); }
     }
 
     track.addEventListener("scroll", function () {
-        if (track.clientWidth <= 0) { return; }
+        if (programatik || sedangGeser || track.clientWidth <= 0) { return; }
         var baru = Math.round(track.scrollLeft / track.clientWidth);
         if (baru !== idx && baru >= 0 && baru < total) { idx = baru; perbarui(); }
     });
 
-    if (prev) { prev.addEventListener("click", function () { ke(idx - 1); }); }
-    if (next) { next.addEventListener("click", function () { ke(idx + 1); }); }
-    for (var d = 0; d < dots.length; d++) {
-        (function (tombol, i) {
-            tombol.addEventListener("click", function () { ke(i); });
-        })(dots[d], d);
+    /* Geser dengan mouse (sentuhan memakai scroll native) */
+    track.addEventListener("mousedown", function (e) {
+        if (e.button !== 0) { return; }
+        sedangGeser = true;
+        geserJauh = 0;
+        mulaiX = e.pageX;
+        mulaiScroll = track.scrollLeft;
+        track.className = "galeri-track sedang-geser";
+        e.preventDefault();
+    });
+    document.addEventListener("mousemove", function (e) {
+        if (!sedangGeser) { return; }
+        geserJauh = e.pageX - mulaiX;
+        track.scrollLeft = mulaiScroll - geserJauh;
+    });
+    document.addEventListener("mouseup", function () {
+        if (!sedangGeser) { return; }
+        sedangGeser = false;
+        track.className = "galeri-track";
+        if (Math.abs(geserJauh) > 8) {
+            blokirKlik = true;
+            ke(idx + (geserJauh < 0 ? 1 : -1));
+            window.setTimeout(function () { blokirKlik = false; }, 350);
+        }
+    });
+
+    for (var s = 0; s < total; s++) {
+        (function (elemen, i) {
+            elemen.addEventListener("click", function () {
+                if (blokirKlik || sedangGeser) { return; }
+                bukaLightbox(i);
+            });
+        })(slide[s], s);
     }
 
+    if (zoom) { zoom.addEventListener("click", function () { bukaLightbox(idx); }); }
+    if (navPrev) { navPrev.addEventListener("click", function () { ke(idx - 1); }); }
+    if (navNext) { navNext.addEventListener("click", function () { ke(idx + 1); }); }
+    for (var d = 0; d < thumb.length; d++) {
+        (function (tombol, i) {
+            tombol.addEventListener("click", function () { ke(i); });
+        })(thumb[d], d);
+    }
+
+    if (lb) {
+        if (lbTutup) { lbTutup.addEventListener("click", tutupLightbox); }
+        if (lbPrev) { lbPrev.addEventListener("click", function () { ke(idx - 1); }); }
+        if (lbNext) { lbNext.addEventListener("click", function () { ke(idx + 1); }); }
+        lb.addEventListener("click", function (e) {
+            if (e.target === lb) { tutupLightbox(); }
+        });
+    }
+
+    if (window.IntersectionObserver) {
+        new window.IntersectionObserver(function (entri) {
+            terlihat = entri[0] ? entri[0].isIntersecting : true;
+        }, { threshold: 0.35 }).observe(kotak);
+    }
+
+    document.addEventListener("keydown", function (e) {
+        var kode = e.keyCode || 0;
+        var kiri = e.key === "ArrowLeft" || kode === 37;
+        var kanan = e.key === "ArrowRight" || kode === 39;
+        var lbBuka = lb && lb.className.indexOf("buka") !== -1;
+        if (e.key === "Escape" || kode === 27) {
+            if (lbBuka) { tutupLightbox(); }
+            return;
+        }
+        if (!kiri && !kanan) { return; }
+        if (lbBuka) {
+            e.preventDefault();
+            ke(idx + (kanan ? 1 : -1));
+            return;
+        }
+        if (!terlihat) { return; }
+        var tag = (e.target && e.target.tagName ? e.target.tagName : "").toLowerCase();
+        if (tag === "input" || tag === "textarea" || tag === "select") { return; }
+        e.preventDefault();
+        ke(idx + (kanan ? 1 : -1));
+    });
+
+    var cocok = /^#foto-(\d+)$/.exec(window.location.hash || "");
+    if (cocok) {
+        var awal = parseInt(cocok[1], 10) - 1;
+        if (!isNaN(awal) && awal >= 0 && awal < total) { idx = awal; }
+    }
+    if (track.scrollTo) {
+        track.scrollTo({ left: idx * track.clientWidth, behavior: "auto" });
+    } else {
+        track.scrollLeft = idx * track.clientWidth;
+    }
     perbarui();
+
+    window.addEventListener("resize", function () {
+        if (track.scrollTo) {
+            track.scrollTo({ left: idx * track.clientWidth, behavior: "auto" });
+        } else {
+            track.scrollLeft = idx * track.clientWidth;
+        }
+    });
 })();
 //]]>
 </script>

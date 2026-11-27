@@ -11,7 +11,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS review_helps, favorites, wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS destination_photos, review_helps, favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -240,3 +240,15 @@ CREATE INDEX idx_wishlists_destination ON wishlists (destination_id);
 CREATE INDEX idx_favorites_user ON favorites (user_id);
 CREATE INDEX idx_favorites_destination ON favorites (destination_id);
 CREATE INDEX idx_dest_wilayah ON destinations (wilayah);
+-- ===== Galeri foto multi-slide (detail destinasi) =====
+-- Tabel ini juga dibuat otomatis oleh includes/galeri.php saat halaman detail/admin dibuka.
+CREATE TABLE IF NOT EXISTS destination_photos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    destination_id INT NOT NULL,
+    nama_file VARCHAR(255) NOT NULL,
+    keterangan VARCHAR(150) DEFAULT NULL,
+    urutan TINYINT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_destinasi_foto (destination_id, urutan),
+    CONSTRAINT fk_foto_destinasi FOREIGN KEY (destination_id) REFERENCES destinations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

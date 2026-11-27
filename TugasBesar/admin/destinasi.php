@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . "/../includes/init.php";
 require_once __DIR__ . "/../includes/mood.php";
+require_once __DIR__ . "/../includes/galeri.php";
 wajib_admin();
+pastikan_galeri_destinasi($conn);
 
 $id = (int) ($_GET["id"] ?? 0);
 $d = array("nama" => "", "category_id" => 0, "lokasi" => "", "deskripsi" => "", "harga_tiket" => 0,
@@ -79,7 +81,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $s->bind_param("issssiisssdds", $cat, $nama, $lokasi, $wilayah, $desc, $tiket, $maks, $jam, $tag, $status, $lat, $lng, $foto_final);
             }
             $s->execute();
-            flash("success", $id ? "Destinasi berhasil diperbarui." : "Destinasi berhasil ditambahkan.");
+            $id_dest = $id ? $id : (int) mysqli_insert_id($conn);
+
+            /* Galeri: hapus foto terpilih, simpan keterangan, lalu unggah foto baru. */
+            foreach ((array) ($_POST["hapus_galeri"] ?? array()) as $foto_hapus) {
+                hapus_foto_galeri($conn, (int) $foto_hapus, $id_dest);
+            }
+            /* Foto lama yang hanya ada di folder (belum tercatat di database). */
+            foreach ((array) ($_POST["hapus_berkas"] ?? array()) as $berkas_hapus) {
+                $berkas_hapus = basename((string) $berkas_hapus);
+                if ($berkas_hapus === "" || $berkas_hapus === "." || $berkas_hapus === "..") { continue; }
+                $st_cek = mysqli_prepare($conn, "SELECT id FROM destination_photos WHERE destination_id = ? AND nama_file = ? LIMIT 1");
+                $masih_tercatat = false;
+                if ($st_cek) {
+                    mysqli_stmt_bind_param($st_cek, "is", $id_dest, $berkas_hapus);
+                    mysqli_stmt_execute($st_cek);
+                    $masih_tercatat = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($st_cek));
+                    mysqli_stmt_close($st_cek);
+                }
+                $jalur_hapus = __DIR__ . "/../assets/uploads/destinasi/galeri/" . $id_dest . "/" . $berkas_hapus;
+                if (!$masih_tercatat && is_file($jalur_hapus)) { @unlink($jalur_hapus); }
+            }
+            perbarui_keterangan_galeri($conn, $id_dest, $_POST["keterangan_foto"] ?? array());
+            $hasil_galeri = simpan_galeri_upload($conn, $id_dest, $_FILES["galeri_foto"] ?? array(), $_POST["galeri_keterangan"] ?? "");
+
+            $pesan_galeri = "";
+            if ($hasil_galeri["jumlah"] > 0) {
+                $pesan_galeri = " " . (int) $hasil_galeri["jumlah"] . " foto galeri ditambahkan.";
+            }
+            foreach ($hasil_galeri["galat"] as $galat_foto) {
+                $pesan_galeri .= " " . $galat_foto;
+            }
+            flash("success", ($id ? "Destinasi berhasil diperbarui." : "Destinasi berhasil ditambahkan.") . $pesan_galeri);
             redirect("admin/index.php");
         }
     }
@@ -143,6 +176,31 @@ header_web($id ? "Edit Destinasi" : "Tambah Destinasi");
       <option value="aktif"<?php echo ($d["status"] ?? "aktif") !== "arsip" ? ' selected="selected"' : ""; ?>>Aktif (tampil ke pengunjung)</option>
       <option value="arsip"<?php echo ($d["status"] ?? "aktif") === "arsip" ? ' selected="selected"' : ""; ?>>Arsip (disembunyikan)</option>
     </select>
+
+    <label>Galeri foto destinasi<?php if ($id) { echo " (" . count(galeri_destinasi($id)) . " foto)"; } ?></label>
+    <p class="kecil">Foto di bawah tampil sebagai slide di halaman detail. Isi keterangan bila perlu, centang "Hapus" untuk membuang foto saat menyimpan.</p>
+    <?php if ($id && count(galeri_destinasi($id)) > 0) { ?>
+    <div class="galeri-admin-grid">
+      <?php foreach (galeri_destinasi($id) as $f_galeri) { ?>
+      <div class="galeri-admin-item">
+        <img src="<?php echo e($f_galeri["url"]); ?>" alt="Foto galeri" width="170" height="110" />
+        <?php if ($f_galeri["id"] !== null) { ?>
+        <input type="text" name="keterangan_foto[<?php echo (int) $f_galeri["id"]; ?>]" value="<?php echo e($f_galeri["keterangan"]); ?>" maxlength="150" placeholder="Keterangan foto" />
+        <label class="cek"><input type="checkbox" name="hapus_galeri[]" value="<?php echo (int) $f_galeri["id"]; ?>" /> Hapus foto ini</label>
+        <?php } else { ?>
+        <span class="kecil">Foto dari folder galeri (tanpa keterangan)</span>
+        <label class="cek"><input type="checkbox" name="hapus_berkas[]" value="<?php echo e($f_galeri["berkas"]); ?>" /> Hapus foto ini</label>
+        <?php } ?>
+      </div>
+      <?php } ?>
+    </div>
+    <?php } else { ?>
+    <p class="muted kecil">Belum ada foto galeri untuk destinasi ini.</p>
+    <?php } ?>
+    <label for="galeri_foto">Tambah foto galeri (bisa banyak sekaligus, JPG/PNG/WEBP, maks. 5 MB per foto)</label>
+    <input type="file" id="galeri_foto" name="galeri_foto[]" multiple="multiple" accept="image/jpeg,image/png,image/webp" />
+    <label for="galeri_keterangan">Keterangan untuk foto baru (opsional)</label>
+    <input type="text" id="galeri_keterangan" name="galeri_keterangan" maxlength="150" placeholder="mis. Area pelataran utama" />
 
     <label for="input-foto">Foto destinasi (JPG/PNG/WEBP, maks. 2 MB)</label>
     <?php if (!empty($d["foto"])) { ?>

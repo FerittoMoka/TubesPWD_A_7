@@ -29,7 +29,7 @@
 | Fitur | Keterangan singkat | Lokasi file |
 |-------|--------------------|-------------|
 | Beranda & pencarian | Hero, pencarian dengan autocomplete, chip filter suasana/kategori/wilayah, acak destinasi | `index.php`, `assets/js/main.js`, `assets/js/filter-beranda.js`, `includes/mood.php`, `includes/wilayah.php` |
-| Detail destinasi | Galeri foto yang bisa digeser (slide), rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `includes/fungsi.php`, `assets/uploads/destinasi/galeri/<id>/` |
+| Detail destinasi | Galeri horizontal (swipe/drag, thumbnail, caption, lightbox, keyboard), strip info praktis, rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `includes/fungsi.php`, `includes/galeri.php`, `assets/uploads/destinasi/galeri/<id>/` |
 | Ulasan | Tulis/ubah/hapus ulasan, filter bintang, urut terbaru/rating, vote "Membantu" & badge kontributor | `review/simpan.php`, `review/hapus.php`, `review/vote.php`, `includes/ulasan_bantuan.php` |
 | Peta interaktif | Leaflet + OpenStreetMap, filter kategori, pencarian, rute rencana, sorot destinasi dari halaman detail | `peta.php` |
 | Rencana Dolan | Simpan destinasi, atur hari & urutan, estimasi tiket, estimasi jarak & biaya transport, kalkulator patungan, cetak itinerary + QR | `user/rencana.php`, `user/toggle_rencana.php`, `assets/js/qrcode.js` |
@@ -74,10 +74,18 @@ TugasBesar/
 
 ## 5. Catatan fitur terbaru
 
-### Galeri foto destinasi
-- Foto galeri disimpan per destinasi di `assets/uploads/destinasi/galeri/<id>/` (mis. `1.jpg`, `2.jpg`, `3.jpg`).
-- Halaman detail otomatis menampilkan semua foto di folder itu sebagai slide (panah, titik, dan geser). Bila folder kosong dipakai kolom `foto`; bila file itu juga tidak ada, tampil kartu monogram agar tidak ada ikon gambar rusak.
-- Contoh yang sudah terisi: Candi Prambanan (id 1), Pantai Parangtritis (id 3), Tebing Breksi (id 6), dan Jalan Malioboro (id 10).
+### Galeri foto horizontal destinasi
+- Galeri multi-slide di `destinasi/detail.php`: geser dengan sentuhan/mouse, tombol panah, thumbnail, penghitung `1 / 3`, caption foto, dan lightbox layar penuh (klik foto, tombol `Esc` untuk menutup).
+- Panah keyboard kiri/kanan aktif saat galeri terlihat, posisi slide tersimpan di URL hash (`#foto-2`), dan slide tetangga dipreload agar transisi tidak kosong.
+- Sumber foto: tabel `destination_photos` (unggahan admin, punya caption) lalu berkas di `assets/uploads/destinasi/galeri/<id>/`. Bila keduanya kosong dipakai kolom `foto`; bila file itu juga tidak ada, tampil kartu monogram.
+- Contoh folder yang sudah terisi: Candi Prambanan (id 1), Pantai Parangtritis (id 3), Tebing Breksi (id 6), dan Jalan Malioboro (id 10).
+- Di bawah galeri ada strip info praktis: tiket masuk, jam operasional, estimasi durasi kunjungan, dan akses/parkir (durasi & akses diturunkan dari kategori).
+
+### Kelola galeri dari panel admin (`admin/destinasi.php`)
+- Input `galeri_foto[]` bisa memilih banyak foto sekaligus (JPG/PNG/WEBP, maks. 5 MB/foto). Foto otomatis diperkecil ke lebar maks. 1280 px dan dikompres JPEG kualitas 82 lewat GD (`simpan_gambar_teroptimasi()`).
+- Setiap foto punya kolom keterangan (caption) dan centang **Hapus foto ini** yang diproses saat menyimpan.
+- Tabel `admin/index.php` menampilkan lencana jumlah foto: hijau `3+ Foto`, kuning `1-2 Foto`, merah `0 Foto`.
+- Tabel `destination_photos` dibuat otomatis oleh `includes/galeri.php` bila belum ada, dan juga tersedia di `database.sql` untuk impor bersih.
 
 ### Geolocation "Gunakan lokasi saya"
 - `assets/js/geolokasi.js` memakai dua tahap: lokasi jaringan (cepat) lalu akurasi tinggi, lengkap dengan pesan error spesifik dan tombol fallback Tugu Jogja.

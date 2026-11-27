@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . "/../includes/init.php";
+require_once __DIR__ . "/../includes/galeri.php";
 wajib_admin();
+pastikan_galeri_destinasi($conn);
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     cek_csrf();
@@ -157,16 +159,18 @@ header_web("Panel Admin");
   </form>
   <p class="kecil"><?php echo (int) $rows->num_rows; ?> destinasi<?php echo $ada_filter_admin ? " cocok dengan filter" : ""; ?></p>
   <table>
-    <thead><tr><th>Nama destinasi</th><th>Kategori</th><th>Wilayah</th><th>Status</th><th>Lokasi</th><th>Tiket</th><th>Aksi</th></tr></thead>
+    <thead><tr><th>Nama destinasi</th><th>Kategori</th><th>Wilayah</th><th>Foto</th><th>Status</th><th>Lokasi</th><th>Tiket</th><th>Aksi</th></tr></thead>
     <tbody>
       <?php if ($rows->num_rows === 0) { ?>
-      <tr><td colspan="7">Tidak ada destinasi yang cocok.</td></tr>
+      <tr><td colspan="8">Tidak ada destinasi yang cocok.</td></tr>
       <?php } ?>
       <?php while ($d = $rows->fetch_assoc()) { ?>
       <tr>
         <td><?php echo e($d["nama"]); ?></td>
         <td><?php echo e($d["kategori"]); ?></td>
         <td><?php echo e($d["wilayah"] ?: "-"); ?></td>
+        <?php $n_foto_admin = jumlah_foto_galeri((int) $d["id"]); ?>
+        <td><span class="badge-foto <?php echo $n_foto_admin >= 3 ? "lengkap" : ($n_foto_admin > 0 ? "kurang" : "kosong"); ?>" title="<?php echo $n_foto_admin >= 3 ? "Galeri lengkap" : "Foto galeri masih kurang dari 3"; ?>"><?php echo (int) $n_foto_admin; ?> Foto</span></td>
         <td><span class="badge-status <?php echo $d["status"] === "arsip" ? "arsip" : "aktif"; ?>"><?php echo $d["status"] === "arsip" ? "Arsip" : "Aktif"; ?></span></td>
         <td><?php echo e($d["lokasi"]); ?></td>
         <td><?php echo harga($d["harga_tiket"], $d["harga_maks"]); ?></td>
