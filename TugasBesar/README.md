@@ -28,11 +28,11 @@
 
 | Fitur | Keterangan singkat | Lokasi file |
 |-------|--------------------|-------------|
-| Beranda & pencarian | Hero, pencarian dengan autocomplete, chip filter suasana/kategori/wilayah, acak destinasi, tombol bandingkan 2 destinasi | `index.php`, `assets/js/main.js`, `assets/js/filter-beranda.js`, `assets/js/bandingkan.js`, `includes/mood.php`, `includes/wilayah.php` |
+| Beranda & pencarian | Hero, pencarian dengan autocomplete, chip filter suasana/kategori, kartu wilayah, acak destinasi, tombol bandingkan 2 destinasi | `index.php`, `assets/js/main.js`, `assets/js/filter-beranda.js`, `assets/js/bandingkan.js`, `includes/mood.php`, `includes/wilayah.php` |
 | Detail destinasi | Galeri horizontal (swipe/drag, thumbnail, caption, lightbox, keyboard), strip info praktis, galeri foto komunitas, rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `includes/fungsi.php`, `includes/galeri.php`, `includes/foto_ulasan.php`, `assets/uploads/destinasi/galeri/<id>/` |
 | Ulasan | Tulis/ubah/hapus ulasan + lampiran 1 foto kunjungan, filter bintang, urut terbaru/rating, vote "Membantu" & badge kontributor | `review/simpan.php`, `review/hapus.php`, `review/vote.php`, `includes/ulasan_bantuan.php`, `includes/foto_ulasan.php` |
 | Peta interaktif | Leaflet + OpenStreetMap, filter kategori, pencarian, rute rencana, sorot destinasi dari halaman detail | `peta.php` |
-| Rencana Dolan | Simpan destinasi, atur hari & urutan, estimasi tiket, estimasi jarak & biaya transport, kalkulator patungan, cetak itinerary + QR | `user/rencana.php`, `user/toggle_rencana.php`, `assets/js/qrcode.js` |
+| Rencana Dolan | Simpan destinasi, atur hari & urutan, jam mulai per hari dengan jadwal tiba/keluar + peringatan jam buka, estimasi tiket, estimasi jarak & biaya transport, kalkulator patungan, cetak itinerary + QR | `user/rencana.php`, `user/toggle_rencana.php`, `includes/rencana_jadwal.php`, `assets/js/qrcode.js` |
 | Favorit | Tandai/lepas favorit tanpa reload, badge jumlah favorit | `user/toggle_favorit.php`, `user/wishlist.php` |
 | Terdekat | Geolocation dua tahap + fallback Tugu Jogja, titik keberangkatan populer, hasil tanpa reload (AJAX), jarak Haversine | `destinasi/terdekat.php`, `assets/js/geolokasi.js` |
 | Akun | Registrasi (cek username/email real-time), login, logout, profil & foto, ganti password | `auth/*`, `user/profil.php` |
@@ -102,6 +102,12 @@ TugasBesar/
 - `assets/js/geolokasi.js` memakai dua tahap: lokasi jaringan (cepat) lalu akurasi tinggi, lengkap dengan pesan error spesifik dan tombol fallback Tugu Jogja.
 - Fitur ini hanya aktif di `http://localhost` / `http://127.0.0.1` atau HTTPS. Hasil terdekat dimuat tanpa reload halaman (JSON `terdekat.php?ajax=1`).
 - Untuk demo: DevTools > More tools > Sensors > Location = `-7.782889, 110.367083`.
+
+### Jadwal jam & validasi jam buka (Rencana Dolan)
+- Setiap hari punya jam mulai sendiri (disimpan di tabel `rencana_hari`, dibuat otomatis oleh `includes/rencana_jadwal.php`).
+- Dari jam mulai itu, halaman menghitung perkiraan **waktu tiba dan selesai** tiap destinasi memakai estimasi durasi per kategori dan kecepatan rata-rata 30 km/jam, termasuk jarak tempuh antartitik.
+- Jadwal dibandingkan dengan teks `jam_buka`: muncul peringatan bila tiba sebelum destinasi buka, tiba setelah tutup, atau perkiraan selesai melewati jam tutup. Destinasi tanpa data jam buka ditandai sekali per hari, bukan berulang di setiap baris.
+- Jam mulai ikut tercetak di itinerary dan di teks tombol **Salin ringkasan**.
 
 ### Estimasi jarak & biaya transport (Rencana Dolan)
 - Jarak rute dihitung dari koordinat destinasi yang berurutan tiap hari (rumus Haversine), lalu dikalikan tarif moda: Motor Rp 1.500/km, Mobil Rp 2.500/km, Sewa mobil + driver Rp 6.000/km.

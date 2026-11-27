@@ -201,8 +201,8 @@ foreach ($wil_list as $w) { $label_filter[] = e($wilayah_all[$w]); }
 // Destinasi unggulan (3 rating tertinggi), hanya ditampilkan saat tidak ada filter
 $unggulan = array();
 $id_unggulan = array();
+$urut = $semua;
 if (count($semua) >= 3) {
-    $urut = $semua;
     usort($urut, function ($a, $b) {
         $ra = (float) $a["rata"];
         $rb = (float) $b["rata"];
@@ -214,8 +214,6 @@ if (count($semua) >= 3) {
     $unggulan = array_slice($urut, 0, 3);
     $id_unggulan = array_map("intval", array_column($unggulan, "id"));
 }
-$hero_kartu = count($semua) >= 3 ? array_slice($urut, 0, 6) : array_slice($semua, 0, 6);
-
 $hero_kartu = count($semua) >= 3 ? array_slice($urut, 0, 6) : array_slice($semua, 0, 6);
 
 // Tentukan baris mana yang tampil pada kondisi awal
@@ -360,14 +358,6 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             </div>
         <?php } ?>
 
-        <p class="muted">Wilayah <span class="kecil">(boleh pilih lebih dari satu)</span></p>
-        <div class="chip-baris" id="wilayah-baris">
-            <?php echo chip_filter("Semua wilayah", "wilayah", "", count($wil_list) === 0, url_beranda($cari, $mood_list, $kat_list, array())); ?>
-            <?php foreach ($wilayah_all as $slug => $nama_wil) { ?>
-                <?php echo chip_filter($nama_wil, "wilayah", $slug, in_array($slug, $wil_list, true), url_beranda($cari, $mood_list, $kat_list, ganti_nilai($wil_list, $slug))); ?>
-            <?php } ?>
-        </div>
-
         <?php
         $ciri_wilayah = array(
             "kota-yogyakarta" => "Budaya &amp; Kota",
@@ -383,11 +373,12 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             if ($slug_h !== "" && isset($jumlah_wilayah[$slug_h])) { $jumlah_wilayah[$slug_h]++; }
         }
         ?>
-        <p class="muted">Mode jelajah wilayah <span class="kecil">(klik kartu untuk menyaring destinasi)</span></p>
+        <p class="muted">Wilayah <span class="kecil">(klik kartu untuk menyaring, boleh lebih dari satu)</span></p>
         <div class="wilayah-grid">
             <?php foreach ($wilayah_all as $slug_j => $nama_j) { ?>
                 <a class="wilayah-kartu<?php echo in_array($slug_j, $wil_list, true) ? " aktif" : ""; ?>"
-                   href="<?php echo url_beranda($cari, $mood_list, $kat_list, array($slug_j)); ?>">
+                   data-grup="wilayah" data-nilai="<?php echo e($slug_j); ?>" data-label="<?php echo e($nama_j); ?>"
+                   href="<?php echo url_beranda($cari, $mood_list, $kat_list, ganti_nilai($wil_list, $slug_j)); ?>">
                     <span class="wilayah-ciri"><?php echo $ciri_wilayah[$slug_j] ?? "Wilayah DIY"; ?></span>
                     <strong><?php echo e($nama_j); ?></strong>
                     <span class="wilayah-jumlah"><?php echo (int) $jumlah_wilayah[$slug_j]; ?> destinasi</span>

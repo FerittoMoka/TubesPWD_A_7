@@ -3,7 +3,7 @@
 (function () {
     "use strict";
 
-    var chips = document.querySelectorAll("a.chip[data-grup]");
+    var chips = document.querySelectorAll("a.chip[data-grup], a.wilayah-kartu[data-grup]");
     var daftar = document.getElementById("daftar-hasil");
     if (!daftar || chips.length === 0) { return; }
 
@@ -108,7 +108,7 @@
     }
 
     document.addEventListener("click", function (e) {
-        var chip = e.target.closest ? e.target.closest("a.chip[data-grup]") : null;
+        var chip = e.target.closest ? e.target.closest("a.chip[data-grup], a.wilayah-kartu[data-grup]") : null;
         if (!chip) { return; }
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) { return; }
         e.preventDefault();

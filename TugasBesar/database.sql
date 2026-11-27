@@ -11,7 +11,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, favorites, wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, rencana_hari, favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -262,4 +262,15 @@ CREATE TABLE IF NOT EXISTS review_photos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unik_foto_ulasan (review_id),
     CONSTRAINT fk_foto_ulasan FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===== Jam mulai per hari pada Rencana Dolan =====
+-- Tabel ini juga dibuat otomatis oleh includes/rencana_jadwal.php saat halaman rencana dibuka.
+CREATE TABLE IF NOT EXISTS rencana_hari (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    hari_ke TINYINT NOT NULL,
+    jam_mulai TIME NOT NULL DEFAULT '08:00:00',
+    UNIQUE KEY unik_hari_rencana (user_id, hari_ke),
+    CONSTRAINT fk_hari_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -132,16 +132,29 @@ function jumlah_foto_galeri($id) {
     return $n;
 }
 
+/* Estimasi durasi kunjungan (menit) berdasarkan kategori: array(minimum, maksimum).
+   Satu sumber untuk teks strip info praktis maupun jadwal Rencana Dolan. */
+function durasi_kunjungan_menit($kategori) {
+    $k = strtolower(trim((string) $kategori));
+    if (strpos($k, "budaya") !== false) { return array(90, 120); }
+    if (strpos($k, "pantai") !== false) { return array(120, 180); }
+    if (strpos($k, "alam") !== false) { return array(120, 180); }
+    if (strpos($k, "viral") !== false) { return array(90, 120); }
+    if (strpos($k, "keluarga") !== false) { return array(180, 240); }
+    if (strpos($k, "belanja") !== false) { return array(60, 120); }
+    return array(90, 120);
+}
+
+/* Angka jam ringkas untuk teks, mis. 90 menit menjadi "1,5". */
+function jam_ringkas($menit) {
+    $menit = (int) $menit;
+    return ($menit % 60 === 0) ? (string) ($menit / 60) : number_format($menit / 60, 1, ",", ".");
+}
+
 /* Estimasi durasi kunjungan berdasarkan kategori (dipakai strip info praktis). */
 function durasi_kunjungan($kategori) {
-    $k = strtolower(trim((string) $kategori));
-    if (strpos($k, "budaya") !== false) { return "1,5 - 2 jam"; }
-    if (strpos($k, "pantai") !== false) { return "2 - 3 jam"; }
-    if (strpos($k, "alam") !== false) { return "2 - 3 jam"; }
-    if (strpos($k, "viral") !== false) { return "1,5 - 2 jam"; }
-    if (strpos($k, "keluarga") !== false) { return "3 - 4 jam"; }
-    if (strpos($k, "belanja") !== false) { return "1 - 2 jam"; }
-    return "1,5 - 2 jam";
+    list($min, $maks) = durasi_kunjungan_menit($kategori);
+    return jam_ringkas($min) . " - " . jam_ringkas($maks) . " jam";
 }
 
 /* Keterangan akses & parkir ringkas berdasarkan kategori. */

@@ -262,8 +262,6 @@ require_once __DIR__ . "/../includes/header.php";
         <h2><?php echo e($d["nama"]); ?></h2>
         <p><?php echo e($d["lokasi"]); ?></p>
         <p class="meta-baris"><?php echo tampil_rating($d["rata"], $d["jml_ulasan"]); ?></p>
-        <p><strong>Harga tiket:</strong> <?php echo e(rentang_harga($harga_min, $harga_maks)); ?><br />
-        <strong>Jam buka:</strong> <?php echo e($d["jam_buka"] ?: "Tidak tersedia"); ?></p>
         <p><?php echo nl2br(e($d["deskripsi"])); ?></p>
 
         <div class="tiket-estimasi" id="estimasiTiket"

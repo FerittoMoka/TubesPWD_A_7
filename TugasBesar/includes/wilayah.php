@@ -1,11 +1,32 @@
 <?php
-// Daftar wilayah (kabupaten/kota di DIY) dan status publikasi destinasi.
-// Dipakai form admin, filter beranda, dan halaman lain agar pilihannya selalu seragam.
+// Satu sumber daftar wilayah (kabupaten/kota DIY) untuk seluruh halaman.
+// Kunci = slug untuk URL/atribut data, nilai = isi kolom destinations.wilayah.
 if (!function_exists('daftar_wilayah')) {
     function daftar_wilayah() {
-        return array("Kota Yogyakarta", "Sleman", "Bantul", "Gunungkidul", "Kulon Progo");
+        return array(
+            "kota-yogyakarta" => "Kota Yogyakarta",
+            "sleman"          => "Sleman",
+            "bantul"          => "Bantul",
+            "gunungkidul"     => "Gunungkidul",
+            "kulon-progo"     => "Kulon Progo",
+        );
     }
 }
+
+// Daftar nama wilayah saja (dipakai formulir yang menyimpan nama, bukan slug).
+if (!function_exists('label_wilayah')) {
+    function label_wilayah() {
+        return array_values(daftar_wilayah());
+    }
+}
+
+if (!function_exists('slug_wilayah')) {
+    function slug_wilayah($label) {
+        $s = array_search((string) $label, daftar_wilayah(), true);
+        return $s === false ? "" : $s;
+    }
+}
+
 if (!function_exists('daftar_status')) {
     function daftar_status() {
         return array(
