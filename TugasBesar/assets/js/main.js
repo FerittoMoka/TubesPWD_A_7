@@ -186,6 +186,7 @@ window.addEventListener("pageshow", function (e) {
                     var tersimpan = res.status === "added";
                     btn.classList.toggle("tombol-garis", tersimpan);
                     btn.innerHTML = tersimpan ? "&#10003; Tersimpan di Rencana" : "+ Rencana Dolan";
+                    document.dispatchEvent(new CustomEvent("dolan:rencana", { detail: { id: Number(id), saved: tersimpan } }));
                     var badge = document.getElementById("badge-rencana");
                     if (badge) {
                         badge.textContent = res.total_rencana;

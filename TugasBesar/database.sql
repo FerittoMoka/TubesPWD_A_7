@@ -11,7 +11,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS favorites, wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS review_helps, favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -187,3 +187,15 @@ CREATE TABLE IF NOT EXISTS favorites (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (destination_id) REFERENCES destinations(id) ON DELETE CASCADE
 );
+
+-- ===== Fitur "ulasan terbantu" (helpful vote pada ulasan) =====
+-- Dibuat juga otomatis oleh includes/ulasan_bantuan.php saat halaman detail dibuka.
+CREATE TABLE IF NOT EXISTS review_helps (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  review_id INT NOT NULL,
+  user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unik_bantuan (review_id, user_id),
+  FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

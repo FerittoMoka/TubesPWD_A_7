@@ -4,6 +4,7 @@ require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
 require_once __DIR__ . "/../includes/pesan.php";
 require_once __DIR__ . "/../includes/jam_buka.php";
+require_once __DIR__ . "/../includes/ulasan_bantuan.php";
 
 $id = (int) ($_GET["id"] ?? 0);
 $st = mysqli_prepare($conn, "SELECT d.*, c.nama AS kategori,
@@ -22,10 +23,36 @@ if (!$d) {
     exit;
 }
 
-$st = mysqli_prepare($conn, "SELECT r.id, r.user_id, r.rating, r.komentar, r.created_at, u.username FROM reviews r JOIN users u ON u.id = r.user_id WHERE r.destination_id = ? ORDER BY r.created_at DESC");
+/* Fitur "ulasan terbantu": tabel dibuat sekali per request bila belum ada. */
+$ada_bantuan = pastikan_bantuan_ulasan($conn);
+
+$sql_ulasan = "SELECT r.id, r.user_id, r.rating, r.komentar, r.created_at, u.username";
+if ($ada_bantuan) {
+    $sql_ulasan .= ",
+        (SELECT COUNT(*) FROM review_helps h WHERE h.review_id = r.id) AS membantu,
+        (SELECT COUNT(*) FROM review_helps h2 JOIN reviews r2 ON r2.id = h2.review_id WHERE r2.user_id = r.user_id) AS total_membantu";
+} else {
+    $sql_ulasan .= ", 0 AS membantu, 0 AS total_membantu";
+}
+$sql_ulasan .= " FROM reviews r JOIN users u ON u.id = r.user_id WHERE r.destination_id = ? ORDER BY r.created_at DESC";
+
+$st = mysqli_prepare($conn, $sql_ulasan);
 mysqli_stmt_bind_param($st, "i", $id);
 mysqli_stmt_execute($st);
 $ulasan_semua = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
+mysqli_stmt_close($st);
+
+/* Ulasan mana saja yang sudah ditandai membantu oleh pengguna yang sedang masuk. */
+$sudah_bantu = array();
+if ($ada_bantuan && sudah_login()) {
+    $st = mysqli_prepare($conn, "SELECT review_id FROM review_helps WHERE user_id = ?");
+    mysqli_stmt_bind_param($st, "i", $_SESSION["user_id"]);
+    mysqli_stmt_execute($st);
+    foreach (mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC) as $baris_bantu) {
+        $sudah_bantu[(int) $baris_bantu["review_id"]] = true;
+    }
+    mysqli_stmt_close($st);
+}
 
 $distribusi = array(5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0);
 $milik = null;
@@ -35,8 +62,14 @@ foreach ($ulasan_semua as $r) {
     if (sudah_login() && (int) $r["user_id"] === (int) $_SESSION["user_id"]) { $milik = $r; }
 }
 
+$opsi_urut = array(
+    "terbaru"   => "Terbaru",
+    "membantu"  => "Paling Membantu",
+    "tertinggi" => "Rating Tertinggi",
+    "terendah"  => "Rating Terendah",
+);
 $urut_ulasan = $_GET["urut"] ?? "terbaru";
-if (!in_array($urut_ulasan, array("terbaru", "tertinggi", "terendah"), true)) {
+if (!isset($opsi_urut[$urut_ulasan])) {
     $urut_ulasan = "terbaru";
 }
 $filter_bintang = (int) ($_GET["bintang"] ?? 0);
@@ -49,6 +82,15 @@ if ($urut_ulasan === "tertinggi") {
     usort($ulasan, function ($a, $b) { return (int) $b["rating"] <=> (int) $a["rating"]; });
 } elseif ($urut_ulasan === "terendah") {
     usort($ulasan, function ($a, $b) { return (int) $a["rating"] <=> (int) $b["rating"]; });
+} elseif ($urut_ulasan === "membantu") {
+    usort($ulasan, function ($a, $b) {
+        $ba = (int) $a["membantu"];
+        $bb = (int) $b["membantu"];
+        if ($ba === $bb) {
+            return strtotime($b["created_at"]) <=> strtotime($a["created_at"]);
+        }
+        return $bb <=> $ba;
+    });
 }
 
 $tersimpan = false;
@@ -57,20 +99,6 @@ if (sudah_login()) {
     mysqli_stmt_bind_param($st, "ii", $_SESSION["user_id"], $id);
     mysqli_stmt_execute($st);
     $tersimpan = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($st));
-}
-
-$st = mysqli_prepare($conn, "SELECT COUNT(*) AS n FROM favorites WHERE destination_id = ?");
-mysqli_stmt_bind_param($st, "i", $id);
-mysqli_stmt_execute($st);
-$jml_favorit = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($st))["n"];
-mysqli_stmt_close($st);
-
-$difavoritkan = false;
-if (sudah_login()) {
-    $st = mysqli_prepare($conn, "SELECT id FROM favorites WHERE user_id = ? AND destination_id = ? LIMIT 1");
-    mysqli_stmt_bind_param($st, "ii", $_SESSION["user_id"], $id);
-    mysqli_stmt_execute($st);
-    $difavoritkan = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($st));
     mysqli_stmt_close($st);
 }
 
@@ -89,6 +117,9 @@ if (sudah_login()) {
     mysqli_stmt_close($st);
 }
 
+/* Harga untuk kartu tiket & estimasi rombongan */
+$harga_min  = (int) $d["harga_tiket"];
+$harga_maks = ($d["harga_maks"] !== null && (int) $d["harga_maks"] > $harga_min) ? (int) $d["harga_maks"] : $harga_min;
 
 // Terkait: kategori yang sama dulu, lalu sisanya (maks. 3)
 $st = mysqli_prepare($conn, "SELECT d.id, d.nama, d.foto, d.harga_tiket, d.harga_maks, c.nama AS kategori,
@@ -99,6 +130,7 @@ $st = mysqli_prepare($conn, "SELECT d.id, d.nama, d.foto, d.harga_tiket, d.harga
 mysqli_stmt_bind_param($st, "ii", $id, $d["category_id"]);
 mysqli_stmt_execute($st);
 $terkait = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
+mysqli_stmt_close($st);
 
 $wl = $_GET["wl"] ?? "";
 
@@ -120,12 +152,37 @@ require_once __DIR__ . "/../includes/header.php";
         <h2><?php echo e($d["nama"]); ?></h2>
         <p><?php echo e($d["lokasi"]); ?></p>
         <p class="meta-baris"><?php echo tampil_rating($d["rata"], $d["jml_ulasan"]); ?></p>
-        <p><strong>Harga tiket:</strong> <?php echo e(rentang_harga($d["harga_tiket"], $d["harga_maks"])); ?><br />
+        <p><strong>Harga tiket:</strong> <?php echo e(rentang_harga($harga_min, $harga_maks)); ?><br />
         <strong>Jam buka:</strong> <?php echo e($d["jam_buka"] ?: "Tidak tersedia"); ?></p>
         <p><?php echo nl2br(e($d["deskripsi"])); ?></p>
+
+        <div class="tiket-estimasi" id="estimasiTiket"
+             data-harga-min="<?php echo $harga_min; ?>"
+             data-harga-maks="<?php echo $harga_maks; ?>">
+            <h3>Kartu tiket &amp; estimasi rombongan</h3>
+            <div class="tiket-baris">
+                <div class="tiket-tarif">
+                    <span class="kecil">Tarif per orang</span>
+                    <strong><?php echo e(rentang_harga($harga_min, $harga_maks)); ?></strong>
+                </div>
+                <div class="stepper">
+                    <button type="button" class="stepper-btn" id="btnOrangKurang" title="Kurangi jumlah pengunjung" aria-label="Kurangi jumlah pengunjung">&minus;</button>
+                    <input type="number" id="inputJumlahOrang" value="2" min="1" max="99" step="1" aria-label="Jumlah pengunjung" />
+                    <button type="button" class="stepper-btn" id="btnOrangTambah" title="Tambah jumlah pengunjung" aria-label="Tambah jumlah pengunjung">+</button>
+                    <span class="kecil">pengunjung</span>
+                </div>
+            </div>
+            <p class="tiket-total">Total estimasi tiket: <strong id="teksTotalTiket"><?php echo e(rentang_harga($harga_min * 2, $harga_maks * 2)); ?></strong></p>
+            <p class="kecil">Hitungan ini hanya tiket masuk per orang; belum termasuk parkir, transportasi, atau biaya wahana tambahan.</p>
+        </div>
+
         <?php if ($d["latitude"] !== null && $d["longitude"] !== null) { ?>
-            <p><a class="tombol tombol-garis" href="https://www.google.com/maps?q=<?php echo e($d["latitude"]); ?>,<?php echo e($d["longitude"]); ?>" target="_blank" rel="noopener noreferrer">Buka di Google Maps</a></p>
+            <p class="tautan-lokasi">
+                <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>peta.php?fokus=<?php echo (int) $d["id"]; ?>">Lihat di Peta</a>
+                <a class="tombol tombol-garis" href="https://www.google.com/maps?q=<?php echo e($d["latitude"]); ?>,<?php echo e($d["longitude"]); ?>" target="_blank" rel="noopener noreferrer">Buka di Google Maps</a>
+            </p>
         <?php } ?>
+
         <div class="aksi-destinasi-grup">
             <?php if (sudah_login()) {
                 $token_aksi = generate_csrf_token();
@@ -154,7 +211,7 @@ require_once __DIR__ . "/../includes/header.php";
         </div>
     </div>
 
-        <div class="panel" id="ulasan">
+    <div class="panel" id="ulasan">
         <h3>Ulasan (<?php echo count($ulasan_semua); ?>)</h3>
         <?php tampil_pesan(); ?>
 
@@ -203,7 +260,8 @@ require_once __DIR__ . "/../includes/header.php";
                         </div>
                         <span class="kecil" id="labelSkorBintang"><?php echo e($ket_bintang[$skor_awal]); ?></span>
                     </div>
-                    <p><textarea name="komentar" rows="3" maxlength="1000" placeholder="Ceritakan pengalamanmu"><?php echo e($milik ? $milik["komentar"] : ""); ?></textarea></p>
+                    <p><textarea name="komentar" id="komentarUlasan" rows="3" maxlength="600" placeholder="Ceritakan pengalamanmu (maks. 600 karakter)"><?php echo e($milik ? $milik["komentar"] : ""); ?></textarea></p>
+                    <p class="kecil hitung-karakter"><span id="hitungKomentar">0</span>/600 karakter &middot; baris kosong berlebih dirapikan otomatis.</p>
                     <p><input type="submit" value="<?php echo $milik ? "Perbarui ulasan" : "Kirim ulasan"; ?>" /></p>
                 </div>
             </form>
@@ -216,7 +274,6 @@ require_once __DIR__ . "/../includes/header.php";
                 <div class="ulasan-filter">
                     <?php
                     $base_ulasan = BASE_URL . "destinasi/detail.php?id=" . (int) $d["id"];
-                    $opsi_urut = array("terbaru" => "Terbaru", "tertinggi" => "Rating Tertinggi", "terendah" => "Rating Terendah");
                     foreach ($opsi_urut as $k_urut => $lbl_urut) {
                         $href = $base_ulasan . "&urut=" . $k_urut . ($filter_bintang > 0 ? "&bintang=" . $filter_bintang : "") . "#ulasan";
                     ?>
@@ -237,9 +294,15 @@ require_once __DIR__ . "/../includes/header.php";
             <?php } ?>
             <?php foreach ($ulasan as $r) {
                 $nilai_rt = (int) $r["rating"];
+                $jml_bantu = (int) $r["membantu"];
+                $sudah_vote = isset($sudah_bantu[(int) $r["id"]]);
+                $kontributor = $ada_bantuan && (int) $r["total_membantu"] >= 3;
             ?>
-                <div style="border-top:1px solid #E8DCC4;padding:12px 0;">
+                <div class="ulasan-item">
                     <strong><?php echo e($r["username"]); ?></strong>
+                    <?php if ($kontributor) { ?>
+                        <span class="badge-kontributor" title="Kontributor terverifikasi: <?php echo (int) $r["total_membantu"]; ?> ulasan Anda dinilai membantu">Kontributor Terverifikasi</span>
+                    <?php } ?>
                     <span class="bintang-tampil" title="<?php echo $nilai_rt; ?>/5">
                         <?php for ($s = 1; $s <= 5; $s++) { ?>
                             <span class="<?php echo $s <= $nilai_rt ? 'isi' : 'kosong'; ?>">&#9733;</span>
@@ -247,16 +310,36 @@ require_once __DIR__ . "/../includes/header.php";
                     </span>
                     <span class="kecil"> &middot; <?php echo e(date("d M Y", strtotime($r["created_at"]))); ?></span>
                     <p><?php echo nl2br(e($r["komentar"])); ?></p>
-                    <?php if (sudah_login() && ((int) $r["user_id"] === (int) $_SESSION["user_id"] || $_SESSION["role"] === "admin")) { ?>
-                        <form method="post" action="<?php echo BASE_URL; ?>review/hapus.php" class="inline" onsubmit="return konfirmasiHapus('ulasan ini');">
-                            <div class="inline">
-                                <?php echo csrf_field(); ?>
-                                <input type="hidden" name="id" value="<?php echo (int) $r["id"]; ?>" />
-                                <input type="hidden" name="kembali" value="detail" />
-                                <button type="submit" class="btn-kecil btn-bahaya">Hapus</button>
-                            </div>
-                        </form>
-                    <?php } ?>
+
+                    <div class="ulasan-aksi-baris">
+                        <?php if ($ada_bantuan && sudah_login() && (int) $r["user_id"] !== (int) $_SESSION["user_id"]) { ?>
+                            <form method="post" action="<?php echo BASE_URL; ?>review/vote.php" class="inline">
+                                <div class="inline">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="id" value="<?php echo (int) $r["id"]; ?>" />
+                                    <input type="hidden" name="destination_id" value="<?php echo (int) $d["id"]; ?>" />
+                                    <input type="hidden" name="urut" value="<?php echo e($urut_ulasan); ?>" />
+                                    <input type="hidden" name="bintang" value="<?php echo (int) $filter_bintang; ?>" />
+                                    <button type="submit" class="btn-bantuan<?php echo $sudah_vote ? " aktif" : ""; ?>" title="<?php echo $sudah_vote ? "Batalkan tanda membantu" : "Tandai ulasan ini membantu"; ?>">
+                                        &#128077; Membantu (<span><?php echo $jml_bantu; ?></span>)
+                                    </button>
+                                </div>
+                            </form>
+                        <?php } elseif ($jml_bantu > 0) { ?>
+                            <span class="btn-bantuan statis" title="Jumlah pengunjung yang menilai ulasan ini membantu">&#128077; Membantu (<?php echo $jml_bantu; ?>)</span>
+                        <?php } ?>
+
+                        <?php if (sudah_login() && ((int) $r["user_id"] === (int) $_SESSION["user_id"] || $_SESSION["role"] === "admin")) { ?>
+                            <form method="post" action="<?php echo BASE_URL; ?>review/hapus.php" class="inline" onsubmit="return konfirmasiHapus('ulasan ini');">
+                                <div class="inline">
+                                    <?php echo csrf_field(); ?>
+                                    <input type="hidden" name="id" value="<?php echo (int) $r["id"]; ?>" />
+                                    <input type="hidden" name="kembali" value="detail" />
+                                    <button type="submit" class="btn-kecil btn-bahaya">Hapus</button>
+                                </div>
+                            </form>
+                        <?php } ?>
+                    </div>
                 </div>
             <?php } ?>
         </div>
@@ -292,7 +375,7 @@ require_once __DIR__ . "/../includes/header.php";
             id: <?php echo (int) $d["id"]; ?>,
             nama: <?php echo json_encode($d["nama"], JSON_UNESCAPED_UNICODE); ?>,
             kategori: <?php echo json_encode($d["kategori"], JSON_UNESCAPED_UNICODE); ?>,
-            harga: <?php echo json_encode(rentang_harga($d["harga_tiket"], $d["harga_maks"]), JSON_UNESCAPED_UNICODE); ?>,
+            harga: <?php echo json_encode(rentang_harga($harga_min, $harga_maks), JSON_UNESCAPED_UNICODE); ?>,
             url: <?php echo json_encode(BASE_URL . "destinasi/detail.php?id=" . (int) $d["id"], JSON_UNESCAPED_UNICODE); ?>
         };
         var daftar = JSON.parse(localStorage.getItem("dolan_recent") || "[]");
@@ -301,6 +384,64 @@ require_once __DIR__ . "/../includes/header.php";
         daftar.unshift(item);
         localStorage.setItem("dolan_recent", JSON.stringify(daftar.slice(0, 4)));
     } catch (e) {}
+})();
+
+/* Kartu tiket: stepper jumlah pengunjung + total estimasi live */
+(function () {
+    var kotak = document.getElementById("estimasiTiket");
+    if (!kotak) { return; }
+    var hargaMin = parseInt(kotak.getAttribute("data-harga-min"), 10) || 0;
+    var hargaMaks = parseInt(kotak.getAttribute("data-harga-maks"), 10) || 0;
+    if (hargaMaks < hargaMin) { hargaMaks = hargaMin; }
+
+    var input = document.getElementById("inputJumlahOrang");
+    var kurang = document.getElementById("btnOrangKurang");
+    var tambah = document.getElementById("btnOrangTambah");
+    var teks = document.getElementById("teksTotalTiket");
+    if (!input || !teks) { return; }
+
+    function rp(n) { return "Rp " + Number(n).toLocaleString("id-ID"); }
+    function jumlah() {
+        var n = parseInt(input.value, 10);
+        if (isNaN(n) || n < 1) { n = 1; }
+        if (n > 99) { n = 99; }
+        return n;
+    }
+    function perbarui() {
+        var n = jumlah();
+        if (hargaMin === 0 && hargaMaks === 0) {
+            teks.textContent = "Gratis";
+            return;
+        }
+        var a = hargaMin * n;
+        var b = hargaMaks * n;
+        teks.textContent = (a === b) ? rp(a) : rp(a) + " - " + rp(b);
+    }
+    function ubah(selisih) {
+        input.value = Math.max(1, Math.min(99, jumlah() + selisih));
+        perbarui();
+    }
+    if (kurang) { kurang.addEventListener("click", function () { ubah(-1); }); }
+    if (tambah) { tambah.addEventListener("click", function () { ubah(1); }); }
+    input.addEventListener("input", perbarui);
+    input.addEventListener("change", function () { input.value = jumlah(); perbarui(); });
+    perbarui();
+})();
+
+/* Penghitung karakter ulasan (0/600) */
+(function () {
+    var area = document.getElementById("komentarUlasan");
+    var hitung = document.getElementById("hitungKomentar");
+    if (!area || !hitung) { return; }
+    var batas = parseInt(area.getAttribute("maxlength"), 10) || 600;
+
+    function perbarui() {
+        var n = area.value.length;
+        hitung.textContent = n;
+        hitung.parentNode.className = (n >= batas * 0.9) ? "kecil hitung-karakter hampir-penuh" : "kecil hitung-karakter";
+    }
+    area.addEventListener("input", perbarui);
+    perbarui();
 })();
 //]]>
 </script>

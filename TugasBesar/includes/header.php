@@ -81,7 +81,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
                 <?php } ?>
                 <a class="nav-profil<?php echo $menu_aktif === 'profil' ? ' aktif' : ''; ?>" href="<?php echo BASE_URL; ?>user/profil.php">
                     <?php if ($nav_foto !== "") { ?>
-                        <img class="nav-avatar" src="<?php echo e($nav_foto); ?>" alt="Profil" />
+                        <img class="nav-avatar" src="<?php echo e($nav_foto); ?>" alt="Profil" width="32" height="32" />
                     <?php } else { ?>
                         <span class="nav-inisial"><?php echo e($nav_inisial); ?></span>
                     <?php } ?>

@@ -688,3 +688,66 @@ input[type="password"]::-ms-clear {
     background: #EFE7D8; color: #8A7665; border: 1px solid #DFD3BE;
 }
 .paspor-pill.aktif { background: var(--emas); color: var(--kakao); border-color: var(--emas); }
+/* ===== Kartu tiket & estimasi rombongan (detail destinasi) ===== */
+.tiket-estimasi { margin: 18px 0 6px; padding: 16px 18px; border: 1px solid var(--pasir); border-radius: 14px; background: #FFFDF8; }
+.tiket-estimasi h3 { font-size: 18px; margin: 0 0 12px; }
+.tiket-baris { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.tiket-tarif strong { display: block; font-size: 18px; color: var(--soga-gelap); }
+.stepper { display: inline-flex; align-items: center; gap: 8px; }
+.stepper input[type="number"] { width: 68px; padding: 7px 8px; text-align: center; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: 600 15px var(--font-isi); color: var(--kakao); }
+.stepper-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--coklat-jawa); background: transparent; color: var(--coklat-jawa); font: 700 18px/1 var(--font-isi); cursor: pointer; transition: background-color .2s ease, color .2s ease; }
+.stepper-btn:hover { background: var(--soga-gelap); border-color: var(--soga-gelap); color: var(--krem); }
+.tiket-total { margin: 12px 0 4px; font-size: 15px; }
+.tiket-total strong { color: var(--soga-gelap); font-size: 18px; }
+
+/* Penghitung karakter ulasan */
+.hitung-karakter { margin: -6px 0 10px; }
+.hitung-karakter.hampir-penuh { color: #9B2C2C; font-weight: 600; opacity: 1; }
+
+/* Ulasan: item, tombol membantu, badge kontributor */
+.ulasan-item { border-top: 1px solid #E8DCC4; padding: 12px 0; }
+.ulasan-aksi-baris { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.btn-bantuan { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border: 1px solid var(--pasir); border-radius: 999px; background: #FFFCF6; color: var(--coklat-jawa); font: 600 12px var(--font-isi); cursor: pointer; transition: border-color .2s ease, background-color .2s ease, color .2s ease; }
+.btn-bantuan:hover { border-color: var(--emas); background: #FAF5EC; }
+.btn-bantuan.aktif { border-color: var(--emas); background: var(--emas); color: var(--kakao); }
+.btn-bantuan.statis { cursor: default; }
+.badge-kontributor { display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: #E6EDF5; color: var(--indigo); font-size: 10.5px; font-weight: 700; letter-spacing: .03em; vertical-align: middle; }
+.tautan-lokasi { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Peta: info sorotan + tombol di popup */
+.peta-info-fokus { margin: 0; padding: 8px 10px; border-radius: 10px; background: #FAF5EC; border: 1px dashed var(--emas); font-size: 13px; }
+.poi-popup-aksi { flex-wrap: wrap; }
+.poi-popup-aksi .btn-kecil-peta { flex: 1 1 40%; }
+
+/* ===== Header cetak itinerary (Rencana Dolan) ===== */
+.cetak-header { display: none; }
+.cetak-saja { display: none; }
+.qr-kotak { width: 96px; height: 96px; }
+.qr-kotak svg { display: block; width: 100%; height: 100%; }
+.qr-gagal { display: flex; align-items: center; justify-content: center; border: 1px dashed #999; }
+
+@media print {
+  @page { margin: 14mm; }
+  body { font-size: 11.5pt; color: #000; }
+  .wadah { padding: 0; }
+  .halaman-isi > h1 { display: none; }
+  .halaman-isi > p.tidak-dicetak { display: none; }
+  .cetak-header { display: block; margin-bottom: 16px; border-bottom: 2px solid #493126; padding-bottom: 10px; }
+  .cetak-header-isi { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; }
+  .cetak-eyebrow { margin: 0; font-size: 10pt; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: #493126; }
+  .cetak-header h1 { font-size: 20pt; margin: 2px 0 4px; color: #000; }
+  .cetak-meta { margin: 0; font-size: 10pt; color: #333; }
+  .cetak-qr { text-align: center; font-size: 8pt; color: #333; }
+  .qr-kotak { width: 84px; height: 84px; }
+  .cetak-anggaran { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; font-size: 10.5pt; }
+  .cetak-anggaran strong { color: #000; }
+  .cetak-saja { display: inline; }
+  .cetak-catatan { display: block; margin-top: 14px; border-top: 1px solid #999; padding-top: 6px; }
+  .panel { page-break-inside: avoid; margin-bottom: 12px; }
+  .baris-rencana { padding: 6px 0; }
+  .baris { gap: 10px; }
+  .baris-harga { margin-left: auto; }
+  .total-angka { font-size: 20pt; }
+  .foto-bingkai { display: none; }
+  a { color: #000; text-decoration: none; }
+}

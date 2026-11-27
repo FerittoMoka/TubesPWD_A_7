@@ -85,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 /* ---------- Ambil data ---------- */
-$st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.harga_tiket, d.harga_maks, d.foto, c.nama AS kategori
+$st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.jam_buka, d.harga_tiket, d.harga_maks, d.foto, c.nama AS kategori
     FROM wishlists w
     JOIN destinations d ON d.id = w.destination_id
     JOIN categories c ON c.id = d.category_id
@@ -99,6 +99,7 @@ mysqli_stmt_close($st);
 $hari_list = array();
 $total_min = 0;
 $total_maks = 0;
+$jml_titik_peta = 0;
 foreach ($rows as $r) {
     $min = (int) $r["harga_tiket"];
     $mx  = ($r["harga_maks"] !== null) ? max($min, (int) $r["harga_maks"]) : $min;
@@ -111,6 +112,7 @@ foreach ($rows as $r) {
     $hari_list[$h]["maks"] += $mx;
     $total_min  += $min;
     $total_maks += $mx;
+    $jml_titik_peta++;
 }
 ksort($hari_list);
 
@@ -143,6 +145,26 @@ require_once __DIR__ . "/../includes/header.php";
 ?>
 <div class="wadah">
     <div class="halaman-isi">
+        <?php if (count($hari_list) > 0) { ?>
+        <div class="cetak-header">
+            <div class="cetak-header-isi">
+                <div>
+                    <p class="cetak-eyebrow">Dolan Jogja</p>
+                    <h1>Itinerary Resmi &mdash; Dolan Jogja</h1>
+                    <p class="cetak-meta">Dicetak pada <?php echo e(date("d/m/Y H:i")); ?> WIB &middot; <?php echo count($hari_list); ?> hari &middot; <?php echo $orang; ?> orang</p>
+                </div>
+                <div class="cetak-qr">
+                    <div id="qr-rencana" class="qr-kotak"></div>
+                    <span>Pindai untuk membuka rencana</span>
+                </div>
+            </div>
+            <div class="cetak-anggaran">
+                <span>Total estimasi tiket (<?php echo $orang; ?> orang): <strong><?php echo e(rencana_harga($total_min * $orang, $total_maks * $orang)); ?></strong></span>
+                <span>Patungan tiket per orang: <strong><?php echo e(rencana_harga($total_min, $total_maks)); ?></strong></span>
+            </div>
+        </div>
+        <?php } ?>
+
         <h1>Rencana Dolan</h1>
         <p class="tidak-dicetak">Susun destinasi favoritmu per hari, lihat estimasi biaya tiket, lalu cetak atau salin ringkasannya.</p>
 
@@ -182,6 +204,7 @@ require_once __DIR__ . "/../includes/header.php";
                 <div class="rencana-aksi tidak-dicetak">
                     <button type="button" class="tombol" onclick="cetakRencana();">Cetak</button>
                     <button type="button" class="tombol tombol-garis" onclick="salinRingkasan();">Salin ringkasan</button>
+                    <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>peta.php?rute=1">Lihat Rute di Peta</a>
                     <span id="status-salin" class="kecil"></span>
                 </div>
                 <textarea id="ringkasan-teks" class="sembunyi" rows="6" cols="40" readonly="readonly"><?php echo e($ringkasan); ?></textarea>
@@ -196,7 +219,7 @@ require_once __DIR__ . "/../includes/header.php";
                                 <?php echo tampil_foto($r["foto"], $r["kategori"], $r["nama"]); ?>
                                 <div class="baris-info">
                                     <h3><a href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $r["did"]; ?>"><?php echo ($i + 1) . ". " . e($r["nama"]); ?></a></h3>
-                                    <p class="baris-meta"><?php echo e($r["kategori"]); ?> &middot; <?php echo e($r["lokasi"]); ?></p>
+                                    <p class="baris-meta"><?php echo e($r["kategori"]); ?> &middot; <?php echo e($r["lokasi"]); ?><span class="cetak-saja"> &middot; Jam buka: <?php echo e($r["jam_buka"] ?: "belum tersedia"); ?></span></p>
                                 </div>
                                 <div class="baris-harga"><?php echo e(rencana_harga($r["_min"], $r["_maks"])); ?><span class="kecil"> /orang</span></div>
 
@@ -232,10 +255,17 @@ require_once __DIR__ . "/../includes/header.php";
                 </div>
             <?php } ?>
 
+            <div class="cetak-catatan">
+                <p class="kecil">Rencana ini dibuat dengan Dolan Jogja. Jam buka dan harga tiket dapat berubah; konfirmasi ulang sebelum berangkat.</p>
+            </div>
+
         <?php } ?>
     </div>
 </div>
 
+<?php if (count($hari_list) > 0) { ?>
+<script type="text/javascript" src="<?php echo BASE_URL; ?>assets/js/qrcode.js"></script>
+<?php } ?>
 <script type="text/javascript">
 //<![CDATA[
 function cetakRencana() { window.print(); }
@@ -282,6 +312,21 @@ function salinRingkasan() {
 
     inTrans.addEventListener("input", update);
     inKons.addEventListener("input", update);
+})();
+
+/* Kode QR lokal untuk header cetak: dibuat di browser, tanpa layanan pihak ketiga */
+(function () {
+    var wadah = document.getElementById("qr-rencana");
+    if (!wadah || typeof qrcode === "undefined") { return; }
+    try {
+        var qr = qrcode(0, "M");
+        qr.addData(window.location.href);
+        qr.make();
+        wadah.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 0 });
+    } catch (e) {
+        wadah.className += " qr-gagal";
+        wadah.innerHTML = '<span class="kecil">QR tidak tersedia</span>';
+    }
 })();
 //]]>
 </script>

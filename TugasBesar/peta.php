@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/config/koneksi.php";
 require_once __DIR__ . "/includes/auth.php";
+require_once __DIR__ . "/includes/csrf.php";
 require_once __DIR__ . "/includes/jam_buka.php";
 
 $judul = "Peta Destinasi";
@@ -42,8 +43,19 @@ while ($row = mysqli_fetch_assoc($res)) {
     );
 }
 
+/* Sorotan dari halaman detail: peta.php?fokus=12 */
+$fokus = (int) ($_GET["fokus"] ?? 0);
+$fokus_nama = "";
+foreach ($titik as $t) {
+    if ($t["id"] === $fokus) { $fokus_nama = $t["nama"]; }
+}
+
+/* Tampilkan rute rencana sejak awal: peta.php?rute=1 */
+$rute_awal = (isset($_GET["rute"]) && $_GET["rute"] !== "0");
+
 // Ambil urutan rute rencana user jika sedang login
 $rute_user = array();
+$id_tersimpan = array();
 if (sudah_login()) {
     $uid = (int) $_SESSION["user_id"];
     $st_r = mysqli_prepare(
@@ -69,7 +81,18 @@ if (sudah_login()) {
         }
         mysqli_stmt_close($st_r);
     }
+
+    $st_t = mysqli_prepare($conn, "SELECT destination_id FROM wishlists WHERE user_id = ?");
+    if ($st_t) {
+        mysqli_stmt_bind_param($st_t, "i", $uid);
+        mysqli_stmt_execute($st_t);
+        foreach (mysqli_fetch_all(mysqli_stmt_get_result($st_t), MYSQLI_ASSOC) as $b_t) {
+            $id_tersimpan[] = (int) $b_t["destination_id"];
+        }
+        mysqli_stmt_close($st_t);
+    }
 }
+$csrf_peta = sudah_login() ? generate_csrf_token() : "";
 
 require_once __DIR__ . "/includes/header.php";
 ?>
@@ -80,6 +103,10 @@ require_once __DIR__ . "/includes/header.php";
         <div class="peta-kontrol">
             <p class="eyebrow">Jelajah Peta</p>
             <h2>Peta Wisata Jogja</h2>
+            <?php if ($fokus_nama !== "") { ?>
+                <p class="peta-info-fokus">Menyorot: <strong><?php echo e($fokus_nama); ?></strong> &middot;
+                    <a href="<?php echo BASE_URL; ?>peta.php">Tampilkan semua</a></p>
+            <?php } ?>
             <input type="text" id="peta-cari" placeholder="Cari nama atau lokasi..." />
             <div class="peta-filter-kat" id="peta-filter-kat">
                 <button type="button" class="chip aktif" data-kat="0">Semua</button>
@@ -108,6 +135,13 @@ require_once __DIR__ . "/includes/header.php";
 (function () {
     var data = <?php echo json_encode($titik, JSON_UNESCAPED_UNICODE); ?>;
     var ruteUser = <?php echo json_encode($rute_user, JSON_UNESCAPED_UNICODE); ?>;
+    var idTersimpan = <?php echo json_encode($id_tersimpan, JSON_UNESCAPED_UNICODE); ?>;
+    var login = <?php echo sudah_login() ? "true" : "false"; ?>;
+    var csrfToken = <?php echo json_encode($csrf_peta, JSON_UNESCAPED_UNICODE); ?>;
+    var endpointRencana = <?php echo json_encode(BASE_URL . "user/toggle_rencana.php", JSON_UNESCAPED_UNICODE); ?>;
+    var fokusId = <?php echo (int) $fokus; ?>;
+    var ruteAktif = <?php echo ($rute_awal && count($rute_user) > 0) ? "true" : "false"; ?>;
+
     var petaEl = document.getElementById("peta-jogja");
     if (!petaEl || typeof L === "undefined") { return; }
 
@@ -128,7 +162,6 @@ require_once __DIR__ . "/includes/header.php";
     var markerMap = {};
     var layerPOI = L.layerGroup().addTo(peta);
     var layerRute = L.layerGroup().addTo(peta);
-    var ruteAktif = false;
 
     function esc(s) {
         return String(s)
@@ -140,12 +173,20 @@ require_once __DIR__ . "/includes/header.php";
 
     function buatPopup(d) {
         var thumb = d.foto
-            ? '<img class="poi-popup-foto" src="' + esc(d.foto) + '" alt="' + esc(d.nama) + '" />'
+            ? '<img class="poi-popup-foto" src="' + esc(d.foto) + '" alt="Foto ' + esc(d.nama) + '" width="310" height="135" />'
             : '<div class="poi-popup-foto poi-popup-inisial">' + esc(d.nama.charAt(0).toUpperCase()) + '</div>';
         var badge = d.status === "buka"
             ? '<span class="badge-buka">Buka</span>'
             : (d.status === "tutup" ? '<span class="badge-buka tutup">Tutup</span>' : "");
         var mapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + d.lat + "," + d.lng;
+
+        var tombolRencana = "";
+        if (login) {
+            var sudah = idTersimpan.indexOf(d.id) !== -1;
+            tombolRencana = '<button type="button" class="tombol btn-kecil-peta btn-rencana-toggle' + (sudah ? " tombol-garis" : "") + '"' +
+                ' data-endpoint="' + esc(endpointRencana) + '" data-id="' + d.id + '" data-csrf="' + esc(csrfToken) + '">' +
+                (sudah ? "&#10003; Tersimpan" : "+ Rencana") + "</button>";
+        }
 
         return '<div class="poi-popup">' +
             thumb +
@@ -156,6 +197,7 @@ require_once __DIR__ . "/includes/header.php";
                 '<div class="poi-popup-info">&#9733; ' + esc(d.rating) + ' &middot; <strong>' + esc(d.harga) + '</strong><br /><span class="kecil">' + esc(d.jam) + '</span></div>' +
                 '<div class="poi-popup-aksi">' +
                     '<a class="tombol btn-kecil-peta" href="' + esc(d.url) + '">Lihat Detail</a>' +
+                    tombolRencana +
                     '<a class="tombol tombol-garis btn-kecil-peta" href="' + esc(mapsUrl) + '" target="_blank" rel="noopener noreferrer">Rute Maps</a>' +
                 '</div>' +
             '</div>' +
@@ -193,7 +235,7 @@ require_once __DIR__ . "/includes/header.php";
             });
 
             var marker = L.marker([d.lat, d.lng], { icon: ikon }).addTo(layerPOI);
-            marker.bindPopup(buatPopup(d), { maxWidth: 330, minWidth: 290 });
+            marker.bindPopup(function () { return buatPopup(d); }, { maxWidth: 330, minWidth: 290 });
             markerMap[d.id] = marker;
             grup.push(marker);
 
@@ -241,18 +283,50 @@ require_once __DIR__ . "/includes/header.php";
             render();
         });
     }
+
+    function perbaruiTombolRute() {
+        if (!btnRute) { return; }
+        btnRute.classList.toggle("tombol-garis", !ruteAktif);
+        btnRute.textContent = ruteAktif
+            ? "Sembunyikan Rute Rencana"
+            : "Tampilkan Rute Rencana Saya (" + ruteUser.length + ")";
+    }
+
     if (btnRute) {
         btnRute.addEventListener("click", function () {
             ruteAktif = !ruteAktif;
-            btnRute.classList.toggle("tombol-garis", !ruteAktif);
-            btnRute.textContent = ruteAktif
-                ? "Sembunyikan Rute Rencana"
-                : "Tampilkan Rute Rencana Saya (" + ruteUser.length + ")";
+            perbaruiTombolRute();
             renderRute();
         });
     }
 
-    render();
+    /* Sinkronkan penanda "+ Rencana" di popup setelah tombolnya diklik (main.js mengirim event). */
+    document.addEventListener("dolan:rencana", function (e) {
+        var info = e.detail || {};
+        if (!info.id) { return; }
+        var pos = idTersimpan.indexOf(info.id);
+        if (info.saved && pos === -1) { idTersimpan.push(info.id); }
+        if (!info.saved && pos !== -1) { idTersimpan.splice(pos, 1); }
+    });
+
+    if (ruteAktif) {
+        perbaruiTombolRute();
+        renderRute();
+    } else {
+        render();
+    }
+
+    /* Sorot satu destinasi saat datang dari halaman detail. */
+    if (fokusId > 0) {
+        var fokusData = null;
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].id === fokusId) { fokusData = data[i]; }
+        }
+        if (fokusData && markerMap[fokusId]) {
+            peta.setView([fokusData.lat, fokusData.lng], 15);
+            markerMap[fokusId].openPopup();
+        }
+    }
 })();
 //]]>
 </script>

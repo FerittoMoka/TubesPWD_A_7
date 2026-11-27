@@ -20,11 +20,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $s->execute();
         $row = $s->get_result()->fetch_assoc();
         if ($row) {
-            $s = $conn->prepare("DELETE FROM destinations WHERE id=?");
-            $s->bind_param("i", $id);
-            $s->execute();
-            hapus_gambar("destinasi", $row["foto"]);
-            flash("success", "Destinasi berhasil dihapus.");
+            /* Hapus destinasi + seluruh data terkait secara atomik.
+               Relasi ON DELETE CASCADE sudah ada, tetapi pembersihan eksplisit ini
+               menjaga data yatim bila foreign key belum aktif di instalasi lain. */
+            mysqli_begin_transaction($conn);
+            try {
+                foreach (array("reviews", "wishlists", "favorites") as $tabel_terkait) {
+                    $q = $conn->prepare("DELETE FROM " . $tabel_terkait . " WHERE destination_id = ?");
+                    $q->bind_param("i", $id);
+                    $q->execute();
+                }
+                $q = $conn->prepare("DELETE FROM destinations WHERE id = ?");
+                $q->bind_param("i", $id);
+                $q->execute();
+
+                mysqli_commit($conn);
+                hapus_gambar("destinasi", $row["foto"]);
+                flash("success", "Destinasi berhasil dihapus.");
+            } catch (Throwable $e) {
+                mysqli_rollback($conn);
+                error_log("Dolan Jogja (admin/index.php hapus): " . $e->getMessage());
+                flash("error", "Destinasi gagal dihapus. Tidak ada data yang berubah, silakan coba lagi.");
+            }
         }
     }
     redirect("admin/index.php");

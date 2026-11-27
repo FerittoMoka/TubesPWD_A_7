@@ -30,7 +30,7 @@ function aktif($nama, $sekarang) {
 
 function tampil_foto($foto, $kategori, $nama) {
     if ($foto) {
-        return '<div class="foto-bingkai"><img src="' . BASE_URL . 'assets/uploads/destinasi/' . e($foto) . '" alt="' . e($nama) . '" /></div>';
+        return '<div class="foto-bingkai"><img src="' . BASE_URL . 'assets/uploads/destinasi/' . e($foto) . '" alt="Foto ' . e($nama) . '" width="600" height="400" /></div>';
     }
     $kelas = "ph-" . strtolower(preg_replace("/[^a-zA-Z0-9]/", "", $kategori));
     $huruf = strtoupper(mb_substr($nama, 0, 1));

@@ -313,7 +313,7 @@ require_once "../includes/header.php";
 
                 <div class="profil-avatar-bingkai" id="avatarPreviewBox">
                     <?php if ($url_foto !== "") { ?>
-                        <img src="<?php echo $url_foto; ?>" alt="Foto <?php echo e($user["nama_lengkap"]); ?>" id="avatarPreviewImg" />
+                        <img src="<?php echo $url_foto; ?>" alt="Foto <?php echo e($user["nama_lengkap"]); ?>" id="avatarPreviewImg" width="116" height="116" />
                     <?php } else { ?>
                         <span class="profil-inisial" id="avatarInitial"><?php echo e($inisial); ?></span>
                         <img src="" alt="Pratinjau foto" id="avatarPreviewImg" class="sembunyi" />

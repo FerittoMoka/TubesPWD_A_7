@@ -146,7 +146,7 @@ header_web($id ? "Edit Destinasi" : "Tambah Destinasi");
 
     <label for="input-foto">Foto destinasi (JPG/PNG/WEBP, maks. 2 MB)</label>
     <?php if (!empty($d["foto"])) { ?>
-    <img class="preview" src="<?php echo foto_src("destinasi", $d["foto"]); ?>" alt="Foto saat ini" />
+    <img class="preview" src="<?php echo foto_src("destinasi", $d["foto"]); ?>" alt="Foto saat ini" width="220" height="150" />
     <label class="cek"><input type="checkbox" name="hapus_foto" value="1" /> Hapus foto saat ini</label>
     <?php } ?>
     <img id="preview-foto" class="preview hidden" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Pratinjau foto baru" />
