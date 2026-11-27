@@ -4,6 +4,7 @@ require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
 require_once __DIR__ . "/../includes/pesan.php";
+require_once __DIR__ . "/../includes/foto_ulasan.php";
 
 cek_login();
 
@@ -37,6 +38,9 @@ $kembali = BASE_URL . "destinasi/detail.php?id=" . (int) $r["destination_id"] . 
 if (!$boleh) {
     set_pesan("error", "Anda tidak berhak menghapus ulasan ini.");
 } else {
+    /* Hapus juga foto kunjungan yang dilampirkan pada ulasan ini. */
+    hapus_foto_ulasan($conn, $rid, (int) $r["destination_id"]);
+
     $q = mysqli_prepare($conn, "DELETE FROM reviews WHERE id = ?");
     mysqli_stmt_bind_param($q, "i", $rid);
     mysqli_stmt_execute($q);

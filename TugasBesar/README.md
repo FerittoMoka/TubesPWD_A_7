@@ -28,9 +28,9 @@
 
 | Fitur | Keterangan singkat | Lokasi file |
 |-------|--------------------|-------------|
-| Beranda & pencarian | Hero, pencarian dengan autocomplete, chip filter suasana/kategori/wilayah, acak destinasi | `index.php`, `assets/js/main.js`, `assets/js/filter-beranda.js`, `includes/mood.php`, `includes/wilayah.php` |
-| Detail destinasi | Galeri horizontal (swipe/drag, thumbnail, caption, lightbox, keyboard), strip info praktis, rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `includes/fungsi.php`, `includes/galeri.php`, `assets/uploads/destinasi/galeri/<id>/` |
-| Ulasan | Tulis/ubah/hapus ulasan, filter bintang, urut terbaru/rating, vote "Membantu" & badge kontributor | `review/simpan.php`, `review/hapus.php`, `review/vote.php`, `includes/ulasan_bantuan.php` |
+| Beranda & pencarian | Hero, pencarian dengan autocomplete, chip filter suasana/kategori/wilayah, acak destinasi, tombol bandingkan 2 destinasi | `index.php`, `assets/js/main.js`, `assets/js/filter-beranda.js`, `assets/js/bandingkan.js`, `includes/mood.php`, `includes/wilayah.php` |
+| Detail destinasi | Galeri horizontal (swipe/drag, thumbnail, caption, lightbox, keyboard), strip info praktis, galeri foto komunitas, rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `includes/fungsi.php`, `includes/galeri.php`, `includes/foto_ulasan.php`, `assets/uploads/destinasi/galeri/<id>/` |
+| Ulasan | Tulis/ubah/hapus ulasan + lampiran 1 foto kunjungan, filter bintang, urut terbaru/rating, vote "Membantu" & badge kontributor | `review/simpan.php`, `review/hapus.php`, `review/vote.php`, `includes/ulasan_bantuan.php`, `includes/foto_ulasan.php` |
 | Peta interaktif | Leaflet + OpenStreetMap, filter kategori, pencarian, rute rencana, sorot destinasi dari halaman detail | `peta.php` |
 | Rencana Dolan | Simpan destinasi, atur hari & urutan, estimasi tiket, estimasi jarak & biaya transport, kalkulator patungan, cetak itinerary + QR | `user/rencana.php`, `user/toggle_rencana.php`, `assets/js/qrcode.js` |
 | Favorit | Tandai/lepas favorit tanpa reload, badge jumlah favorit | `user/toggle_favorit.php`, `user/wishlist.php` |
@@ -86,6 +86,17 @@ TugasBesar/
 - Setiap foto punya kolom keterangan (caption) dan centang **Hapus foto ini** yang diproses saat menyimpan.
 - Tabel `admin/index.php` menampilkan lencana jumlah foto: hijau `3+ Foto`, kuning `1-2 Foto`, merah `0 Foto`.
 - Tabel `destination_photos` dibuat otomatis oleh `includes/galeri.php` bila belum ada, dan juga tersedia di `database.sql` untuk impor bersih.
+
+### Foto dari pengunjung (community photo)
+- Form ulasan di `destinasi/detail.php` punya input opsional `foto_ulasan` (JPG/PNG/WEBP, maks. 5 MB): satu foto pengalaman kunjungan per ulasan, otomatis diperkecil ke lebar maks. 1280 px lewat GD.
+- Foto tampil sebagai lampiran di ulasan pemiliknya dan dikumpulkan di strip **Foto dari pengunjung** di bawah galeri resmi (maks. 8 foto terbaru).
+- Foto bisa diganti dengan mengunggah file baru atau dihapus lewat centang **Hapus foto kunjungan**; berkas di `assets/uploads/ulasan/<id>/` ikut terhapus saat ulasan dihapus.
+- Data disimpan pada tabel `review_photos` (`review_id` unik, cascade saat ulasan dihapus), dibuat otomatis oleh `includes/foto_ulasan.php` dan tersedia di `database.sql`.
+
+### Kartu perbandingan 2 destinasi
+- Setiap kartu di beranda punya tombol **Bandingkan**; pilihan (maks. 2) disimpan di `localStorage` sehingga tidak hilang saat filter/pencarian berubah.
+- Panel perbandingan menampilkan foto utama, kategori, wilayah, harga tiket, jam buka, rating ulasan, dan jarak dari lokasi pengunjung (dihitung saat tombol **Hitung jarak dari lokasi saya** ditekan, rumus Haversine).
+- Logika ada di `assets/js/bandingkan.js`; data kartu dikirim lewat atribut `data-b-*` di `index.php`, gaya di `assets/css/style.css`.
 
 ### Geolocation "Gunakan lokasi saya"
 - `assets/js/geolokasi.js` memakai dua tahap: lokasi jaringan (cepat) lalu akurasi tinggi, lengkap dengan pesan error spesifik dan tombol fallback Tugu Jogja.

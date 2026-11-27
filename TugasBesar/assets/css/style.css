@@ -879,3 +879,70 @@ body.tanpa-scroll { overflow: hidden; }
   .galeri-detail .galeri-slide { height: 220px; }
   .galeri-zoom { display: none; }
 }
+
+/* ===== Foto dari pengunjung (lampiran ulasan) ===== */
+.komunitas-galeri { margin: 0 0 18px; padding: 12px 14px; border: 1px dashed var(--pasir); border-radius: 14px; background: rgba(255,252,246,.7); }
+.komunitas-galeri-kepala { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.komunitas-galeri-kepala strong { font-size: 14px; color: var(--soga-gelap); }
+.komunitas-galeri-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.komunitas-foto { flex: 0 0 120px; display: block; text-decoration: none; color: var(--coklat-jawa); }
+.komunitas-foto img { width: 120px; height: 84px; object-fit: cover; border-radius: 10px; display: block; border: 1px solid var(--pasir); transition: transform .2s ease, border-color .2s ease; }
+.komunitas-foto:hover img { transform: translateY(-2px); border-color: var(--emas); }
+.komunitas-foto span { display: block; margin-top: 4px; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unggah-foto-ulasan { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--pasir); border-radius: 12px; background: var(--krem); }
+.unggah-foto-ulasan label { margin-bottom: 4px; }
+.unggah-foto-ulasan input[type="file"] { width: 100%; font-size: 13px; }
+.unggah-foto-ulasan .kecil { display: block; margin-top: 4px; }
+.hapus-foto-ulasan { display: inline-block !important; margin-top: 6px !important; font-weight: 500 !important; }
+.ulasan-foto { margin: 8px 0 4px; }
+.ulasan-foto img { width: 200px; max-width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--pasir); display: block; transition: transform .2s ease, border-color .2s ease; }
+.ulasan-foto a:hover img { transform: translateY(-2px); border-color: var(--emas); }
+@media (max-width: 520px) {
+  .komunitas-foto { flex: 0 0 96px; }
+  .komunitas-foto img { width: 96px; height: 68px; }
+  .ulasan-foto img { width: 100%; }
+}
+
+/* ===== Kartu perbandingan 2 destinasi ===== */
+.baris-aksi { display: flex; align-items: center; gap: 8px; flex: none; }
+.btn-banding { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--taupe); background: transparent; color: var(--coklat-jawa); font: 600 12px var(--font-isi); cursor: pointer; white-space: nowrap; transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+.btn-banding:hover { border-color: var(--emas); background: rgba(197,161,90,.16); }
+.btn-banding.aktif { background: var(--soga-gelap); border-color: var(--soga-gelap); color: var(--emas); }
+
+.banding-tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 10px 16px; background: rgba(56,39,31,.96); border-top: 1px solid rgba(197,161,90,.5); box-shadow: 0 -10px 30px rgba(56,39,31,.25); }
+.banding-tray-isi { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.banding-pilih { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.banding-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 6px 5px 12px; border-radius: 999px; background: rgba(255,252,246,.1); border: 1px solid rgba(197,161,90,.45); color: var(--krem); font-size: 13px; }
+.banding-hapus { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,252,246,.16); color: var(--krem); font: 400 14px/1 var(--font-isi); cursor: pointer; }
+.banding-hapus:hover { background: var(--emas); color: var(--kakao); }
+.banding-tray-aksi { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.banding-tray-aksi .kecil { color: var(--pasir); }
+.banding-tray-aksi .tombol { padding: 9px 20px; font-size: 13px; }
+.banding-tray-aksi .tombol[disabled="disabled"] { opacity: .45; cursor: not-allowed; }
+.banding-tray-aksi .btn-kecil { background: transparent; border: 1px solid rgba(197,161,90,.6); color: var(--pasir) !important; }
+
+.banding-panel { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 70; padding: 24px 16px; background: rgba(24,16,12,.9); }
+.banding-panel.buka { display: flex; align-items: center; justify-content: center; }
+.banding-kotak { position: relative; width: 100%; max-width: 900px; max-height: 90vh; overflow-y: auto; background: var(--krem); border: 1px solid var(--pasir); border-radius: 18px; padding: 20px 22px 16px; }
+.banding-kepala { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.banding-kepala strong { font: 700 20px var(--font-judul, var(--font-isi)); color: var(--soga-gelap); }
+.banding-tutup { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--pasir); background: transparent; color: var(--soga-gelap); font: 400 22px/1 var(--font-isi); cursor: pointer; }
+.banding-tutup:hover { background: var(--emas); color: var(--kakao); }
+.banding-isi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.banding-kolom { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--pasir); border-radius: 14px; background: #FFFCF6; }
+.banding-kolom > img { width: 100%; height: 190px; object-fit: cover; border-radius: 10px; display: block; }
+.banding-foto-kosong { display: flex; align-items: center; justify-content: center; height: 190px; border-radius: 10px; background: linear-gradient(135deg, #D9C3A5, #B89B76); color: var(--krem); font: 700 42px var(--font-judul, var(--font-isi)); }
+.banding-kolom h3 { margin: 8px 0 4px; font-size: 18px; line-height: 1.25; }
+.banding-kolom h3 a { color: var(--soga-gelap); text-decoration: none; }
+.banding-kolom h3 a:hover { color: var(--coklat-jawa); text-decoration: underline; }
+.banding-fakta { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #E8DCC4; font-size: 13px; }
+.banding-fakta span { color: var(--coklat-jawa); }
+.banding-fakta strong { text-align: right; color: var(--soga-gelap); font-weight: 600; }
+.banding-jarak-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 0; }
+@media (max-width: 640px) {
+  .baris { flex-wrap: wrap; }
+  .baris-aksi { flex-basis: 100%; justify-content: flex-end; }
+  .banding-isi { grid-template-columns: 1fr; }
+  .banding-kolom > img, .banding-foto-kosong { height: 150px; }
+  .banding-tray-isi { justify-content: center; text-align: center; }
+}

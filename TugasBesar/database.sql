@@ -11,7 +11,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS destination_photos, review_helps, favorites, wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -251,4 +251,15 @@ CREATE TABLE IF NOT EXISTS destination_photos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_destinasi_foto (destination_id, urutan),
     CONSTRAINT fk_foto_destinasi FOREIGN KEY (destination_id) REFERENCES destinations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===== Foto kunjungan dari pengunjung (satu foto per ulasan) =====
+-- Tabel ini juga dibuat otomatis oleh includes/foto_ulasan.php saat halaman detail dibuka.
+CREATE TABLE IF NOT EXISTS review_photos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    review_id INT NOT NULL,
+    nama_file VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unik_foto_ulasan (review_id),
+    CONSTRAINT fk_foto_ulasan FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

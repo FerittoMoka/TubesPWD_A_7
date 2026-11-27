@@ -6,6 +6,7 @@ require_once __DIR__ . "/../includes/pesan.php";
 require_once __DIR__ . "/../includes/jam_buka.php";
 require_once __DIR__ . "/../includes/ulasan_bantuan.php";
 require_once __DIR__ . "/../includes/galeri.php";
+require_once __DIR__ . "/../includes/foto_ulasan.php";
 
 $id = (int) ($_GET["id"] ?? 0);
 $st = mysqli_prepare($conn, "SELECT d.*, c.nama AS kategori,
@@ -30,6 +31,9 @@ $ada_bantuan = pastikan_bantuan_ulasan($conn);
 /* Galeri multi-slide: pastikan tabel destination_photos sudah ada. */
 pastikan_galeri_destinasi($conn);
 
+/* Foto kunjungan pengunjung: tabel review_photos disiapkan sekali per request. */
+$ada_foto_ulasan = pastikan_foto_ulasan($conn);
+
 $sql_ulasan = "SELECT r.id, r.user_id, r.rating, r.komentar, r.created_at, u.username";
 if ($ada_bantuan) {
     $sql_ulasan .= ",
@@ -45,6 +49,10 @@ mysqli_stmt_bind_param($st, "i", $id);
 mysqli_stmt_execute($st);
 $ulasan_semua = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
 mysqli_stmt_close($st);
+
+/* Foto kunjungan: peta review_id => foto, dan deretan foto untuk galeri komunitas. */
+$foto_per_ulasan = $ada_foto_ulasan ? foto_ulasan_per_ulasan($conn, $id) : array();
+$foto_komunitas  = $ada_foto_ulasan ? foto_ulasan_destinasi($conn, $id, 8) : array();
 
 /* Ulasan mana saja yang sudah ditandai membantu oleh pengguna yang sedang masuk. */
 $sudah_bantu = array();
@@ -234,6 +242,22 @@ require_once __DIR__ . "/../includes/header.php";
                 <strong><?php echo e(akses_parkir($d["kategori"])); ?></strong>
             </div>
         </div>
+        <?php if (count($foto_komunitas) > 0) { ?>
+            <div class="komunitas-galeri">
+                <div class="komunitas-galeri-kepala">
+                    <strong>Foto dari pengunjung</strong>
+                    <span class="kecil"><?php echo count($foto_komunitas); ?> foto kunjungan</span>
+                </div>
+                <div class="komunitas-galeri-strip">
+                    <?php foreach ($foto_komunitas as $fk) { ?>
+                        <a class="komunitas-foto" href="<?php echo e($fk["url"]); ?>" target="_blank" rel="noopener noreferrer" title="Foto kunjungan oleh <?php echo e($fk["username"]); ?>">
+                            <img src="<?php echo e($fk["url"]); ?>" alt="Foto kunjungan oleh <?php echo e($fk["username"]); ?>" width="200" height="140" loading="lazy" />
+                            <span><?php echo e($fk["username"]); ?></span>
+                        </a>
+                    <?php } ?>
+                </div>
+            </div>
+        <?php } ?>
         <span class="label"><?php echo e($d["kategori"]); ?></span><?php echo badge_buka($d["jam_buka"]); ?>
         <h2><?php echo e($d["nama"]); ?></h2>
         <p><?php echo e($d["lokasi"]); ?></p>
@@ -332,7 +356,7 @@ require_once __DIR__ . "/../includes/header.php";
                 1 => "1/5 \u{00B7} Mengecewakan",
             );
         ?>
-            <form method="post" action="<?php echo BASE_URL; ?>review/simpan.php" class="form-isi">
+            <form method="post" action="<?php echo BASE_URL; ?>review/simpan.php" class="form-isi" enctype="multipart/form-data">
                 <div>
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="destination_id" value="<?php echo (int) $d["id"]; ?>" />
@@ -348,6 +372,14 @@ require_once __DIR__ . "/../includes/header.php";
                     </div>
                     <p><textarea name="komentar" id="komentarUlasan" rows="3" maxlength="600" placeholder="Ceritakan pengalamanmu (maks. 600 karakter)"><?php echo e($milik ? $milik["komentar"] : ""); ?></textarea></p>
                     <p class="kecil hitung-karakter"><span id="hitungKomentar">0</span>/600 karakter &middot; baris kosong berlebih dirapikan otomatis.</p>
+                    <div class="unggah-foto-ulasan">
+                        <label for="fotoUlasan">Foto kunjungan (opsional)</label>
+                        <input type="file" name="foto_ulasan" id="fotoUlasan" accept="image/jpeg,image/png,image/webp" />
+                        <span class="kecil">Satu foto pengalaman kunjungan, maksimal 5 MB (JPG/PNG/WEBP). Foto tampil di ulasan dan galeri komunitas.</span>
+                        <?php if ($milik && isset($foto_per_ulasan[(int) $milik["id"]])) { ?>
+                            <label class="kecil hapus-foto-ulasan"><input type="checkbox" name="hapus_foto" value="1" /> Hapus foto kunjungan yang sudah ada</label>
+                        <?php } ?>
+                    </div>
                     <p><input type="submit" value="<?php echo $milik ? "Perbarui ulasan" : "Kirim ulasan"; ?>" /></p>
                 </div>
             </form>
@@ -396,6 +428,13 @@ require_once __DIR__ . "/../includes/header.php";
                     </span>
                     <span class="kecil"> &middot; <?php echo e(date("d M Y", strtotime($r["created_at"]))); ?></span>
                     <p><?php echo nl2br(e($r["komentar"])); ?></p>
+                    <?php if (isset($foto_per_ulasan[(int) $r["id"]])) { $fr = $foto_per_ulasan[(int) $r["id"]]; ?>
+                        <p class="ulasan-foto">
+                            <a href="<?php echo e($fr["url"]); ?>" target="_blank" rel="noopener noreferrer" title="Perbesar foto kunjungan">
+                                <img src="<?php echo e($fr["url"]); ?>" alt="Foto kunjungan oleh <?php echo e($r["username"]); ?>" width="240" height="160" loading="lazy" />
+                            </a>
+                        </p>
+                    <?php } ?>
 
                     <div class="ulasan-aksi-baris">
                         <?php if ($ada_bantuan && sudah_login() && (int) $r["user_id"] !== (int) $_SESSION["user_id"]) { ?>

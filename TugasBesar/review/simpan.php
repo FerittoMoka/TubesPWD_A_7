@@ -4,6 +4,7 @@ require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
 require_once __DIR__ . "/../includes/pesan.php";
+require_once __DIR__ . "/../includes/foto_ulasan.php";
 
 cek_login();
 
@@ -64,7 +65,26 @@ if ($rating < 1 || $rating > 5) {
     }
     mysqli_stmt_execute($q);
     mysqli_stmt_close($q);
-    set_pesan("sukses", $lama ? "Ulasan Anda diperbarui." : "Ulasan Anda tersimpan.");
+
+    $rid = $lama ? (int) $lama["id"] : (int) mysqli_insert_id($conn);
+    $pesan_ok = $lama ? "Ulasan Anda diperbarui." : "Ulasan Anda tersimpan.";
+    $galat_foto = "";
+
+    /* Foto kunjungan opsional: satu foto per ulasan, bisa dihapus/diganti. */
+    if ($rid > 0) {
+        if (!empty($_POST["hapus_foto"]) && hapus_foto_ulasan($conn, $rid, $id)) {
+            $pesan_ok .= " Foto kunjungan dihapus.";
+        }
+        $unggah = simpan_foto_ulasan($conn, $rid, $id, $_FILES["foto_ulasan"] ?? array());
+        if ($unggah["ok"]) { $pesan_ok .= " Foto kunjungan tersimpan."; }
+        if ($unggah["pesan"] !== "") { $galat_foto = $unggah["pesan"]; }
+    }
+
+    if ($galat_foto !== "") {
+        set_pesan("error", $pesan_ok . " Namun foto gagal diproses: " . $galat_foto);
+    } else {
+        set_pesan("sukses", $pesan_ok);
+    }
 }
 
 header("Location: " . $kembali);

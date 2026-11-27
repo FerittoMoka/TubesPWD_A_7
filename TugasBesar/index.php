@@ -149,7 +149,7 @@ try {
     }
 
     // Semua destinasi dimuat sekali; penyaringan dilakukan di PHP (tampilan awal) dan JavaScript (saat chip diklik)
-    $sql = "SELECT d.id, d.category_id, d.nama, d.lokasi, d.deskripsi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, d.tag, d.wilayah, c.nama AS kategori,
+    $sql = "            SELECT d.id, d.category_id, d.nama, d.lokasi, d.deskripsi, d.harga_tiket, d.harga_maks, d.jam_buka, d.foto, d.tag, d.wilayah, d.latitude, d.longitude, c.nama AS kategori,
             COALESCE(rev.rata, 0) AS rata,
             COALESCE(rev.jml_ulasan, 0) AS jml_ulasan
             FROM destinations d
@@ -470,8 +470,24 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
         <?php } else { ?>
             <p class="kosong<?php echo $kosong_karena_filter ? "" : " sembunyi"; ?>" id="pesan-kosong"><strong>Destinasi tidak ditemukan.</strong> Tidak ada destinasi yang sesuai dengan filter yang dipilih. <a href="index.php#destinasi" id="reset-filter">Hapus semua filter</a></p>
             <div class="daftar<?php echo $ada_baris_tampil ? "" : " sembunyi"; ?>">
-                <?php foreach ($semua as $d) { ?>
-                    <div class="baris kartu-klik<?php echo $d["_tampil"] ? "" : " sembunyi"; ?>" data-kategori="<?php echo (int) $d["category_id"]; ?>" data-mood="<?php echo e((string) ($d["tag"] ?? "")); ?>" data-wilayah="<?php echo e(slug_wilayah($d["wilayah"] ?? "")); ?>" data-teks="<?php echo e(mb_strtolower($d["nama"] . " " . $d["lokasi"], "UTF-8")); ?>"<?php if ($d["_unggulan"]) { echo ' data-unggulan="1"'; } ?>>
+                <?php foreach ($semua as $d) {
+                    $wil_card = $wilayah_all[slug_wilayah($d["wilayah"] ?? "")] ?? ((string) ($d["wilayah"] ?? "") !== "" ? $d["wilayah"] : "DIY");
+                    $foto_card = foto_ada($d["foto"]) ? BASE_URL . "assets/uploads/destinasi/" . rawurlencode(basename((string) $d["foto"])) : "";
+                    $rating_card = (int) $d["jml_ulasan"] > 0 ? number_format((float) $d["rata"], 1) : "";
+                ?>
+                    <div class="baris kartu-klik<?php echo $d["_tampil"] ? "" : " sembunyi"; ?>" data-kategori="<?php echo (int) $d["category_id"]; ?>" data-mood="<?php echo e((string) ($d["tag"] ?? "")); ?>" data-wilayah="<?php echo e(slug_wilayah($d["wilayah"] ?? "")); ?>" data-teks="<?php echo e(mb_strtolower($d["nama"] . " " . $d["lokasi"], "UTF-8")); ?>"<?php if ($d["_unggulan"]) { echo ' data-unggulan="1"'; } ?>
+                        data-b-id="<?php echo (int) $d["id"]; ?>"
+                        data-b-nama="<?php echo e($d["nama"]); ?>"
+                        data-b-kategori="<?php echo e($d["kategori"]); ?>"
+                        data-b-wilayah="<?php echo e($wil_card); ?>"
+                        data-b-harga="<?php echo e(rentang_harga($d["harga_tiket"], $d["harga_maks"])); ?>"
+                        data-b-jam="<?php echo e($d["jam_buka"]); ?>"
+                        data-b-rating="<?php echo e($rating_card); ?>"
+                        data-b-ulasan="<?php echo (int) $d["jml_ulasan"]; ?>"
+                        data-b-foto="<?php echo e($foto_card); ?>"
+                        data-b-lat="<?php echo e($d["latitude"]); ?>"
+                        data-b-lng="<?php echo e($d["longitude"]); ?>"
+                        data-b-url="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $d["id"]; ?>">
                         <?php echo tampil_foto($d["foto"], $d["kategori"], $d["nama"]); ?>
                         <div class="baris-info">
                             <h3><?php echo e($d["nama"]); ?></h3>
@@ -479,7 +495,10 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
                             <?php echo tampil_rating($d["rata"], $d["jml_ulasan"]); ?>
                         </div>
                         <div class="baris-harga"><?php echo rentang_harga($d["harga_tiket"], $d["harga_maks"]); ?></div>
-                        <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo $d["id"]; ?>">Detail</a>
+                        <div class="baris-aksi">
+                            <button type="button" class="btn-banding" data-banding="<?php echo (int) $d["id"]; ?>" aria-pressed="false" title="Tambahkan ke perbandingan">Bandingkan</button>
+                            <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $d["id"]; ?>">Detail</a>
+                        </div>
                     </div>
                 <?php } ?>
             </div>
@@ -502,7 +521,33 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
     </div>
 </div>
 
+<div class="banding-tray sembunyi" id="bandingTray" aria-live="polite">
+    <div class="banding-tray-isi">
+        <div class="banding-pilih" id="bandingPilih"></div>
+        <div class="banding-tray-aksi">
+            <span class="kecil" id="bandingInfo">Pilih 2 destinasi untuk dibandingkan.</span>
+            <button type="button" class="tombol" id="bandingBuka" disabled="disabled">Bandingkan</button>
+            <button type="button" class="btn-kecil" id="bandingBersih">Bersihkan</button>
+        </div>
+    </div>
+</div>
+
+<div class="banding-panel" id="bandingPanel" aria-hidden="true">
+    <div class="banding-kotak">
+        <div class="banding-kepala">
+            <strong>Perbandingan destinasi</strong>
+            <button type="button" class="banding-tutup" id="bandingTutup" aria-label="Tutup perbandingan">&times;</button>
+        </div>
+        <div class="banding-isi" id="bandingIsi"></div>
+        <p class="kecil banding-jarak-info">
+            <button type="button" class="btn-kecil" id="bandingLokasi">Hitung jarak dari lokasi saya</button>
+            <span id="bandingJarakStatus"></span>
+        </p>
+    </div>
+</div>
+
 <script type="text/javascript" src="<?php echo BASE_URL; ?>assets/js/filter-beranda.js"></script>
+<script type="text/javascript" src="<?php echo BASE_URL; ?>assets/js/bandingkan.js"></script>
 <script type="text/javascript">
 //<![CDATA[
 (function () {
