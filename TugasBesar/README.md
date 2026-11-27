@@ -1,52 +1,29 @@
 # Dolan Jogja
 
-Aplikasi web informasi wisata Yogyakarta: katalog destinasi, peta interaktif, ulasan pengunjung, favorit, dan **Rencana Dolan** (itinerary per hari beserta estimasi biaya). Dibangun dengan **PHP native + MySQL (mysqli)**, **HTML/XHTML + CSS + JavaScript**, tanpa framework dan tanpa build tool.
-
-Tugas Besar Pemrograman Web Dasar 2026/2027.
-
----
-
 ## 1. Anggota Kelompok
 
 > Lengkapi tabel ini sebelum dikumpulkan, lalu ganti nama folder menjadi `TubesPWD_<Kelas>_<Kelompok>`.
 
-| No | Nama Lengkap | NIM | Kelas | Bagian yang dikerjakan |
+| No | Nama Lengkap | NPM | Bagian yang dikerjakan |
 |----|--------------|-----|-------|------------------------|
-| 1 | *Nama Anggota 1* | *NIM* | *Kelas* | *mis. beranda, filter, peta* |
-| 2 | *Nama Anggota 2* | *NIM* | *Kelas* | *mis. auth, profil, ulasan* |
-| 3 | *Nama Anggota 3* | *NIM* | *Kelas* | *mis. admin, database, rencana* |
+| 1 | *Daniel Valentino Yonathan* | *250713197* | *Register, proses register, dan bonus* |
+| 2 | *Nama Anggota 2* | *NPM* | *mis. auth, profil, ulasan* |
+| 3 | *Nama Anggota 3* | *NM* | *mis. admin, database, rencana* |
+| 4 | *Nama Anggota 4* | *NPM* | *mis. admin, database, rencana* |
 
 ---
 
-## 2. Akun Uji Coba (siap pakai)
+## 2. Akun Uji Coba
 
-Akun berikut sudah dibuat otomatis oleh `database.sql` (password sama untuk keduanya).
 
 | Peran | Username | Email | Password |
 |-------|----------|-------|----------|
 | Admin | `admin_demo` | `admin@dolanjogja.test` | `demo1234` |
 | Wisatawan | `user_demo` | `user@dolanjogja.test` | `demo1234` |
 
-Selain itu ada tiga akun `contoh_*` yang hanya dipakai untuk mengisi data ulasan contoh dan **tidak bisa dipakai login**.
-
 ---
 
-## 3. Cara Menjalankan Secara Lokal
-
-1. Salin folder proyek ke dalam `htdocs` XAMPP, misalnya `C:\xampp\htdocs\TugasBesar`.
-2. Jalankan **Apache** dan **MySQL** dari XAMPP Control Panel.
-3. Buka `http://localhost/phpmyadmin` → tab **Import** → pilih `database.sql` → **Go**.
-   File ini membuat database `db_wisata`, seluruh tabel, data 10 destinasi, ulasan contoh, dan dua akun demo.
-4. Sesuaikan `config/koneksi.php` bila perlu (bawaan: host `localhost`, user `root`, password kosong, database `db_wisata`).
-5. Buka `http://localhost/TugasBesar/index.php`.
-
-Gunakan alamat `http://localhost/...`, bukan `file://` atau Live Server, karena halaman membutuhkan PHP.
-
-Jika database belum siap (MySQL mati / `database.sql` belum diimpor), aplikasi menampilkan halaman panduan instalasi, bukan error PHP.
-
----
-
-## 4. Fitur Utama & Lokasi File
+## 3. Fitur Utama & Lokasi File
 
 | Fitur | Keterangan singkat | Lokasi file |
 |-------|--------------------|-------------|
@@ -61,9 +38,7 @@ Jika database belum siap (MySQL mati / `database.sql` belum diimpor), aplikasi m
 | Admin | CRUD destinasi, kategori, moderasi ulasan, daftar pengguna | `admin/*`, `includes/init.php` |
 | Keamanan | Password `password_hash`, semua query `mysqli_prepare`, token CSRF di setiap form, escape output `e()` | `includes/auth.php`, `includes/csrf.php` |
 
-### Empat fitur unggulan (usulan poin bonus)
-
-Sesuaikan nomor poinnya dengan ketentuan asisten; yang penting lokasi filenya jelas.
+### Empat fitur unggulan
 
 1. **Peta interaktif Leaflet** — `peta.php`
    Marker kustom berwarna per kategori, pencarian & filter di panel kiri, popup kaya informasi, rute rencana perjalanan, serta parameter `peta.php?fokus=<id>` untuk menyorot satu destinasi dan `peta.php?rute=1` untuk langsung menggambar rute.
@@ -76,7 +51,7 @@ Sesuaikan nomor poinnya dengan ketentuan asisten; yang penting lokasi filenya je
 
 ---
 
-## 5. Struktur Folder
+## 4. Struktur Folder
 
 ```
 TugasBesar/
@@ -93,13 +68,3 @@ TugasBesar/
 └── assets/                   css, js, dan upload gambar (dibuat otomatis saat unggah)
 ```
 
----
-
-## 6. Catatan Teknis
-
-- **XHTML 1.0 Strict**: semua tag ditutup sendiri (`<br />`, `<img ... />`), atribut boolean ditulis lengkap (`required="required"`), dan elemen berulang memakai `class` + `data-*` (mis. `data-id`, `data-endpoint`) alih-alih `id` ganda.
-- **Gambar**: setiap `<img>` punya `alt` deskriptif serta `width`/`height` agar tata letak tidak bergeser saat gambar dimuat.
-- **Ulasan**: teks dinormalisasi di server (baris kosong berlebih dirapatkan) dan dibatasi 600 karakter, dengan penghitung karakter real-time di form.
-- **Hapus destinasi**: dilakukan dalam satu transaksi (`mysqli_begin_transaction`) yang juga membersihkan `reviews`, `wishlists`, dan `favorites`, lalu file foto dihapus setelah commit.
-- **Tabel `review_helps`** dibuat otomatis saat halaman detail pertama kali dibuka, sehingga database lama tetap kompatibel; definisinya juga ada di `database.sql`.
-- **Peta & QR** memakai aset publik: Leaflet dari unpkg (butuh internet) dan `assets/js/qrcode.js` (lokal, tanpa internet).
