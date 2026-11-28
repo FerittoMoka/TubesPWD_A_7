@@ -371,10 +371,8 @@ require_once __DIR__ . "/../includes/header.php";
 
                     <div class="rencana-aksi">
                         <form method="post" action="rencana.php" class="inline" onsubmit="return confirm('Matikan tautan berbagi? Tautan lama tidak bisa dibuka lagi.');">
-                            <div class="inline">
-                                <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
-                                <button type="submit" name="aksi" value="hentikan_bagi" class="btn-kecil btn-bahaya">Hentikan tautan</button>
-                            </div>
+                            <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                            <button type="submit" name="aksi" value="hentikan_bagi" class="btn-kecil btn-bahaya">Hentikan tautan</button>
                         </form>
                     </div>
                 <?php } else { ?>
