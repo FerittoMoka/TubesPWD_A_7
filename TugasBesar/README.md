@@ -121,5 +121,15 @@ TugasBesar/
 - `destinations.nama` memakai `UNIQUE KEY unik_nama_destinasi`, sehingga impor ulang atau penambahan lewat admin tidak bisa membuat nama yang sama.
 - Form admin juga menolak nama yang mirip (mis. "Keraton Yogyakarta" vs "Keraton Ngayogyakarta Hadiningrat") lewat `destinasi_kembar()` di `includes/fungsi.php`, dengan pesan yang menyebut destinasi yang sudah ada.
 
+### Backup, restore, dan reset demo
+- **Jangan impor `database.sql` langsung ke database berisi data.** File itu memakai `CREATE DATABASE`/`USE db_wisata` dan menghapus tabel; gunakan alat di bawah.
+- `php tools/db_kelola.php backup` — membuat dump bertanggal di `backups/` tanpa mengubah data.
+- `php tools/db_kelola.php daftar` — menampilkan backup yang tersedia.
+- `php tools/db_kelola.php restore backups/NAMA.sql` — memulihkan backup. Isinya diimpor ke database sementara dan divalidasi lebih dulu; database hidup baru disentuh setelah lolos.
+- `php tools/db_kelola.php reset` — backup otomatis, validasi seed di database sementara, lalu isi ulang database hidup dari `database.sql`.
+- Aksi yang menimpa data meminta konfirmasi ketik `RESET`/`RESTORE`; tambahkan `--ya` untuk otomatisasi. Bila impor ke database hidup gagal, backup otomatis dipulihkan. Semua aksi dicatat di `backups/riwayat.log`.
+- `CREATE DATABASE`/`USE`/`DROP DATABASE` dari berkas SQL dibuang sebelum impor, sehingga tidak ada impor yang “nyasar” ke database lain. Folder `backups/` diberi `.htaccess` penolak akses (berlaku di Apache/XAMPP).
+- Server PHP bawaan (`php -S`) mengabaikan `.htaccess`, sehingga berkas backup bisa diunduh lewat HTTP. Untuk lingkungan seperti itu, jalankan dengan `BACKUP_DIR` di luar webroot, mis. `BACKUP_DIR="$TEMP/dolanjogja-backup" php tools/db_kelola.php backup`.
+
 ### Indeks database
 - `database.sql` menambahkan indeks `idx_reviews_user`, `idx_wishlists_destination`, `idx_favorites_user`, `idx_favorites_destination`, dan `idx_dest_wilayah` untuk mempercepat join, filter wilayah, dan urutan rating.

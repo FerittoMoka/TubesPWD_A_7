@@ -1,5 +1,8 @@
 -- Import file ini lewat phpMyAdmin (tab Import).
 -- Peringatan: tabel lama dengan nama yang sama akan dihapus lalu dibuat ulang.
+-- File ini juga berisi CREATE DATABASE dan USE db_wisata, jadi JANGAN diimpor ke database
+-- yang datanya ingin dipertahankan. Untuk reset demo yang aman (backup otomatis + konfirmasi
+-- + validasi di database sementara), jalankan: php tools/db_kelola.php reset
 --
 -- SUMBER DATA DESTINASI: artikel "50 Destinasi Wisata Jogja Terbaik 2026" di kesatriyanjogja.com
 -- (diakses 13 November 2026). Nama, alamat, harga tiket, dan jam buka mengikuti artikel tersebut.
