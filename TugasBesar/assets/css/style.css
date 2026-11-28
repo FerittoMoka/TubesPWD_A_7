@@ -381,6 +381,10 @@ img { max-width: 100%; }
 .terdekat-aksi-baris { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .terdekat-radius-label { font-size: 13px; font-weight: 600; margin-left: 6px; }
 .terdekat-kontrol select { padding: 8px 12px; border: 1px solid var(--taupe); border-radius: 999px; background: var(--krem); font: 500 13px var(--font-isi); color: var(--kakao); }
+.terdekat-manual { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.terdekat-manual label { font-size: 12px; font-weight: 600; color: var(--coklat-jawa); }
+.terdekat-manual input[type="text"] { width: 104px; padding: 7px 10px; border: 1px solid var(--taupe); border-radius: 8px; background: var(--krem); font: inherit; font-size: 13px; color: var(--kakao); }
+.terdekat-manual input[type="submit"] { border: 0; }
 .terdekat-status { margin-top: 12px; margin-bottom: 0; }
 .terdekat-badges { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .badge-jarak { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--soga-gelap); color: var(--emas); font-size: 12px; font-weight: 600; }
@@ -804,6 +808,10 @@ input[type="password"]::-ms-clear {
 /* ===== Peta: tombol lokasi + pin "Posisi Anda" ===== */
 .peta-lokasi-baris { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 8px; }
 .pin-anda { width: 20px; height: 20px; border-radius: 50%; background: #2D6CDF; border: 3px solid #FFF; box-shadow: 0 0 0 5px rgba(45,108,223,.22), 0 4px 10px rgba(0,0,0,.25); }
+.peta-manual { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.peta-manual label { font-size: 12px; font-weight: 600; color: var(--coklat-jawa); }
+.peta-kontrol .peta-manual input[type="text"] { width: 82px; padding: 6px 9px; font-size: 13px; }
+.peta-manual .btn-kecil { padding: 6px 12px; }
 
 /* ===== Rencana Dolan: moda transportasi ===== */
 .patungan-grid select { width: 100%; padding: 10px 12px; border: 1px solid var(--taupe); border-radius: 10px; background: var(--krem); font: inherit; color: var(--kakao); }

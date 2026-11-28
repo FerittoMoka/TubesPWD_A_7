@@ -31,10 +31,10 @@
 | Beranda & pencarian | Hero, pencarian dengan autocomplete, chip filter suasana/kategori, kartu wilayah, acak destinasi, tombol bandingkan 2 destinasi | `index.php`, `assets/js/main.js`, `assets/js/filter-beranda.js`, `assets/js/bandingkan.js`, `includes/mood.php`, `includes/wilayah.php` |
 | Detail destinasi | Galeri horizontal (swipe/drag, thumbnail, caption, lightbox, keyboard), strip info praktis, galeri foto komunitas, rating & distribusi bintang, ulasan, favorit, kartu tiket + estimasi rombongan | `destinasi/detail.php`, `includes/fungsi.php`, `includes/galeri.php`, `includes/foto_ulasan.php`, `assets/uploads/destinasi/galeri/<id>/` |
 | Ulasan | Tulis/ubah/hapus ulasan + lampiran 1 foto kunjungan, filter bintang, urut terbaru/rating, vote "Membantu" & badge kontributor | `review/simpan.php`, `review/hapus.php`, `review/vote.php`, `includes/ulasan_bantuan.php`, `includes/foto_ulasan.php` |
-| Peta interaktif | Leaflet + OpenStreetMap, filter kategori, pencarian, rute rencana, sorot destinasi dari halaman detail | `peta.php` |
+| Peta interaktif | Leaflet + OpenStreetMap, filter kategori, pencarian, rute rencana, sorot destinasi dari halaman detail, tandai posisi lewat klik peta atau koordinat manual | `peta.php` |
 | Rencana Dolan | Simpan destinasi, atur hari & urutan, jam mulai per hari dengan jadwal tiba/keluar + peringatan jam buka, estimasi tiket, estimasi jarak & biaya transport, kalkulator patungan, cetak itinerary + QR | `user/rencana.php`, `user/toggle_rencana.php`, `includes/rencana_jadwal.php`, `assets/js/qrcode.js` |
 | Favorit | Tandai/lepas favorit tanpa reload, badge jumlah favorit | `user/toggle_favorit.php`, `user/wishlist.php` |
-| Terdekat | Geolocation dua tahap + fallback Tugu Jogja, titik keberangkatan populer, hasil tanpa reload (AJAX), jarak Haversine | `destinasi/terdekat.php`, `assets/js/geolokasi.js` |
+| Terdekat | Geolocation dua tahap + fallback Tugu Jogja, titik keberangkatan populer, input koordinat manual, hasil tanpa reload (AJAX), jarak Haversine | `destinasi/terdekat.php`, `assets/js/geolokasi.js` |
 | Akun | Registrasi (cek username/email real-time), login, logout, profil & foto, ganti password | `auth/*`, `user/profil.php` |
 | Admin | CRUD destinasi, kategori, moderasi ulasan, daftar pengguna | `admin/*`, `includes/init.php` |
 | Keamanan | Password `password_hash`, semua query `mysqli_prepare`, token CSRF di setiap form, escape output `e()` | `includes/auth.php`, `includes/csrf.php` |
@@ -101,6 +101,7 @@ TugasBesar/
 ### Geolocation "Gunakan lokasi saya"
 - `assets/js/geolokasi.js` memakai dua tahap: lokasi jaringan (cepat) lalu akurasi tinggi, lengkap dengan pesan error spesifik dan tombol fallback Tugu Jogja.
 - Fitur ini hanya aktif di `http://localhost` / `http://127.0.0.1` atau HTTPS. Hasil terdekat dimuat tanpa reload halaman (JSON `terdekat.php?ajax=1`).
+- Desktop tanpa GPS (atau izin lokasi ditolak) tetap bisa memakai fitur: di halaman **Terdekat** isi Latitude/Longitude lalu **Hitung dari koordinat** (form juga bekerja tanpa JavaScript), dan di halaman **Peta** klik titik mana pun atau isi koordinat lalu **Tandai**. Angka bisa disalin dari Google Maps (klik kanan lokasi) dan boleh memakai koma desimal.
 - Untuk demo: DevTools > More tools > Sensors > Location = `-7.782889, 110.367083`.
 
 ### Jadwal jam & validasi jam buka (Rencana Dolan)

@@ -110,7 +110,15 @@ require_once __DIR__ . "/includes/header.php";
             <div class="peta-lokasi-baris">
                 <button type="button" class="tombol tombol-garis btn-kecil-peta" id="btnLokasiPeta">Gunakan lokasi saya</button>
             </div>
-            <p class="kecil terdekat-status" id="status-lokasi-peta">Aktifkan lokasi untuk menandai posisi Anda di peta.</p>
+            <p class="kecil terdekat-status" id="status-lokasi-peta">Aktifkan lokasi, klik peta, atau isi koordinat untuk menandai posisi Anda.</p>
+            <div class="peta-manual">
+                <label for="peta-lat">Lat</label>
+                <input type="text" id="peta-lat" inputmode="decimal" placeholder="-7.78289" />
+                <label for="peta-lng">Lng</label>
+                <input type="text" id="peta-lng" inputmode="decimal" placeholder="110.36708" />
+                <button type="button" class="btn-kecil" id="btnLokasiManual">Tandai</button>
+            </div>
+            <p class="kecil">Tanpa GPS? Klik peta atau isi koordinat, lalu tekan Tandai.</p>
             <input type="text" id="peta-cari" placeholder="Cari nama atau lokasi..." />
             <div class="peta-filter-kat" id="peta-filter-kat">
                 <button type="button" class="chip aktif" data-kat="0">Semua</button>
@@ -165,6 +173,9 @@ require_once __DIR__ . "/includes/header.php";
     /* Posisi pengguna: pin biru "Posisi Anda" lalu kamera peta terbang ke titik itu. */
     var btnLokasi = document.getElementById("btnLokasiPeta");
     var statusLokasi = document.getElementById("status-lokasi-peta");
+    var btnManual = document.getElementById("btnLokasiManual");
+    var inputLat = document.getElementById("peta-lat");
+    var inputLng = document.getElementById("peta-lng");
     var markerSaya = null;
 
     function setStatusLokasi(html, tipe) {
@@ -173,7 +184,9 @@ require_once __DIR__ . "/includes/header.php";
         statusLokasi.innerHTML = html;
     }
 
-    function tampilPosisi(lat, lng, sumber) {
+    function tampilPosisi(lat, lng, sumber, terbang) {
+        if (inputLat) { inputLat.value = Number(lat).toFixed(6); }
+        if (inputLng) { inputLng.value = Number(lng).toFixed(6); }
         if (markerSaya) { peta.removeLayer(markerSaya); }
         var ikonSaya = L.divIcon({
             className: "pin-anda-wrap",
@@ -184,7 +197,7 @@ require_once __DIR__ . "/includes/header.php";
         markerSaya = L.marker([lat, lng], { icon: ikonSaya, zIndexOffset: 1000 }).addTo(peta);
         markerSaya.bindPopup('<strong>Posisi Anda</strong><br /><span class="kecil">Sumber: ' + esc(sumber) + '</span>');
         markerSaya.openPopup();
-        peta.flyTo([lat, lng], 14, { duration: 0.8 });
+        if (terbang !== false) { peta.flyTo([lat, lng], 14, { duration: 0.8 }); }
         setStatusLokasi("Posisi Anda: <strong>" + Number(lat).toFixed(5) + ", " + Number(lng).toFixed(5) + "</strong> (" + esc(sumber) + ")", "sukses");
     }
 
@@ -211,6 +224,41 @@ require_once __DIR__ . "/includes/header.php";
         var lng = parseFloat(btn.getAttribute("data-lng"));
         if (isNaN(lat) || isNaN(lng)) { return; }
         tampilPosisi(lat, lng, btn.getAttribute("data-label") || "titik acuan");
+    });
+
+    /* Titik manual: isi koordinat atau klik peta, cocok untuk desktop tanpa GPS. */
+    function angka(teks) {
+        return parseFloat(String(teks).replace(",", ".").replace(/\s+/g, ""));
+    }
+
+    function pakaiManual(lat, lng, sumber, terbang) {
+        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            setStatusLokasi("Koordinat tidak valid. Latitude -90 sampai 90, longitude -180 sampai 180.", "error");
+            return;
+        }
+        tampilPosisi(lat, lng, sumber, terbang);
+    }
+
+    if (btnManual) {
+        btnManual.addEventListener("click", function () {
+            pakaiManual(angka(inputLat.value), angka(inputLng.value), "koordinat manual");
+        });
+    }
+
+    if (inputLat && inputLng) {
+        var tekanEnter = function (e) {
+            if (e.key === "Enter" || e.keyCode === 13) {
+                e.preventDefault();
+                pakaiManual(angka(inputLat.value), angka(inputLng.value), "koordinat manual");
+            }
+        };
+        inputLat.addEventListener("keydown", tekanEnter);
+        inputLng.addEventListener("keydown", tekanEnter);
+    }
+
+    peta.on("click", function (e) {
+        /* Klik peta hanya menandai titik; kamera tidak perlu terbang ke titik yang sama. */
+        pakaiManual(e.latlng.lat, e.latlng.lng, "klik peta", false);
     });
 
     var katAktif = 0;

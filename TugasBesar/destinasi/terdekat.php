@@ -64,8 +64,8 @@ function terdekat_html($hasil) {
     return $keluar . '</div>';
 }
 
-$lat = isset($_GET["lat"]) && $_GET["lat"] !== "" ? (float) $_GET["lat"] : null;
-$lng = isset($_GET["lng"]) && $_GET["lng"] !== "" ? (float) $_GET["lng"] : null;
+$lat = isset($_GET["lat"]) && is_numeric($_GET["lat"]) ? (float) $_GET["lat"] : null;
+$lng = isset($_GET["lng"]) && is_numeric($_GET["lng"]) ? (float) $_GET["lng"] : null;
 $maks_km = isset($_GET["radius"]) && $_GET["radius"] !== "" ? (float) $_GET["radius"] : 0;
 if ($maks_km < 0 || $maks_km > 500) { $maks_km = 0; }
 $valid = ($lat !== null && $lng !== null && $lat >= -90 && $lat <= 90 && $lng >= -180 && $lng <= 180);
@@ -125,11 +125,21 @@ require_once __DIR__ . "/../includes/header.php";
                 <?php } ?>
             </div>
 
+            <form method="get" action="<?php echo BASE_URL; ?>destinasi/terdekat.php" class="terdekat-manual" id="form-lokasi-manual">
+                <label for="manual-lat">Latitude</label>
+                <input type="text" id="manual-lat" name="lat" inputmode="decimal" placeholder="-7.78289" value="<?php echo $valid ? e(number_format($lat, 6, ".", "")) : ""; ?>" />
+                <label for="manual-lng">Longitude</label>
+                <input type="text" id="manual-lng" name="lng" inputmode="decimal" placeholder="110.36708" value="<?php echo $valid ? e(number_format($lng, 6, ".", "")) : ""; ?>" />
+                <input type="hidden" name="radius" id="manual-radius" value="<?php echo e((string) $maks_km); ?>" />
+                <input type="submit" class="btn-kecil" value="Hitung dari koordinat" />
+            </form>
+            <p class="kecil">Tanpa GPS? Isi koordinat dari Google Maps (klik kanan lokasi &rarr; salin angka), atau <a href="<?php echo BASE_URL; ?>peta.php">pilih titik lewat peta</a>.</p>
+
             <p id="status-lokasi" class="kecil terdekat-status">
                 <?php if ($valid) { ?>
                     Koordinat aktif: <strong><?php echo e(number_format($lat, 5)); ?>, <?php echo e(number_format($lng, 5)); ?></strong>
                 <?php } else { ?>
-                    Belum ada koordinat lokasi yang dipilih. Klik tombol lokasi, titik keberangkatan populer, atau uji coba titik Tugu Jogja.
+                    Belum ada koordinat lokasi yang dipilih. Klik tombol lokasi, pilih titik populer, isi koordinat manual, atau uji coba titik Tugu Jogja.
                 <?php } ?>
             </p>
         </div>
@@ -155,6 +165,10 @@ require_once __DIR__ . "/../includes/header.php";
     var radius = document.getElementById("pilihRadius");
     var btnLokasi = document.getElementById("btnLokasiSaya");
     var btnSimulasi = document.getElementById("btnSimulasiJogja");
+    var formManual = document.getElementById("form-lokasi-manual");
+    var inputLat = document.getElementById("manual-lat");
+    var inputLng = document.getElementById("manual-lng");
+    var inputRadius = document.getElementById("manual-radius");
     var titikAktif = null;
 
     function esc(s) {
@@ -179,6 +193,8 @@ require_once __DIR__ . "/../includes/header.php";
     function muat(lat, lng, label) {
         if (!wadah) { return; }
         titikAktif = { lat: Number(lat), lng: Number(lng), label: label };
+        if (inputLat) { inputLat.value = titikAktif.lat.toFixed(6); }
+        if (inputLng) { inputLng.value = titikAktif.lng.toFixed(6); }
         var url = alamat(titikAktif.lat, titikAktif.lng, label);
         var api = new URL(url.toString());
         api.searchParams.set("ajax", "1");
@@ -229,6 +245,27 @@ require_once __DIR__ . "/../includes/header.php";
         });
     }
 
+    /* Koordinat manual: bisa diketik sendiri atau disalin dari Google Maps. */
+    function angka(teks) {
+        return parseFloat(String(teks).replace(",", ".").replace(/\s+/g, ""));
+    }
+
+    if (formManual) {
+        formManual.addEventListener("submit", function (e) {
+            var lat = angka(inputLat.value);
+            var lng = angka(inputLng.value);
+            if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                if (window.fetch) { e.preventDefault(); }
+                setStatus("Koordinat tidak valid. Latitude -90 sampai 90, longitude -180 sampai 180.", "error");
+                return;
+            }
+            if (window.fetch) {
+                e.preventDefault();
+                muat(lat, lng, "koordinat manual");
+            }
+        });
+    }
+
     if (btnLokasi) { btnLokasi.addEventListener("click", pakaiLokasi); }
     if (btnSimulasi) {
         btnSimulasi.addEventListener("click", function () {
@@ -238,6 +275,7 @@ require_once __DIR__ . "/../includes/header.php";
 
     if (radius) {
         radius.addEventListener("change", function () {
+            if (inputRadius) { inputRadius.value = radius.value; }
             if (titikAktif) {
                 muat(titikAktif.lat, titikAktif.lng, titikAktif.label);
             }
