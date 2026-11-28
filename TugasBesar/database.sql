@@ -348,15 +348,23 @@ UPDATE destinations SET hari_tutup = 'senin' WHERE nama IN (
 CREATE TABLE IF NOT EXISTS rencana_meta (
     user_id INT NOT NULL PRIMARY KEY,
     tanggal_mulai DATE DEFAULT NULL,
+    revisi INT NOT NULL DEFAULT 0,
+    diubah DATETIME DEFAULT NULL,
     CONSTRAINT fk_meta_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ===== Tautan berbagi hanya-baca Rencana Dolan =====
 -- Satu token per pengguna; token lama otomatis tidak berlaku saat dibuat ulang.
+-- kedaluwarsa NULL = tanpa batas; kode_hash '' = tanpa kode akses (PIN disimpan sebagai hash).
 CREATE TABLE IF NOT EXISTS rencana_bagi (
     user_id INT NOT NULL PRIMARY KEY,
     token CHAR(32) NOT NULL,
     dibuat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    kedaluwarsa DATE DEFAULT NULL,
+    kode_hash VARCHAR(255) NOT NULL DEFAULT '',
+    tanpa_biaya TINYINT(1) NOT NULL DEFAULT 0,
+    jumlah_buka INT NOT NULL DEFAULT 0,
+    terakhir_diakses DATETIME DEFAULT NULL,
     UNIQUE KEY unik_token_bagi (token),
     CONSTRAINT fk_bagi_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

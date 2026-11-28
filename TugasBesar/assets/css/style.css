@@ -975,6 +975,9 @@ body.tanpa-scroll { overflow: hidden; }
 #panel-bagi h3 .kecil { font-weight: 400; }
 .bagi-tautan { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 10px; }
 .bagi-tautan input { flex: 1 1 280px; min-width: 0; padding: 8px 10px; border: 1px solid var(--taupe); border-radius: 8px; background: var(--krem); color: var(--kakao); font: inherit; font-size: 13px; }
+.bagi-status { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 12px; font-size: 13px; }
+.bagi-kode { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
+.bagi-kode input[type="text"] { width: 8em; padding: 8px 10px; border: 1px solid var(--taupe); border-radius: 8px; background: var(--krem); color: var(--kakao); font: inherit; font-size: 13px; }
 .bagi-kepala { margin-bottom: 18px; }
 .bagi-kepala h1 { margin-bottom: 4px; }
 @media (max-width: 640px) {

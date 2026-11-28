@@ -15,12 +15,17 @@ function pastikan_rencana_hari($conn) {
         CONSTRAINT fk_hari_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    /* Satu tanggal mulai per pengguna; hari ke-N dihitung dari sini. */
+    /* Satu tanggal mulai per pengguna; hari ke-N dihitung dari sini.
+       revisi/diubah dipakai ekspor kalender agar impor ulang memperbarui event yang sama. */
     @mysqli_query($conn, "CREATE TABLE IF NOT EXISTS rencana_meta (
         user_id INT NOT NULL PRIMARY KEY,
         tanggal_mulai DATE DEFAULT NULL,
+        revisi INT NOT NULL DEFAULT 0,
+        diubah DATETIME DEFAULT NULL,
         CONSTRAINT fk_meta_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    @mysqli_query($conn, "ALTER TABLE rencana_meta ADD COLUMN IF NOT EXISTS revisi INT NOT NULL DEFAULT 0");
+    @mysqli_query($conn, "ALTER TABLE rencana_meta ADD COLUMN IF NOT EXISTS diubah DATETIME DEFAULT NULL");
 
     return $ok;
 }
@@ -47,6 +52,7 @@ function simpan_jam_mulai_hari($conn, $uid, $hari, $menit) {
     mysqli_stmt_bind_param($st, "iis", $uid, $hari, $jam);
     $ok = mysqli_stmt_execute($st);
     mysqli_stmt_close($st);
+    if ($ok) { tandai_rencana_berubah($conn, $uid); }
     return (bool) $ok;
 }
 
@@ -68,16 +74,46 @@ function simpan_tanggal_mulai($conn, $uid, $tanggal) {
     mysqli_stmt_bind_param($st, "is", $uid, $tanggal);
     $ok = mysqli_stmt_execute($st);
     mysqli_stmt_close($st);
+    if ($ok) { tandai_rencana_berubah($conn, $uid); }
     return (bool) $ok;
 }
 
+/* Tanggal dikosongkan tanpa menghapus baris, agar penghitung revisi kalender tetap ada. */
 function hapus_tanggal_mulai($conn, $uid) {
-    $st = @mysqli_prepare($conn, "DELETE FROM rencana_meta WHERE user_id = ?");
+    $st = @mysqli_prepare($conn, "UPDATE rencana_meta SET tanggal_mulai = NULL WHERE user_id = ?");
+    if (!$st) { return false; }
+    mysqli_stmt_bind_param($st, "i", $uid);
+    $ok = mysqli_stmt_execute($st);
+    mysqli_stmt_close($st);
+    if ($ok) { tandai_rencana_berubah($conn, $uid); }
+    return (bool) $ok;
+}
+
+/* Tandai rencana berubah: penghitung naik dan waktu ubah dicatat untuk SEQUENCE/LAST-MODIFIED. */
+function tandai_rencana_berubah($conn, $uid) {
+    $st = @mysqli_prepare($conn, "INSERT INTO rencana_meta (user_id, revisi, diubah) VALUES (?, 1, NOW())
+        ON DUPLICATE KEY UPDATE revisi = revisi + 1, diubah = NOW()");
     if (!$st) { return false; }
     mysqli_stmt_bind_param($st, "i", $uid);
     $ok = mysqli_stmt_execute($st);
     mysqli_stmt_close($st);
     return (bool) $ok;
+}
+
+/* array("revisi" => int, "diubah" => "Y-m-d H:i:s" atau ""). */
+function info_revisi_rencana($conn, $uid) {
+    $hasil = array("revisi" => 0, "diubah" => "");
+    $st = @mysqli_prepare($conn, "SELECT revisi, DATE_FORMAT(diubah, '%Y-%m-%d %H:%i:%s') AS ubah FROM rencana_meta WHERE user_id = ?");
+    if (!$st) { return $hasil; }
+    mysqli_stmt_bind_param($st, "i", $uid);
+    mysqli_stmt_execute($st);
+    $baris = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+    mysqli_stmt_close($st);
+    if ($baris) {
+        $hasil["revisi"] = (int) $baris["revisi"];
+        $hasil["diubah"] = (string) ($baris["ubah"] ?? "");
+    }
+    return $hasil;
 }
 
 /* Tanggal Y-m-d yang benar-benar ada. $boleh_lampau = false menolak tanggal sebelum hari ini (WIB). */
@@ -280,6 +316,7 @@ function muat_rencana_pengguna($conn, $uid) {
         $jarak_total += $jadwal_hari[$h]["km"];
     }
 
+    $revisi = info_revisi_rencana($conn, $uid);
     return array(
         "hari" => $hari_list,
         "jadwal" => $jadwal_hari,
@@ -288,5 +325,7 @@ function muat_rencana_pengguna($conn, $uid) {
         "km" => round($jarak_total, 1),
         "tanggal_mulai" => $tanggal_mulai,
         "jumlah_item" => count($rows),
+        "revisi" => $revisi["revisi"],
+        "diubah" => $revisi["diubah"],
     );
 }

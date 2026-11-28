@@ -26,10 +26,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     /* Tautan berbagi hanya-baca: dibuat ulang = token lama langsung tidak berlaku. */
     if ($aksi === "bagikan") {
-        $token_baru = buat_token_bagi($conn, $uid);
-        $_SESSION["rencana_pesan"] = $token_baru !== ""
-            ? array("sukses", "Tautan berbagi dibuat. Salin dan kirim ke siapa pun; penerima hanya bisa melihat.")
-            : array("error", "Tautan berbagi gagal dibuat. Silakan coba lagi.");
+        $masa = (string) ($_POST["masa"] ?? "rencana");
+        if (!isset(masa_berlaku_pilihan()[$masa])) { $masa = "rencana"; }
+        $kode = trim((string) ($_POST["kode"] ?? ""));
+        if ($kode !== "" && !kode_akses_valid($kode)) {
+            $_SESSION["rencana_pesan"] = array("error", "Kode akses harus 4-6 angka.");
+        } else {
+            $token_baru = buat_token_bagi($conn, $uid, $masa, $kode);
+            $_SESSION["rencana_pesan"] = $token_baru !== ""
+                ? array("sukses", "Tautan berbagi dibuat. Salin dan kirim ke siapa pun; penerima hanya bisa melihat.")
+                : array("error", "Tautan berbagi gagal dibuat. Silakan coba lagi.");
+        }
+        header("Location: " . $kembali);
+        exit;
+    }
+    if ($aksi === "kode_bagi") {
+        $kode = trim((string) ($_POST["kode"] ?? ""));
+        if ($kode !== "" && !kode_akses_valid($kode)) {
+            $_SESSION["rencana_pesan"] = array("error", "Kode akses harus 4-6 angka.");
+        } elseif (simpan_kode_akses_bagi($conn, $uid, $kode)) {
+            $_SESSION["rencana_pesan"] = $kode === ""
+                ? array("sukses", "Kode akses dihapus; tautan bisa dibuka langsung.")
+                : array("sukses", "Kode akses disimpan. Penerima harus memasukkan kode sebelum melihat rencana.");
+        } else {
+            $_SESSION["rencana_pesan"] = array("error", "Kode akses gagal disimpan. Silakan coba lagi.");
+        }
+        header("Location: " . $kembali);
+        exit;
+    }
+    if ($aksi === "biaya_bagi") {
+        $_SESSION["rencana_pesan"] = simpan_tanpa_biaya_bagi($conn, $uid, !empty($_POST["tanpa"]))
+            ? array("sukses", "Pengaturan tampilan biaya disimpan.")
+            : array("error", "Pengaturan tampilan biaya gagal disimpan.");
         header("Location: " . $kembali);
         exit;
     }
@@ -92,6 +120,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         mysqli_stmt_bind_param($st, "ii", $wid, $uid);
         mysqli_stmt_execute($st);
         mysqli_stmt_close($st);
+        tandai_rencana_berubah($conn, $uid);
         $_SESSION["rencana_pesan"] = array("sukses", "Destinasi dihapus dari rencana.");
     } elseif ($aksi === "pindah_hari") {
         $hari = (int) ($_POST["hari"] ?? 0);
@@ -108,6 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             mysqli_stmt_bind_param($st, "iiii", $hari, $n, $wid, $uid);
             mysqli_stmt_execute($st);
             mysqli_stmt_close($st);
+            tandai_rencana_berubah($conn, $uid);
             $_SESSION["rencana_pesan"] = array("sukses", "Dipindahkan ke Hari ke-" . $hari . ".");
         }
     } elseif ($aksi === "naik" || $aksi === "turun") {
@@ -131,6 +161,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             mysqli_stmt_execute($up);
         }
         mysqli_stmt_close($up);
+        tandai_rencana_berubah($conn, $uid);
     }
     header("Location: " . $kembali);
     exit;
@@ -144,8 +175,13 @@ $tanggal_mulai = $data_rencana["tanggal_mulai"];
 $total_min     = $data_rencana["min"];
 $total_maks    = $data_rencana["maks"];
 $jarak_total   = $data_rencana["km"];
-$token_bagi    = ambil_token_bagi($conn, $uid);
+$baris_bagi    = ambil_bagi_pemilik($conn, $uid);
+$token_bagi    = ($baris_bagi !== null && !bagi_kedaluwarsa($baris_bagi)) ? (string) $baris_bagi["token"] : "";
 $tautan_bagi   = $token_bagi !== "" ? url_rencana_publik($token_bagi) : "";
+$tautan_langganan = ($token_bagi !== "" && !bagi_terkunci($baris_bagi) && $tanggal_mulai !== "")
+    ? url_rencana_ics($token_bagi, true) : "";
+$tautan_wa_bagi = $tautan_bagi !== ""
+    ? "https://wa.me/?text=" . rawurlencode("Rencana Dolan Jogja: " . $tautan_bagi) : "";
 
 /* Pilihan moda transportasi untuk perkiraan biaya per kilometer. */
 $moda_transport = array(
@@ -292,25 +328,48 @@ require_once __DIR__ . "/../includes/header.php";
 
             <div class="panel tidak-dicetak" id="panel-bagi">
                 <h3>Bagikan rencana <span class="kecil">&middot; hanya baca</span></h3>
-                <?php if ($token_bagi === "") { ?>
-                    <p class="kecil">Buat tautan agar rencana ini bisa dibuka tanpa akun. Penerima hanya bisa melihat, tidak bisa mengubah.</p>
-                    <form method="post" action="rencana.php" class="inline">
-                        <div class="inline">
-                            <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
-                            <button type="submit" name="aksi" value="bagikan" class="btn-kecil">Buat tautan berbagi</button>
-                        </div>
-                    </form>
-                <?php } else { ?>
+                <?php if ($token_bagi !== "") { ?>
                     <p class="kecil">Siapa pun yang memiliki tautan ini dapat melihat rencana tanpa akun. Matikan tautan bila sudah tidak dipakai.</p>
                     <div class="bagi-tautan">
                         <input type="text" id="tautan-bagi" readonly="readonly" value="<?php echo e($tautan_bagi); ?>" onclick="this.select();" />
                         <button type="button" class="btn-kecil" data-salin="tautan-bagi">Salin</button>
                         <a class="btn-kecil btn-tautan" href="<?php echo e($tautan_bagi); ?>">Buka</a>
+                        <a class="btn-kecil btn-tautan" href="<?php echo e($tautan_wa_bagi); ?>" target="_blank" rel="noopener">WhatsApp</a>
                     </div>
+                    <p class="bagi-status">
+                        <span>Berlaku: <strong><?php echo $baris_bagi["kedaluwarsa"] !== null ? "sampai " . e(tanggal_ringkas($baris_bagi["kedaluwarsa"])) : "tanpa batas waktu"; ?></strong></span>
+                        <span>Kode akses: <strong><?php echo bagi_terkunci($baris_bagi) ? "aktif" : "tidak ada"; ?></strong></span>
+                        <span>Dibuka <strong><?php echo (int) $baris_bagi["jumlah_buka"]; ?> kali</strong><?php if ($baris_bagi["terakhir_diakses"] !== null) { ?> &middot; terakhir <?php echo e(tanggal_ringkas(substr($baris_bagi["terakhir_diakses"], 0, 10)) . " " . substr($baris_bagi["terakhir_diakses"], 11, 5)); ?><?php } ?></span>
+                    </p>
+
+                    <form method="post" action="rencana.php" class="bagi-kode">
+                        <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                        <label for="kode-bagi">Kode akses</label>
+                        <input type="text" id="kode-bagi" name="kode" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="off" placeholder="<?php echo bagi_terkunci($baris_bagi) ? "kode baru" : "opsional"; ?>" />
+                        <button type="submit" name="aksi" value="kode_bagi" class="btn-kecil">Simpan kode</button>
+                        <span class="kecil">4&ndash;6 angka; kosongkan lalu simpan untuk menghapus kode akses.</span>
+                    </form>
+
+                    <form method="post" action="rencana.php" class="bagi-kode">
+                        <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                        <label class="kecil"><input type="checkbox" name="tanpa" value="1"<?php echo (int) $baris_bagi["tanpa_biaya"] === 1 ? ' checked="checked"' : ""; ?> /> Sembunyikan perkiraan biaya di halaman publik dan kalender</label>
+                        <button type="submit" name="aksi" value="biaya_bagi" class="btn-kecil">Simpan tampilan</button>
+                    </form>
+
+                    <?php if ($tautan_langganan !== "") { ?>
+                        <p class="kecil">Langganan kalender &mdash; alamat ini selalu mengikuti rencana terbaru:</p>
+                        <div class="bagi-tautan">
+                            <input type="text" id="tautan-langganan" readonly="readonly" value="<?php echo e($tautan_langganan); ?>" onclick="this.select();" />
+                            <button type="button" class="btn-kecil" data-salin="tautan-langganan">Salin</button>
+                        </div>
+                        <p class="kecil">Tempel di &quot;Tambahkan kalender dari URL&quot; pada Google Calendar atau &quot;Langganan kalender&quot; di iPhone.</p>
+                    <?php } elseif ($tanggal_mulai === "") { ?>
+                        <p class="kecil">Isi tanggal mulai agar jadwal bisa diekspor ke kalender.</p>
+                    <?php } elseif (bagi_terkunci($baris_bagi)) { ?>
+                        <p class="kecil">Hapus kode akses bila ingin memakai URL langganan kalender; aplikasi kalender tidak bisa memasukkan kode.</p>
+                    <?php } ?>
+
                     <div class="rencana-aksi">
-                        <?php if ($tanggal_mulai === "") { ?>
-                            <span class="kecil">Isi tanggal mulai agar jadwal bisa diekspor ke kalender.</span>
-                        <?php } ?>
                         <form method="post" action="rencana.php" class="inline" onsubmit="return confirm('Matikan tautan berbagi? Tautan lama tidak bisa dibuka lagi.');">
                             <div class="inline">
                                 <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
@@ -318,6 +377,26 @@ require_once __DIR__ . "/../includes/header.php";
                             </div>
                         </form>
                     </div>
+                <?php } else { ?>
+                    <p class="kecil">
+                        <?php if ($baris_bagi !== null) { ?>
+                            <strong>Tautan sebelumnya sudah berakhir.</strong>
+                        <?php } ?>
+                        Buat tautan agar rencana ini bisa dibuka tanpa akun. Penerima hanya bisa melihat, tidak bisa mengubah.
+                    </p>
+                    <form method="post" action="rencana.php" class="bagi-kode">
+                        <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                        <label for="masa-bagi">Masa berlaku</label>
+                        <select id="masa-bagi" name="masa">
+                            <?php foreach (masa_berlaku_pilihan() as $nilai_masa => $label_masa) { ?>
+                                <option value="<?php echo e($nilai_masa); ?>"><?php echo e($label_masa); ?></option>
+                            <?php } ?>
+                        </select>
+                        <label for="kode-bagi-baru">Kode akses</label>
+                        <input type="text" id="kode-bagi-baru" name="kode" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="off" placeholder="opsional" />
+                        <button type="submit" name="aksi" value="bagikan" class="btn-kecil">Buat tautan berbagi</button>
+                    </form>
+                    <p class="kecil">Kode akses 4&ndash;6 angka membuat penerima harus memasukkannya sebelum melihat rencana. Tanpa kode, tautan bisa dipakai untuk langganan kalender.</p>
                 <?php } ?>
             </div>
 

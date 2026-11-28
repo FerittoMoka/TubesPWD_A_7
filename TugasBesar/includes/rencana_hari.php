@@ -1,15 +1,16 @@
 <?php
 /* Partial satu hari Rencana Dolan, dipakai halaman pemilik dan halaman publik.
    Wajib: $h, $blok, $jad.
-   Opsional: $orang (default 1), $bisa_ubah (default false).
+   Opsional: $orang (default 1), $bisa_ubah (default false), $tampil_biaya (default true).
    Bila $bisa_ubah true: $csrf_token dan $maks_hari harus tersedia. */
 if (!isset($h, $blok, $jad)) { http_response_code(404); exit; }
 $orang = max(1, (int) ($orang ?? 1));
 $bisa_ubah = !empty($bisa_ubah);
+$tampil_biaya = !isset($tampil_biaya) ? true : (bool) $tampil_biaya;
 $jumlah_item = count($blok["item"]);
 ?>
 <div class="panel">
-    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; <?php if ($jad["tanggal"] !== null) { ?><?php echo e(label_hari_tanggal(array("tgl" => $jad["tanggal"], "pekan" => $jad["pekan"]))); ?> &middot; <?php } ?><?php echo e(menit_ke_jam($jad["mulai"])); ?>&ndash;<?php echo e(menit_ke_jam($jad["selesai"])); ?><?php if ($jad["km"] > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jad["km"], 1, ",", ".")); ?> km<?php } ?> &middot; <?php echo $bisa_ubah ? "subtotal " : ""; ?><?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?><?php echo $bisa_ubah ? "" : "/orang"; ?></span></h3>
+    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; <?php if ($jad["tanggal"] !== null) { ?><?php echo e(label_hari_tanggal(array("tgl" => $jad["tanggal"], "pekan" => $jad["pekan"]))); ?> &middot; <?php } ?><?php echo e(menit_ke_jam($jad["mulai"])); ?>&ndash;<?php echo e(menit_ke_jam($jad["selesai"])); ?><?php if ($jad["km"] > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jad["km"], 1, ",", ".")); ?> km<?php } ?><?php if ($tampil_biaya) { ?> &middot; <?php echo $bisa_ubah ? "subtotal " : ""; ?><?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?><?php echo $bisa_ubah ? "" : "/orang"; ?><?php } ?></span></h3>
 
     <?php if ($bisa_ubah) { ?>
         <form method="post" action="rencana.php" class="jadwal-hari tidak-dicetak">
@@ -49,7 +50,9 @@ $jumlah_item = count($blok["item"]);
                         <p class="jadwal-catatan <?php echo e($c_jad[0]); ?>"><?php echo e($c_jad[1]); ?></p>
                     <?php } ?>
                 </div>
-                <div class="baris-harga"><?php echo e(rencana_harga($r["_min"], $r["_maks"])); ?><span class="kecil"> /orang</span></div>
+                <?php if ($tampil_biaya) { ?>
+                    <div class="baris-harga"><?php echo e(rencana_harga($r["_min"], $r["_maks"])); ?><span class="kecil"> /orang</span></div>
+                <?php } ?>
 
                 <?php if ($bisa_ubah) { ?>
                     <div class="rencana-aksi tidak-dicetak">

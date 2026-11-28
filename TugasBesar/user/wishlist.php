@@ -3,6 +3,7 @@
 require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
+require_once __DIR__ . "/../includes/rencana_jadwal.php";
 
 cek_login();
 
@@ -52,6 +53,10 @@ if ($ada) {
 }
 mysqli_stmt_execute($q);
 mysqli_stmt_close($q);
+
+/* Perubahan daftar destinasi menaikkan revisi kalender. */
+pastikan_rencana_hari($conn);
+tandai_rencana_berubah($conn, $uid);
 
 header("Location: " . $kembali . $hasil);
 exit;

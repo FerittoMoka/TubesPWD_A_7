@@ -121,6 +121,11 @@ TugasBesar/
 - Membuat tautan baru otomatis membatalkan tautan lama; **Hentikan tautan** menghapus token sehingga tautan lama menjadi 404. Token tidak dapat ditebak dan hanya memberi akses baca.
 - **Unduh kalender (.ics)** memakai `rencana_ics.php` (lewat token berbagi atau pemilik yang sudah login). Setiap destinasi menjadi satu VEVENT berisi waktu tiba/selesai (WIB dikonversi ke UTC), judul, lokasi, harga, dan peringatan jam buka, sehingga bisa dibuka di aplikasi kalender HP.
 - Ekspor memerlukan tanggal mulai; tanpa tanggal server membalas 400 dengan pesan. Halaman publik, .ics, dan halaman pemilik memakai `muat_rencana_pengguna()` sebagai sumber data yang sama; markup satu hari dipakai bersama lewat `includes/rencana_hari.php`.
+- **Masa berlaku** dipilih saat membuat tautan: sampai rencana selesai + 7 hari (bawaan), 7/30/90 hari, atau tanpa batas. Tautan yang lewat tanggalnya dibalas 404 di halaman publik dan 403 di `.ics`; panel pemilik menampilkan tanggal berakhir, jumlah pembukaan, dan waktu akses terakhir.
+- **Kode akses** opsional 4–6 angka, disimpan sebagai hash (`password_hash`), dengan pembatas 5 percobaan per menit per sesi. Halaman publik menampilkan form kode sebelum rencana terlihat, dan `rencana_ics.php` hanya melayani sesi yang sudah membuka kodenya.
+- **Sembunyikan perkiraan biaya** menghapus semua nominal tiket dari halaman publik, ringkasan, dan isi VEVENT.
+- **Langganan kalender**: `rencana_ics.php?token=...&langganan=1` mengirim berkas inline dengan `X-Published-TTL: PT1H`, jadi bisa dipasang sebagai kalender langganan di Google Calendar/iPhone. Hanya tersedia bila tautan tidak memakai kode akses.
+- Setiap VEVENT memuat `SEQUENCE` dan `LAST-MODIFIED` dari penghitung `rencana_meta.revisi` (naik pada setiap perubahan rencana), plus `GEO` dan `URL` halaman detail, sehingga impor ulang memperbarui event yang sama dan bisa dibuka langsung di aplikasi peta.
 
 ### Pencegahan destinasi duplikat
 - Seed hanya memuat satu baris per destinasi. Tujuh baris kembar di batch kedua (Keraton, Malioboro, Gembira Loka, Hutan Pinus, Parangtritis, Tebing Breksi, Goa Pindul) sudah dihapus; foto/harga/jam/koordinat terbarunya digabung ke baris batch pertama yang menyimpan ulasan.
