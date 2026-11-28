@@ -68,7 +68,7 @@ if (!bagi_sudah_terbuka($baris)) {
             </div>
             <div class="panel">
                 <?php if ($pesan_kode !== "") { ?><p class="error"><?php echo e($pesan_kode); ?></p><?php } ?>
-                <form method="post" action="<?php echo e(url_rencana_publik($token)); ?>" class="bagi-kode">
+                <form method="post" action="<?php echo e(url_rencana_publik($token)); ?>" class="bagi-kode bagi-kode-lebar">
                     <?php echo csrf_field(); ?>
                     <label for="kode-akses">Kode akses</label>
                     <input type="text" id="kode-akses" name="kode" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="off" required="required" />

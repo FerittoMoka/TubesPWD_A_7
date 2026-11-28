@@ -10,7 +10,7 @@ $tampil_biaya = !isset($tampil_biaya) ? true : (bool) $tampil_biaya;
 $jumlah_item = count($blok["item"]);
 ?>
 <div class="panel">
-    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; <?php if ($jad["tanggal"] !== null) { ?><?php echo e(label_hari_tanggal(array("tgl" => $jad["tanggal"], "pekan" => $jad["pekan"]))); ?> &middot; <?php } ?><?php echo e(menit_ke_jam($jad["mulai"])); ?>&ndash;<?php echo e(menit_ke_jam($jad["selesai"])); ?><?php if ($jad["km"] > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jad["km"], 1, ",", ".")); ?> km<?php } ?><?php if ($tampil_biaya) { ?> &middot; <?php echo $bisa_ubah ? "subtotal " : ""; ?><?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?><?php echo $bisa_ubah ? "" : "/orang"; ?><?php } ?></span></h3>
+    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; <?php if ($jad["tanggal"] !== null) { ?><?php echo e(label_hari_tanggal(array("tgl" => $jad["tanggal"], "pekan" => $jad["pekan"]))); ?> &middot; <?php } ?><?php echo e(menit_ke_jam($jad["mulai"])); ?>&ndash;<?php echo e(menit_ke_jam($jad["selesai"])); ?><?php if ($jad["km"] > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jad["km"], 1, ",", ".")); ?> km<?php } ?><?php if ($tampil_biaya) { ?> &middot; <?php echo $bisa_ubah ? "subtotal " : ""; ?><span class="harga-satuan"><?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?><?php echo $bisa_ubah ? "" : "/orang"; ?></span><?php } ?></span></h3>
 
     <?php if ($bisa_ubah) { ?>
         <form method="post" action="rencana.php" class="jadwal-hari tidak-dicetak">
