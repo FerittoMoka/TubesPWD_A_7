@@ -18,17 +18,14 @@ function ics_tolak($kode, $pesan) {
 }
 
 $token = trim((string) ($_GET["token"] ?? ""));
-$uid = 0;
-$kode_ics = "";
 
 if ($token !== "") {
     $uid = cari_pemilik_token($conn, $token);
     if ($uid === 0) { ics_tolak(403, "Tautan berbagi tidak valid atau sudah dimatikan."); }
-    $kode_ics = $token;
-} else {
-    if (!sudah_login()) { ics_tolak(403, "Masuk ke Dolan Jogja atau gunakan tautan berbagi untuk mengunduh kalender."); }
+} elseif (sudah_login()) {
     $uid = (int) $_SESSION["user_id"];
-    $kode_ics = "pemilik-" . $uid;
+} else {
+    ics_tolak(403, "Masuk ke Dolan Jogja atau gunakan tautan berbagi untuk mengunduh kalender.");
 }
 
 $data = muat_rencana_pengguna($conn, $uid);
@@ -40,4 +37,4 @@ if ($data["tanggal_mulai"] === "") {
     ics_tolak(400, "Isi tanggal mulai di halaman Rencana Dolan agar jadwal bisa diekspor ke kalender.");
 }
 
-kirim_ics_rencana($data, $kode_ics);
+kirim_ics_rencana($data);

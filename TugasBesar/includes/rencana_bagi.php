@@ -12,10 +12,6 @@ function pastikan_rencana_bagi($conn) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
-function token_bagi_format_valid($token) {
-    return is_string($token) && preg_match('/^[a-f0-9]{32}$/', $token) === 1;
-}
-
 function ambil_token_bagi($conn, $uid) {
     $st = mysqli_prepare($conn, "SELECT token FROM rencana_bagi WHERE user_id = ? LIMIT 1");
     if (!$st) { return ""; }
@@ -59,7 +55,7 @@ function hapus_token_bagi($conn, $uid) {
 }
 
 function cari_pemilik_token($conn, $token) {
-    if (!token_bagi_format_valid($token)) { return 0; }
+    if (!is_string($token) || preg_match('/^[a-f0-9]{32}$/', $token) !== 1) { return 0; }
     $st = mysqli_prepare($conn, "SELECT user_id FROM rencana_bagi WHERE token = ? LIMIT 1");
     if (!$st) { return 0; }
     mysqli_stmt_bind_param($st, "s", $token);
@@ -115,8 +111,7 @@ function ics_waktu_utc($tanggal, $menit) {
     return $d->setTimezone(new DateTimeZone("UTC"))->format('Ymd\THis\Z');
 }
 
-function buat_ics_rencana($data, $kode) {
-    $kode = preg_replace('/[^a-zA-Z0-9-]/', '', (string) $kode);
+function buat_ics_rencana($data) {
     $stamp = gmdate('Ymd\THis\Z');
     $baris = array(
         "BEGIN:VCALENDAR",
@@ -140,7 +135,7 @@ function buat_ics_rencana($data, $kode) {
             foreach ($j["catatan"] as $c) { $ket .= "\n" . $c[1]; }
 
             $baris[] = "BEGIN:VEVENT";
-            $baris[] = "UID:dolan-" . $kode . "-" . (int) $h . "-" . (int) $r["id"] . "@dolanjogja";
+            $baris[] = "UID:dolan-item-" . (int) $r["id"] . "@dolanjogja";
             $baris[] = "DTSTAMP:" . $stamp;
             $baris[] = "DTSTART:" . ics_waktu_utc($jad["tanggal"], $j["tiba"]);
             $baris[] = "DTEND:" . ics_waktu_utc($jad["tanggal"], $j["pulang"]);
@@ -157,7 +152,7 @@ function buat_ics_rencana($data, $kode) {
     return $keluar;
 }
 
-function kirim_ics_rencana($data, $kode) {
+function kirim_ics_rencana($data) {
     $nama = "rencana-dolan";
     if ($data["tanggal_mulai"] !== "") { $nama .= "-" . str_replace("-", "", $data["tanggal_mulai"]); }
     $nama .= ".ics";
@@ -166,5 +161,5 @@ function kirim_ics_rencana($data, $kode) {
     header("Content-Disposition: attachment; filename=\"" . $nama . "\"");
     header("Cache-Control: private, no-store, max-age=0");
     header("X-Content-Type-Options: nosniff");
-    echo buat_ics_rencana($data, $kode);
+    echo buat_ics_rencana($data);
 }

@@ -287,7 +287,6 @@ function muat_rencana_pengguna($conn, $uid) {
         "maks" => $total_maks,
         "km" => round($jarak_total, 1),
         "tanggal_mulai" => $tanggal_mulai,
-        "jam_mulai" => $jam_mulai_hari,
         "jumlah_item" => count($rows),
     );
 }

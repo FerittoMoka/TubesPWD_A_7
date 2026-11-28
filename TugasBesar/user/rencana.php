@@ -145,6 +145,7 @@ $total_min     = $data_rencana["min"];
 $total_maks    = $data_rencana["maks"];
 $jarak_total   = $data_rencana["km"];
 $token_bagi    = ambil_token_bagi($conn, $uid);
+$tautan_bagi   = $token_bagi !== "" ? url_rencana_publik($token_bagi) : "";
 
 /* Pilihan moda transportasi untuk perkiraan biaya per kilometer. */
 $moda_transport = array(
@@ -302,14 +303,12 @@ require_once __DIR__ . "/../includes/header.php";
                 <?php } else { ?>
                     <p class="kecil">Siapa pun yang memiliki tautan ini dapat melihat rencana tanpa akun. Matikan tautan bila sudah tidak dipakai.</p>
                     <div class="bagi-tautan">
-                        <input type="text" id="tautan-bagi" readonly="readonly" value="<?php echo e(url_rencana_publik($token_bagi)); ?>" onclick="this.select();" />
+                        <input type="text" id="tautan-bagi" readonly="readonly" value="<?php echo e($tautan_bagi); ?>" onclick="this.select();" />
                         <button type="button" class="btn-kecil" data-salin="tautan-bagi">Salin</button>
-                        <a class="btn-kecil btn-tautan" href="<?php echo e(url_rencana_publik($token_bagi)); ?>">Buka</a>
+                        <a class="btn-kecil btn-tautan" href="<?php echo e($tautan_bagi); ?>">Buka</a>
                     </div>
                     <div class="rencana-aksi">
-                        <?php if ($tanggal_mulai !== "") { ?>
-                            <a class="btn-kecil" href="<?php echo BASE_URL; ?>rencana_ics.php">Unduh kalender (.ics)</a>
-                        <?php } else { ?>
+                        <?php if ($tanggal_mulai === "") { ?>
                             <span class="kecil">Isi tanggal mulai agar jadwal bisa diekspor ke kalender.</span>
                         <?php } ?>
                         <form method="post" action="rencana.php" class="inline" onsubmit="return confirm('Matikan tautan berbagi? Tautan lama tidak bisa dibuka lagi.');">
@@ -322,80 +321,11 @@ require_once __DIR__ . "/../includes/header.php";
                 <?php } ?>
             </div>
 
-            <?php foreach ($hari_list as $h => $blok) { $jad_h = $jadwal_hari[$h]; ?>
-                <div class="panel">
-                    <h3>Hari ke-<?php echo (int) $h; ?> <span class="kecil">&middot; <?php if ($jad_h["tanggal"] !== null) { ?><?php echo e(label_hari_tanggal(array("tgl" => $jad_h["tanggal"], "pekan" => $jad_h["pekan"]))); ?> &middot; <?php } ?><?php echo e(menit_ke_jam($jad_h["mulai"])); ?>&ndash;<?php echo e(menit_ke_jam($jad_h["selesai"])); ?><?php if ($jad_h["km"] > 0) { ?> &middot; &plusmn; <?php echo e(number_format($jad_h["km"], 1, ",", ".")); ?> km<?php } ?> &middot; subtotal <?php echo e(rencana_harga($blok["min"] * $orang, $blok["maks"] * $orang)); ?></span></h3>
-
-                    <form method="post" action="rencana.php" class="jadwal-hari tidak-dicetak">
-                        <div class="inline">
-                            <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
-                            <input type="hidden" name="hari" value="<?php echo (int) $h; ?>" />
-                            <label for="jam-hari-<?php echo (int) $h; ?>">Mulai pukul</label>
-                            <input type="time" id="jam-hari-<?php echo (int) $h; ?>" name="jam_mulai" value="<?php echo e(jam_input($jad_h["mulai"])); ?>" step="300" />
-                            <button type="submit" name="aksi" value="jam_hari" class="btn-kecil">Atur jam</button>
-                            <span class="kecil"><?php echo count($blok["item"]); ?> destinasi &middot; &plusmn; <?php echo e(jam_ringkas($jad_h["menit_kunjungan"])); ?> jam di lokasi<?php if ($jad_h["menit_jalan"] > 0) { ?> &middot; <?php echo (int) $jad_h["menit_jalan"]; ?> menit perjalanan<?php } ?></span>
-                        </div>
-                    </form>
-                    <?php
-                    $tanpa_jam = 0;
-                    foreach ($blok["item"] as $r_jam) {
-                        if (count(rentang_jam_buka($r_jam["jam_buka"])) === 0) { $tanpa_jam++; }
-                    }
-                    ?>
-                    <?php if ($tanpa_jam > 0) { ?>
-                        <p class="jadwal-catatan info"><?php echo $tanpa_jam; ?> destinasi belum punya data jam buka, jadi jam jadwalnya belum bisa dicek.</p>
-                    <?php } ?>
-
-                    <div class="daftar">
-                        <?php foreach ($blok["item"] as $i => $r) { ?>
-                            <div class="baris baris-rencana">
-                                <?php echo tampil_foto($r["foto"], $r["kategori"], $r["nama"]); ?>
-                                <?php $jad_i = $jad_h["item"][$i]; ?>
-                                <div class="baris-info">
-                                    <p class="baris-jadwal">
-                                        <strong><?php echo e(menit_ke_jam($jad_i["tiba"])); ?></strong> tiba
-                                        &middot; selesai &plusmn; <?php echo e(menit_ke_jam($jad_i["pulang"])); ?>
-                                        <?php if ($jad_i["menit_jalan"] > 0) { ?>&middot; <?php echo e(number_format($jad_i["km"], 1, ",", ".")); ?> km (<?php echo (int) $jad_i["menit_jalan"]; ?> mnt)<?php } ?>
-                                    </p>
-                                    <h3><a href="<?php echo BASE_URL; ?>destinasi/detail.php?id=<?php echo (int) $r["did"]; ?>"><?php echo ($i + 1) . ". " . e($r["nama"]); ?></a></h3>
-                                    <p class="baris-meta"><?php echo e($r["kategori"]); ?> &middot; <?php echo e($r["lokasi"]); ?><span class="cetak-saja"> &middot; Jam buka: <?php echo e($r["jam_buka"] ?: "belum tersedia"); ?></span></p>
-                                    <?php foreach ($jad_i["catatan"] as $c_jad) { ?>
-                                        <p class="jadwal-catatan <?php echo e($c_jad[0]); ?>"><?php echo e($c_jad[1]); ?></p>
-                                    <?php } ?>
-                                </div>
-                                <div class="baris-harga"><?php echo e(rencana_harga($r["_min"], $r["_maks"])); ?><span class="kecil"> /orang</span></div>
-
-                                <div class="rencana-aksi tidak-dicetak">
-                                    <form method="post" action="rencana.php" class="inline">
-                                        <div class="inline">
-                                            <?php echo rencana_hidden($csrf_token, $orang, $r["id"]); ?>
-                                            <select name="hari" title="Pindah ke hari">
-                                                <?php for ($n = 1; $n <= $maks_hari; $n++) { ?>
-                                                    <option value="<?php echo $n; ?>"<?php if ($n === (int) $h) { echo ' selected="selected"'; } ?>>Hari <?php echo $n; ?></option>
-                                                <?php } ?>
-                                            </select>
-                                            <button type="submit" name="aksi" value="pindah_hari" class="btn-kecil">Pindah</button>
-                                        </div>
-                                    </form>
-                                    <form method="post" action="rencana.php" class="inline">
-                                        <div class="inline">
-                                            <?php echo rencana_hidden($csrf_token, $orang, $r["id"]); ?>
-                                            <button type="submit" name="aksi" value="naik" class="btn-kecil" title="Naikkan urutan"<?php if ($i === 0) { echo ' disabled="disabled"'; } ?>>&uarr;</button>
-                                            <button type="submit" name="aksi" value="turun" class="btn-kecil" title="Turunkan urutan"<?php if ($i === count($blok["item"]) - 1) { echo ' disabled="disabled"'; } ?>>&darr;</button>
-                                        </div>
-                                    </form>
-                                    <form method="post" action="rencana.php" class="inline" onsubmit="return confirm('Hapus destinasi ini dari rencana?');">
-                                        <div class="inline">
-                                            <?php echo rencana_hidden($csrf_token, $orang, $r["id"]); ?>
-                                            <button type="submit" name="aksi" value="hapus" class="btn-kecil btn-bahaya">Hapus</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        <?php } ?>
-                    </div>
-                </div>
-            <?php } ?>
+            <?php foreach ($hari_list as $h => $blok) {
+                $jad = $jadwal_hari[$h];
+                $bisa_ubah = true;
+                require __DIR__ . "/../includes/rencana_hari.php";
+            } ?>
 
             <div class="cetak-catatan">
                 <p class="kecil">Rencana ini dibuat dengan Dolan Jogja. Jam buka dan harga tiket dapat berubah; konfirmasi ulang sebelum berangkat.</p>

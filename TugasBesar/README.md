@@ -120,7 +120,7 @@ TugasBesar/
 - Tombol **Buat tautan berbagi** membuat token acak 32 karakter di tabel `rencana_bagi` (dibuat otomatis oleh `includes/rencana_bagi.php`). Tautan `rencana_publik.php?token=...` bisa dibuka tanpa akun dan hanya menampilkan rencana; tidak ada form atau tombol ubah di halaman itu.
 - Membuat tautan baru otomatis membatalkan tautan lama; **Hentikan tautan** menghapus token sehingga tautan lama menjadi 404. Token tidak dapat ditebak dan hanya memberi akses baca.
 - **Unduh kalender (.ics)** memakai `rencana_ics.php` (lewat token berbagi atau pemilik yang sudah login). Setiap destinasi menjadi satu VEVENT berisi waktu tiba/selesai (WIB dikonversi ke UTC), judul, lokasi, harga, dan peringatan jam buka, sehingga bisa dibuka di aplikasi kalender HP.
-- Ekspor memerlukan tanggal mulai; tanpa tanggal server membalas 400 dengan pesan. Halaman publik, .ics, dan halaman pemilik memakai `muat_rencana_pengguna()` sebagai sumber data yang sama.
+- Ekspor memerlukan tanggal mulai; tanpa tanggal server membalas 400 dengan pesan. Halaman publik, .ics, dan halaman pemilik memakai `muat_rencana_pengguna()` sebagai sumber data yang sama; markup satu hari dipakai bersama lewat `includes/rencana_hari.php`.
 
 ### Pencegahan destinasi duplikat
 - Seed hanya memuat satu baris per destinasi. Tujuh baris kembar di batch kedua (Keraton, Malioboro, Gembira Loka, Hutan Pinus, Parangtritis, Tebing Breksi, Goa Pindul) sudah dihapus; foto/harga/jam/koordinat terbarunya digabung ke baris batch pertama yang menyimpan ulasan.
