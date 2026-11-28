@@ -343,3 +343,29 @@ window.addEventListener("pageshow", function (e) {
         }
     });
 })();
+
+/* ---------- Salin tautan berbagi Rencana Dolan ---------- */
+(function () {
+    "use strict";
+    document.addEventListener("click", function (e) {
+        var tombol = e.target.closest ? e.target.closest("[data-salin]") : null;
+        if (!tombol) { return; }
+        var input = document.getElementById(tombol.getAttribute("data-salin"));
+        if (!input) { return; }
+        var teks = input.value;
+        var label = tombol.textContent;
+
+        function berhasil() {
+            tombol.textContent = "Tersalin";
+            setTimeout(function () { tombol.textContent = label; }, 2000);
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(teks).then(berhasil, function () { input.select(); });
+            return;
+        }
+        input.focus();
+        input.select();
+        try { if (document.execCommand("copy")) { berhasil(); } } catch (err) {}
+    });
+})();

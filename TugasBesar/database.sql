@@ -14,7 +14,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, rencana_meta, rencana_hari, favorites, wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, rencana_bagi, rencana_meta, rencana_hari, favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -349,4 +349,14 @@ CREATE TABLE IF NOT EXISTS rencana_meta (
     user_id INT NOT NULL PRIMARY KEY,
     tanggal_mulai DATE DEFAULT NULL,
     CONSTRAINT fk_meta_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===== Tautan berbagi hanya-baca Rencana Dolan =====
+-- Satu token per pengguna; token lama otomatis tidak berlaku saat dibuat ulang.
+CREATE TABLE IF NOT EXISTS rencana_bagi (
+    user_id INT NOT NULL PRIMARY KEY,
+    token CHAR(32) NOT NULL,
+    dibuat TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unik_token_bagi (token),
+    CONSTRAINT fk_bagi_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

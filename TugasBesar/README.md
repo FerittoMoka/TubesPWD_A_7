@@ -116,6 +116,12 @@ TugasBesar/
 ### Estimasi jarak & biaya transport (Rencana Dolan)
 - Jarak rute dihitung dari koordinat destinasi yang berurutan tiap hari (rumus Haversine), lalu dikalikan tarif moda: Motor Rp 1.500/km, Mobil Rp 2.500/km, Sewa mobil + driver Rp 6.000/km.
 
+### Bagikan rencana & ekspor kalender (Rencana Dolan)
+- Tombol **Buat tautan berbagi** membuat token acak 32 karakter di tabel `rencana_bagi` (dibuat otomatis oleh `includes/rencana_bagi.php`). Tautan `rencana_publik.php?token=...` bisa dibuka tanpa akun dan hanya menampilkan rencana; tidak ada form atau tombol ubah di halaman itu.
+- Membuat tautan baru otomatis membatalkan tautan lama; **Hentikan tautan** menghapus token sehingga tautan lama menjadi 404. Token tidak dapat ditebak dan hanya memberi akses baca.
+- **Unduh kalender (.ics)** memakai `rencana_ics.php` (lewat token berbagi atau pemilik yang sudah login). Setiap destinasi menjadi satu VEVENT berisi waktu tiba/selesai (WIB dikonversi ke UTC), judul, lokasi, harga, dan peringatan jam buka, sehingga bisa dibuka di aplikasi kalender HP.
+- Ekspor memerlukan tanggal mulai; tanpa tanggal server membalas 400 dengan pesan. Halaman publik, .ics, dan halaman pemilik memakai `muat_rencana_pengguna()` sebagai sumber data yang sama.
+
 ### Pencegahan destinasi duplikat
 - Seed hanya memuat satu baris per destinasi. Tujuh baris kembar di batch kedua (Keraton, Malioboro, Gembira Loka, Hutan Pinus, Parangtritis, Tebing Breksi, Goa Pindul) sudah dihapus; foto/harga/jam/koordinat terbarunya digabung ke baris batch pertama yang menyimpan ulasan.
 - `destinations.nama` memakai `UNIQUE KEY unik_nama_destinasi`, sehingga impor ulang atau penambahan lewat admin tidak bisa membuat nama yang sama.

@@ -970,3 +970,13 @@ body.tanpa-scroll { overflow: hidden; }
 @media (max-width: 640px) {
   .jadwal-hari { align-items: flex-start; }
 }
+
+/* ===== Bagikan Rencana Dolan ===== */
+#panel-bagi h3 .kecil { font-weight: 400; }
+.bagi-tautan { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 10px; }
+.bagi-tautan input { flex: 1 1 280px; min-width: 0; padding: 8px 10px; border: 1px solid var(--taupe); border-radius: 8px; background: var(--krem); color: var(--kakao); font: inherit; font-size: 13px; }
+.bagi-kepala { margin-bottom: 18px; }
+.bagi-kepala h1 { margin-bottom: 4px; }
+@media (max-width: 640px) {
+  .bagi-tautan input { flex-basis: 100%; }
+}

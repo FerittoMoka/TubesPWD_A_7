@@ -224,3 +224,70 @@ function susun_jadwal_hari($items, $mulai, $hari = null) {
     }
     return $jadwal;
 }
+
+/* ---------- Format harga dan data rencana bersama ---------- */
+if (!function_exists("rencana_rp")) {
+    function rencana_rp($n) { return "Rp " . number_format((int) $n, 0, ",", "."); }
+}
+if (!function_exists("rencana_harga")) {
+    function rencana_harga($min, $maks) {
+        if ($maks <= 0) { return "Gratis"; }
+        return $min === $maks ? rencana_rp($min) : rencana_rp($min) . " - " . rencana_rp($maks);
+    }
+}
+
+/* Satu sumber data untuk halaman pemilik, tautan publik, dan ekspor .ics.
+   Mengembalikan item per hari, subtotal per orang, jadwal jam, jarak, dan tanggal mulai. */
+function muat_rencana_pengguna($conn, $uid) {
+    $st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.jam_buka, d.hari_tutup, d.harga_tiket, d.harga_maks, d.foto, d.latitude, d.longitude, c.nama AS kategori
+        FROM wishlists w
+        JOIN destinations d ON d.id = w.destination_id
+        JOIN categories c ON c.id = d.category_id
+        WHERE w.user_id = ? AND d.status = 'aktif'
+        ORDER BY w.hari_ke, w.urutan, w.id");
+    mysqli_stmt_bind_param($st, "i", $uid);
+    mysqli_stmt_execute($st);
+    $rows = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
+    mysqli_stmt_close($st);
+
+    $hari_list = array();
+    $total_min = 0;
+    $total_maks = 0;
+    foreach ($rows as $r) {
+        $min = (int) $r["harga_tiket"];
+        $mx  = ($r["harga_maks"] !== null) ? max($min, (int) $r["harga_maks"]) : $min;
+        $h   = max(1, (int) $r["hari_ke"]);
+        if (!isset($hari_list[$h])) { $hari_list[$h] = array("item" => array(), "min" => 0, "maks" => 0); }
+        $r["_min"] = $min;
+        $r["_maks"] = $mx;
+        $hari_list[$h]["item"][] = $r;
+        $hari_list[$h]["min"]  += $min;
+        $hari_list[$h]["maks"] += $mx;
+        $total_min  += $min;
+        $total_maks += $mx;
+    }
+    ksort($hari_list);
+
+    $jam_mulai_hari = ambil_jam_mulai_hari($conn, $uid);
+    $tanggal_mulai = ambil_tanggal_mulai($conn, $uid);
+    $jadwal_hari = array();
+    $jarak_total = 0.0;
+    foreach ($hari_list as $h => $blok) {
+        $mulai = jam_ke_menit($jam_mulai_hari[$h] ?? "08:00");
+        if ($mulai === null) { $mulai = 8 * 60; }
+        $info = $tanggal_mulai !== "" ? info_hari($tanggal_mulai, $h) : null;
+        $jadwal_hari[$h] = susun_jadwal_hari($blok["item"], $mulai, $info);
+        $jarak_total += $jadwal_hari[$h]["km"];
+    }
+
+    return array(
+        "hari" => $hari_list,
+        "jadwal" => $jadwal_hari,
+        "min" => $total_min,
+        "maks" => $total_maks,
+        "km" => round($jarak_total, 1),
+        "tanggal_mulai" => $tanggal_mulai,
+        "jam_mulai" => $jam_mulai_hari,
+        "jumlah_item" => count($rows),
+    );
+}

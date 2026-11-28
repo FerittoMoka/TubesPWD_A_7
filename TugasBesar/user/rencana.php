@@ -3,18 +3,14 @@ require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
 require_once __DIR__ . "/../includes/rencana_jadwal.php";
+require_once __DIR__ . "/../includes/rencana_bagi.php";
 cek_login();
 
 $uid = (int) $_SESSION["user_id"];
 pastikan_rencana_hari($conn);
+pastikan_rencana_bagi($conn);
 $maks_hari = 7;
 $orang = max(1, min(50, (int) ($_GET["orang"] ?? $_POST["orang"] ?? 1)));
-
-function rencana_rp($n) { return "Rp " . number_format((int) $n, 0, ",", "."); }
-function rencana_harga($min, $maks) {
-    if ($maks <= 0) { return "Gratis"; }
-    return $min === $maks ? rencana_rp($min) : rencana_rp($min) . " - " . rencana_rp($maks);
-}
 
 /* ---------- Proses aksi ---------- */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -27,6 +23,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     $aksi = $_POST["aksi"] ?? "";
+
+    /* Tautan berbagi hanya-baca: dibuat ulang = token lama langsung tidak berlaku. */
+    if ($aksi === "bagikan") {
+        $token_baru = buat_token_bagi($conn, $uid);
+        $_SESSION["rencana_pesan"] = $token_baru !== ""
+            ? array("sukses", "Tautan berbagi dibuat. Salin dan kirim ke siapa pun; penerima hanya bisa melihat.")
+            : array("error", "Tautan berbagi gagal dibuat. Silakan coba lagi.");
+        header("Location: " . $kembali);
+        exit;
+    }
+    if ($aksi === "hentikan_bagi") {
+        $_SESSION["rencana_pesan"] = hapus_token_bagi($conn, $uid)
+            ? array("sukses", "Tautan berbagi dimatikan.")
+            : array("error", "Tautan berbagi gagal dimatikan. Silakan coba lagi.");
+        header("Location: " . $kembali);
+        exit;
+    }
 
     /* Tanggal mulai: hari ke-1..N dipetakan ke hari kalender. */
     if ($aksi === "tanggal_mulai") {
@@ -124,52 +137,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 /* ---------- Ambil data ---------- */
-$st = mysqli_prepare($conn, "SELECT w.id, w.hari_ke, d.id AS did, d.nama, d.lokasi, d.jam_buka, d.hari_tutup, d.harga_tiket, d.harga_maks, d.foto, d.latitude, d.longitude, c.nama AS kategori
-    FROM wishlists w
-    JOIN destinations d ON d.id = w.destination_id
-    JOIN categories c ON c.id = d.category_id
-    WHERE w.user_id = ? AND d.status = 'aktif'
-    ORDER BY w.hari_ke, w.urutan, w.id");
-mysqli_stmt_bind_param($st, "i", $uid);
-mysqli_stmt_execute($st);
-$rows = mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC);
-mysqli_stmt_close($st);
-
-$hari_list = array();
-$total_min = 0;
-$total_maks = 0;
-$jml_titik_peta = 0;
-foreach ($rows as $r) {
-    $min = (int) $r["harga_tiket"];
-    $mx  = ($r["harga_maks"] !== null) ? max($min, (int) $r["harga_maks"]) : $min;
-    $h   = (int) $r["hari_ke"];
-    if (!isset($hari_list[$h])) { $hari_list[$h] = array("item" => array(), "min" => 0, "maks" => 0); }
-    $r["_min"] = $min;
-    $r["_maks"] = $mx;
-    $hari_list[$h]["item"][] = $r;
-    $hari_list[$h]["min"]  += $min;
-    $hari_list[$h]["maks"] += $mx;
-    $total_min  += $min;
-    $total_maks += $mx;
-    $jml_titik_peta++;
-}
-ksort($hari_list);
-
-/* Jadwal jam per hari: waktu tiba/keluar tiap destinasi, jarak tempuh, dan peringatan jam buka. */
-$jam_mulai_hari = ambil_jam_mulai_hari($conn, $uid);
-$tanggal_mulai = ambil_tanggal_mulai($conn, $uid);
-$jadwal_hari = array();
-$jarak_hari = array();
-$jarak_total = 0.0;
-foreach ($hari_list as $h_j => $blok_j) {
-    $mulai_j = jam_ke_menit($jam_mulai_hari[$h_j] ?? "08:00");
-    if ($mulai_j === null) { $mulai_j = 8 * 60; }
-    $info_j = $tanggal_mulai !== "" ? info_hari($tanggal_mulai, $h_j) : null;
-    $jadwal_hari[$h_j] = susun_jadwal_hari($blok_j["item"], $mulai_j, $info_j);
-    $jarak_hari[$h_j] = $jadwal_hari[$h_j]["km"];
-    $jarak_total += $jadwal_hari[$h_j]["km"];
-}
-$jarak_total = round($jarak_total, 1);
+$data_rencana  = muat_rencana_pengguna($conn, $uid);
+$hari_list     = $data_rencana["hari"];
+$jadwal_hari   = $data_rencana["jadwal"];
+$tanggal_mulai = $data_rencana["tanggal_mulai"];
+$total_min     = $data_rencana["min"];
+$total_maks    = $data_rencana["maks"];
+$jarak_total   = $data_rencana["km"];
+$token_bagi    = ambil_token_bagi($conn, $uid);
 
 /* Pilihan moda transportasi untuk perkiraan biaya per kilometer. */
 $moda_transport = array(
@@ -308,9 +283,43 @@ require_once __DIR__ . "/../includes/header.php";
                     <button type="button" class="tombol" onclick="cetakRencana();">Cetak</button>
                     <button type="button" class="tombol tombol-garis" onclick="salinRingkasan();">Salin ringkasan</button>
                     <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>peta.php?rute=1">Lihat Rute di Peta</a>
+                    <?php if ($tanggal_mulai !== "") { ?><a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>rencana_ics.php">Unduh Kalender (.ics)</a><?php } ?>
                     <span id="status-salin" class="kecil"></span>
                 </div>
                 <textarea id="ringkasan-teks" class="sembunyi" rows="6" cols="40" readonly="readonly"><?php echo e($ringkasan); ?></textarea>
+            </div>
+
+            <div class="panel tidak-dicetak" id="panel-bagi">
+                <h3>Bagikan rencana <span class="kecil">&middot; hanya baca</span></h3>
+                <?php if ($token_bagi === "") { ?>
+                    <p class="kecil">Buat tautan agar rencana ini bisa dibuka tanpa akun. Penerima hanya bisa melihat, tidak bisa mengubah.</p>
+                    <form method="post" action="rencana.php" class="inline">
+                        <div class="inline">
+                            <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                            <button type="submit" name="aksi" value="bagikan" class="btn-kecil">Buat tautan berbagi</button>
+                        </div>
+                    </form>
+                <?php } else { ?>
+                    <p class="kecil">Siapa pun yang memiliki tautan ini dapat melihat rencana tanpa akun. Matikan tautan bila sudah tidak dipakai.</p>
+                    <div class="bagi-tautan">
+                        <input type="text" id="tautan-bagi" readonly="readonly" value="<?php echo e(url_rencana_publik($token_bagi)); ?>" onclick="this.select();" />
+                        <button type="button" class="btn-kecil" data-salin="tautan-bagi">Salin</button>
+                        <a class="btn-kecil btn-tautan" href="<?php echo e(url_rencana_publik($token_bagi)); ?>">Buka</a>
+                    </div>
+                    <div class="rencana-aksi">
+                        <?php if ($tanggal_mulai !== "") { ?>
+                            <a class="btn-kecil" href="<?php echo BASE_URL; ?>rencana_ics.php">Unduh kalender (.ics)</a>
+                        <?php } else { ?>
+                            <span class="kecil">Isi tanggal mulai agar jadwal bisa diekspor ke kalender.</span>
+                        <?php } ?>
+                        <form method="post" action="rencana.php" class="inline" onsubmit="return confirm('Matikan tautan berbagi? Tautan lama tidak bisa dibuka lagi.');">
+                            <div class="inline">
+                                <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                                <button type="submit" name="aksi" value="hentikan_bagi" class="btn-kecil btn-bahaya">Hentikan tautan</button>
+                            </div>
+                        </form>
+                    </div>
+                <?php } ?>
             </div>
 
             <?php foreach ($hari_list as $h => $blok) { $jad_h = $jadwal_hari[$h]; ?>
