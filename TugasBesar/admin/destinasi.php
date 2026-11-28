@@ -62,6 +62,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
            || ($lng_s !== "" && (!is_numeric($lng_s) || $lng_s < -180 || $lng_s > 180))
            || (($lat_s === "") !== ($lng_s === ""))) {
         $error = "Latitude/longitude harus angka yang valid dan diisi berpasangan.";
+    } elseif (($kembar = destinasi_kembar($conn, $nama, $id)) !== null) {
+        $error = "Destinasi serupa sudah ada: \"" . $kembar["nama"] . "\" (id " . (int) $kembar["id"]
+            . "). Sunting data itu atau ubah namanya agar tidak dobel.";
     } else {
         list($foto_baru, $err_foto) = simpan_gambar($_FILES["foto"] ?? array(), "destinasi");
         if ($err_foto) {
@@ -86,7 +89,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $s = $conn->prepare("INSERT INTO destinations (category_id,nama,lokasi,wilayah,deskripsi,harga_tiket,harga_maks,jam_buka,hari_tutup,tag,status,latitude,longitude,foto) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
                 $s->bind_param("issssiissssdds", $cat, $nama, $lokasi, $wilayah, $desc, $tiket, $maks, $jam, $tutup_str, $tag, $status, $lat, $lng, $foto_final);
             }
-            $s->execute();
+            if (!$s->execute()) {
+                /* Kunci unik nama di database adalah jaring pengaman terakhir. */
+                $error = ((int) $s->errno === 1062)
+                    ? "Destinasi dengan nama itu sudah ada. Sunting data yang sudah tersimpan."
+                    : "Destinasi gagal disimpan. Silakan coba lagi.";
+            } else {
             $id_dest = $id ? $id : (int) mysqli_insert_id($conn);
 
             /* Galeri: hapus foto terpilih, simpan keterangan, lalu unggah foto baru. */
@@ -120,6 +128,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
             flash("success", ($id ? "Destinasi berhasil diperbarui." : "Destinasi berhasil ditambahkan.") . $pesan_galeri);
             redirect("admin/index.php");
+            }
         }
     }
 }

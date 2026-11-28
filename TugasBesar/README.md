@@ -116,5 +116,10 @@ TugasBesar/
 ### Estimasi jarak & biaya transport (Rencana Dolan)
 - Jarak rute dihitung dari koordinat destinasi yang berurutan tiap hari (rumus Haversine), lalu dikalikan tarif moda: Motor Rp 1.500/km, Mobil Rp 2.500/km, Sewa mobil + driver Rp 6.000/km.
 
+### Pencegahan destinasi duplikat
+- Seed hanya memuat satu baris per destinasi. Tujuh baris kembar di batch kedua (Keraton, Malioboro, Gembira Loka, Hutan Pinus, Parangtritis, Tebing Breksi, Goa Pindul) sudah dihapus; foto/harga/jam/koordinat terbarunya digabung ke baris batch pertama yang menyimpan ulasan.
+- `destinations.nama` memakai `UNIQUE KEY unik_nama_destinasi`, sehingga impor ulang atau penambahan lewat admin tidak bisa membuat nama yang sama.
+- Form admin juga menolak nama yang mirip (mis. "Keraton Yogyakarta" vs "Keraton Ngayogyakarta Hadiningrat") lewat `destinasi_kembar()` di `includes/fungsi.php`, dengan pesan yang menyebut destinasi yang sudah ada.
+
 ### Indeks database
 - `database.sql` menambahkan indeks `idx_reviews_user`, `idx_wishlists_destination`, `idx_favorites_user`, `idx_favorites_destination`, dan `idx_dest_wilayah` untuk mempercepat join, filter wilayah, dan urutan rating.

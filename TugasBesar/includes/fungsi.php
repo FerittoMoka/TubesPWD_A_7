@@ -28,6 +28,48 @@ function aktif($nama, $sekarang) {
     return $nama === $sekarang ? ' class="aktif"' : "";
 }
 
+/* Kunci nama destinasi untuk deteksi duplikat: huruf kecil, tanpa tanda baca,
+   dan sinonim nama kota diseragamkan (“Keraton Yogyakarta” = “Keraton Ngayogyakarta Hadiningrat”). */
+function kunci_nama_destinasi($nama) {
+    $teks = mb_strtolower(trim((string) $nama), "UTF-8");
+    $teks = preg_replace("/[^a-z0-9]+/u", " ", $teks);
+    $kata = preg_split("/\s+/", trim($teks), -1, PREG_SPLIT_NO_EMPTY);
+    /* Alias dicocokkan per kata utuh supaya “yogya” tidak memotong “yogyakarta”. */
+    $alias = array("ngayogyakarta" => "yogyakarta", "jogjakarta" => "yogyakarta",
+                   "jogja" => "yogyakarta", "yogya" => "yogyakarta");
+    foreach ($kata as $i => $k) {
+        if (isset($alias[$k])) { $kata[$i] = $alias[$k]; }
+    }
+    return implode(" ", $kata);
+}
+
+/* Cari destinasi lain yang namanya sama, atau yang seluruh kata nama pendeknya
+   termuat pada nama lain. Hasil array("id", "nama") atau null. */
+function destinasi_kembar($conn, $nama, $kecuali = 0) {
+    $kunci = kunci_nama_destinasi($nama);
+    if ($kunci === "") { return null; }
+    $kata = explode(" ", $kunci);
+    $kecuali = (int) $kecuali;
+    $hasil = mysqli_query($conn, "SELECT id, nama FROM destinations ORDER BY id");
+    if (!$hasil) { return null; }
+    while ($b = mysqli_fetch_assoc($hasil)) {
+        if ((int) $b["id"] === $kecuali) { continue; }
+        $lain = kunci_nama_destinasi($b["nama"]);
+        if ($lain === "") { continue; }
+        if ($lain === $kunci) { return $b; }
+        $kata_lain = explode(" ", $lain);
+        $pendek = count($kata) <= count($kata_lain) ? $kata : $kata_lain;
+        $panjang = count($kata) <= count($kata_lain) ? $kata_lain : $kata;
+        /* Nama pendek yang seluruh katanya ada di nama lain dianggap kembar;
+           satu kata tetap dicek bila cukup khas (mis. “Malioboro” vs “Jalan Malioboro”). */
+        if (count(array_diff($pendek, $panjang)) === 0
+            && (count($pendek) >= 2 || mb_strlen($pendek[0], "UTF-8") >= 5)) {
+            return $b;
+        }
+    }
+    return null;
+}
+
 /* Cek keberadaan file foto di folder upload (bukan hanya nama di database). */
 function foto_ada($foto) {
     if ($foto === null || $foto === "") { return false; }

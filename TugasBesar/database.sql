@@ -37,6 +37,7 @@ CREATE TABLE destinations (
   id INT AUTO_INCREMENT PRIMARY KEY,
   category_id INT NOT NULL,
   nama VARCHAR(100) NOT NULL,
+  UNIQUE KEY unik_nama_destinasi (nama),
   lokasi VARCHAR(200) NOT NULL,
   deskripsi TEXT,
   harga_tiket INT NOT NULL DEFAULT 0,
@@ -208,31 +209,53 @@ INSERT INTO destinations (
     category_id, nama, lokasi, harga_tiket, harga_maks, deskripsi, latitude, longitude, foto
 ) VALUES
 (1, 'Tugu Pal Putih Yogyakarta', 'Jetis, Kota Yogyakarta', 0, 0, 'Landmark bersejarah dan titik acuan utama Kota Yogyakarta yang ramai dikunjungi warga maupun wisatawan sepanjang hari.', -7.782889, 110.367083, 'tugu-jogja.jpg'),
-(1, 'Keraton Ngayogyakarta Hadiningrat', 'Kraton, Kota Yogyakarta', 15000, 25000, 'Istana resmi Kesultanan Yogyakarta yang menyimpan warisan arsitektur Jawa, museum, dan agenda budaya tradisional.', -7.805285, 110.364203, 'keraton-jogja.jpg'),
 (1, 'Taman Sari Yogyakarta', 'Kraton, Kota Yogyakarta', 15000, 25000, 'Situs bekas taman air kerajaan dengan lorong bawah tanah, kolam pemandian, dan bangunan bersejarah bernilai tinggi.', -7.809986, 110.359297, 'taman-sari.jpg'),
 (1, 'Museum Benteng Vredeburg', 'Ngupasan, Gondomanan, Kota Yogyakarta', 5000, 10000, 'Benteng peninggalan kolonial di kawasan Malioboro yang kini difungsikan sebagai museum sejarah perjuangan bangsa.', -7.800257, 110.366266, 'vredeburg.jpg'),
 (5, 'Taman Pintar Yogyakarta', 'Ngupasan, Gondomanan, Kota Yogyakarta', 12000, 25000, 'Pusat wisata edukasi sains dan teknologi dengan berbagai zona peraga interaktif yang cocok untuk pelajar dan keluarga.', -7.800547, 110.367641, 'taman-pintar.jpg'),
 (6, 'Pasar Beringharjo', 'Ngupasan, Gondomanan, Kota Yogyakarta', 0, 0, 'Pasar tradisional ikonik di jantung kota untuk mencari batik, jamu, jajanan pasar, dan beragam buah tangan.', -7.798841, 110.365692, 'beringharjo.jpg'),
-(6, 'Jalan Malioboro', 'Sosromenduran, Gedongtengen, Kota Yogyakarta', 0, 0, 'Kawasan wisata belanja dan kuliner malam paling populer di Yogyakarta dengan trotoar lebar dan nuansa khas kota.', -7.792570, 110.365836, 'malioboro.jpg'),
 (6, 'Alun-Alun Kidul Yogyakarta', 'Patehan, Kraton, Kota Yogyakarta', 0, 0, 'Ruang terbuka bersejarah di selatan Keraton yang menjadi tempat berkumpul, kuliner malam, dan bersantai.', -7.811776, 110.363198, 'alkid-jogja.jpg'),
-(5, 'Gembira Loka Zoo', 'Rejowinangun, Kotagede, Kota Yogyakarta', 60000, 75000, 'Kebun binatang keluarga di timur kota dengan beragam koleksi satwa, taman tematik, dan wahana perahu.', -7.806449, 110.396331, 'gembira-loka.jpg'),
 (1, 'Candi Sambisari', 'Purwomartani, Kalasan, Sleman', 10000, 15000, 'Candi Hindu bercorak klasik yang terletak beberapa meter di bawah permukaan tanah dengan halaman asri.', -7.762535, 110.447029, 'candi-sambisari.jpg'),
 (1, 'Candi Ratu Boko', 'Bokoharjo, Prambanan, Sleman', 40000, 50000, 'Kompleks situs purbakala di atas bukit yang menawarkan lanskap luas dan pemandangan senja yang menawan.', -7.770492, 110.489435, 'ratu-boko.jpg'),
 (1, 'Candi Ijo', 'Sambirejo, Prambanan, Sleman', 10000, 15000, 'Candi Hindu dengan letak paling tinggi di Yogyakarta, menyuguhkan panorama perbukitan dan langit senja.', -7.784130, 110.512126, 'candi-ijo.jpg'),
-(3, 'Tebing Breksi', 'Sambirejo, Prambanan, Sleman', 10000, 15000, 'Destinasi wisata alam dan geowisata dengan dinding batuan kapur berukir serta panggung terbuka.', -7.781728, 110.504493, 'tebing-breksi.jpg'),
 (3, 'Kalibiru', 'Hargowilis, Kokap, Kulon Progo', 15000, 25000, 'Kawasan wisata alam di Pegunungan Menoreh dengan hawa sejuk dan pemandangan perbukitan hijau.', -7.801207, 110.129248, 'kalibiru.jpg'),
 (3, 'Waduk Sermo', 'Hargowilis, Kokap, Kulon Progo', 10000, 15000, 'Waduk yang dikelilingi perbukitan rindang di Kulon Progo, cocok untuk wisata santai dan menikmati udara segar.', -7.818003, 110.118744, 'waduk-sermo.jpg'),
 (2, 'Pantai Glagah', 'Glagah, Temon, Kulon Progo', 10000, 15000, 'Pantai selatan Kulon Progo dengan pemecah ombak batu tetrapod, pasir hitam, dan area laguna.', -7.912548, 110.071856, 'pantai-glagah.jpg'),
-(3, 'Hutan Pinus Mangunan', 'Mangunan, Dlingo, Bantul', 5000, 10000, 'Hutan pinus sejuk di kawasan Dlingo yang rindang, nyaman untuk berjalan santai dan berfoto.', -7.926798, 110.431775, 'pinus-mangunan.jpg'),
 (3, 'Kebun Buah Mangunan', 'Mangunan, Dlingo, Bantul', 10000, 15000, 'Kawasan perbukitan di Bantul dengan pemandangan lembah Sungai Oyo dan udara pagi yang menyegarkan.', -7.943734, 110.424667, 'kebun-buah-mangunan.jpg'),
 (3, 'Puncak Becici', 'Mangunan, Dlingo, Bantul', 5000, 10000, 'Spot wisata alam hutan pinus dan gardu pandang di Dlingo dengan suasana tenang dan pepohonan tinggi.', -7.919163, 110.439185, 'puncak-becici.jpg'),
-(2, 'Pantai Parangtritis', 'Kretek, Bantul', 15000, 20000, 'Pantai ikonik di selatan Yogyakarta dengan garis pantai panjang, ombak besar, dan panorama sunset.', -8.025852, 110.333022, 'parangtritis.jpg'),
 (2, 'Gumuk Pasir Parangkusumo', 'Gadingharjo, Sanden, Bantul', 10000, 15000, 'Fenomena alam gumuk pasir pesisir yang unik di Bantul dan menjadi lokasi aktivitas papan selancar pasir.', -8.015386, 110.315644, 'gumuk-pasir.jpg'),
 (2, 'Pantai Indrayanti', 'Tepus, Gunungkidul', 15000, 20000, 'Pantai berpasir putih di pesisir Gunungkidul dengan air laut jernih dan fasilitas rumah makan tepi pantai.', -8.150583, 110.613022, 'pantai-indrayanti.jpg'),
 (2, 'Pantai Pok Tunggal', 'Tepus, Gunungkidul', 15000, 20000, 'Pantai berpasir putih di Gunungkidul yang dikenal dengan pohon duras di pinggir pantai dan tebing kapur.', -8.149421, 110.577244, 'pok-tunggal.jpg'),
 (2, 'Pantai Wediombo', 'Jepitu, Girisubo, Gunungkidul', 10000, 15000, 'Pantai selatan Gunungkidul berbentuk teluk dengan pasir putih, batu karang, dan suasana alami.', -8.187718, 110.678831, 'pantai-wediombo.jpg'),
-(3, 'Goa Pindul', 'Bejiharjo, Karangmojo, Gunungkidul', 50000, 100000, 'Wisata susur sungai di dalam gua kapur menggunakan ban pelampung dengan pengalaman petualangan yang seru.', -7.928848, 110.646336, 'goa-pindul.jpg'),
 (3, 'Air Terjun Sri Gethuk', 'Bleberan, Playen, Gunungkidul', 20000, 30000, 'Air terjun di aliran Sungai Oyo, Gunungkidul, dengan suasana tebing alami dan akses wisata yang khas.', -7.893556, 110.547194, 'sri-gethuk.jpg');
+
+-- ===== Data lanjutan destinasi batch pertama =====
+-- Baris kembar di batch kedua (Keraton, Malioboro, Gembira Loka, Hutan Pinus, Parangtritis,
+-- Tebing Breksi, Goa Pindul) sudah dihapus. Foto, harga, jam, dan koordinat terbaru digabung
+-- ke baris batch pertama, sedangkan wilayah dan deskripsi panjangnya dipertahankan.
+-- Kolom hari_tutup baru ditambahkan di bawah, jadi tidak diisi di sini.
+UPDATE destinations SET harga_tiket = 15000, harga_maks = 25000,
+       jam_buka = '08.30 - 14.30 (Senin tutup)', latitude = -7.805285, longitude = 110.364203,
+       foto = 'keraton-jogja.jpg'
+ WHERE nama = 'Keraton Yogyakarta';
+UPDATE destinations SET harga_tiket = 15000, harga_maks = 20000, jam_buka = '24 jam',
+       latitude = -8.025852, longitude = 110.333022, foto = 'parangtritis.jpg'
+ WHERE nama = 'Pantai Parangtritis';
+UPDATE destinations SET category_id = 3, harga_tiket = 10000, harga_maks = 15000,
+       jam_buka = '08.00 - 21.00 (akhir pekan 07.00)', latitude = -7.781728, longitude = 110.504493,
+       foto = 'tebing-breksi.jpg'
+ WHERE nama = 'Tebing Breksi';
+UPDATE destinations SET harga_tiket = 5000, harga_maks = 10000, jam_buka = '06.00 - 18.00',
+       latitude = -7.926798, longitude = 110.431775, foto = 'pinus-mangunan.jpg'
+ WHERE nama = 'Hutan Pinus Mangunan';
+UPDATE destinations SET harga_tiket = 50000, harga_maks = 100000, jam_buka = '07.00 - 17.00',
+       latitude = -7.928848, longitude = 110.646336, foto = 'goa-pindul.jpg'
+ WHERE nama = 'Goa Pindul';
+UPDATE destinations SET harga_tiket = 60000, harga_maks = 75000, jam_buka = '08.00 - 16.00',
+       latitude = -7.806449, longitude = 110.396331, foto = 'gembira-loka.jpg'
+ WHERE nama = 'Gembira Loka Zoo';
+UPDATE destinations SET harga_tiket = 0, harga_maks = 0, jam_buka = '24 jam',
+       latitude = -7.792570, longitude = 110.365836, foto = 'malioboro.jpg'
+ WHERE nama = 'Jalan Malioboro';
 
 -- ===== Indeks tambahan untuk pencarian, filter wilayah, dan relasi antar tabel =====
 CREATE INDEX idx_reviews_user ON reviews (user_id);
@@ -284,8 +307,6 @@ UPDATE destinations SET jam_buka = '24 jam' WHERE nama IN (
     'Pantai Pok Tunggal', 'Pantai Wediombo'
 ) AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
 
-UPDATE destinations SET jam_buka = '08.30 - 14.30 (Senin tutup)'
- WHERE nama = 'Keraton Ngayogyakarta Hadiningrat' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
 UPDATE destinations SET jam_buka = '09.00 - 15.00'
  WHERE nama = 'Taman Sari Yogyakarta' AND (jam_buka IS NULL OR TRIM(jam_buka) = '');
 UPDATE destinations SET jam_buka = '08.00 - 20.00 (Selasa - Kamis), 08.00 - 21.00 (Jumat - Minggu), Senin tutup'
@@ -314,7 +335,7 @@ ALTER TABLE destinations
   ADD COLUMN hari_tutup SET('senin','selasa','rabu','kamis','jumat','sabtu','minggu') DEFAULT NULL AFTER jam_buka;
 
 UPDATE destinations SET hari_tutup = 'senin' WHERE nama IN (
-    'Keraton Yogyakarta', 'Keraton Ngayogyakarta Hadiningrat', 'Museum Benteng Vredeburg',
+    'Keraton Yogyakarta', 'Museum Benteng Vredeburg',
     'Taman Pintar Yogyakarta', 'Air Terjun Sri Gethuk'
 );
 
