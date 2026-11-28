@@ -5,6 +5,11 @@ require_once __DIR__ . "/includes/auth.php";
 require_once __DIR__ . "/includes/rencana_jadwal.php";
 require_once __DIR__ . "/includes/rencana_bagi.php";
 
+// Halaman ini berisi tautan berbagi: jangan diindeks mesin pencari, dan token
+// di URL tidak boleh ikut terkirim sebagai Referer saat pengunjung pindah halaman.
+header("X-Robots-Tag: noindex, nofollow");
+header("Referrer-Policy: no-referrer");
+
 pastikan_rencana_hari($conn);
 pastikan_rencana_bagi($conn);
 
