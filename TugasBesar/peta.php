@@ -188,8 +188,14 @@ require_once __DIR__ . "/includes/header.php";
         setStatusLokasi("Posisi Anda: <strong>" + Number(lat).toFixed(5) + ", " + Number(lng).toFixed(5) + "</strong> (" + esc(sumber) + ")", "sukses");
     }
 
-    if (btnLokasi && window.DolanLokasi) {
+    /* Listener dipasang sekarang; modul geolokasi.js dimuat dengan defer sehingga
+       baru tersedia setelah parsing. Cek ketersediaannya saat tombol diklik. */
+    if (btnLokasi) {
         btnLokasi.addEventListener("click", function () {
+            if (!window.DolanLokasi) {
+                setStatusLokasi("Modul lokasi belum siap. Muat ulang halaman lalu coba lagi.", "error");
+                return;
+            }
             window.DolanLokasi.cari({
                 status: statusLokasi,
                 tombol: btnLokasi,
