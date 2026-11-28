@@ -9,6 +9,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $s = $conn->prepare("DELETE FROM reviews WHERE id=?");
         $s->bind_param("i", $id);
         $s->execute();
+        catat_log_admin($conn, (int) $USER["id"], "hapus_ulasan", "ulasan #" . $id);
         flash("success", "Ulasan dihapus.");
     }
     redirect("admin/ulasan.php");

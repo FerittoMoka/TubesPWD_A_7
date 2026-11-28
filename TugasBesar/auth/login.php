@@ -2,6 +2,7 @@
 require_once "../config/koneksi.php";
 require_once "../includes/auth.php";
 require_once "../includes/csrf.php";
+require_once "../includes/keamanan.php";
 
 $pesan = "";
 
@@ -19,6 +20,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         if ($login === "" || $password === "") {
             $pesan = "Username/email dan password wajib diisi.";
+        } elseif (($tunggu = batas_percobaan_login($conn, $login)) > 0) {
+            $pesan = "Terlalu banyak percobaan masuk. " . teks_tunggu($tunggu);
         } else {
             $stmt = mysqli_prepare($conn, "SELECT id, username, email, password, nama_lengkap, role FROM users WHERE username = ? OR email = ? LIMIT 1");
             mysqli_stmt_bind_param($stmt, "ss", $login, $login);
@@ -28,6 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             mysqli_stmt_close($stmt);
 
             if ($user && password_verify($password, $user["password"])) {
+                reset_percobaan_login($conn, $login);
                 session_regenerate_id(true);
                 $_SESSION["user_id"] = (int) $user["id"];
                 $_SESSION["username"] = $user["username"];
@@ -35,6 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 header("Location: " . BASE_URL . "index.php");
                 exit;
             } else {
+                catat_gagal_login($conn, $login);
                 $pesan = "Username/email atau password salah.";
             }
         }

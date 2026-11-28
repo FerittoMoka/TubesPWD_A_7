@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../includes/auth.php";
 require_once __DIR__ . "/../includes/csrf.php";
 require_once __DIR__ . "/../includes/pesan.php";
+require_once __DIR__ . "/../includes/keamanan.php";
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: " . BASE_URL . "auth/register.php");
@@ -14,6 +15,14 @@ if (!verify_csrf_token($_POST["csrf_token"] ?? "")) {
     header("Location: " . BASE_URL . "auth/register.php");
     exit;
 }
+
+/* Batasi pembuatan akun dari satu jaringan agar tidak dipakai massal. */
+if (batas_percobaan_daftar($conn)) {
+    set_pesan("error", "Pendaftaran dari jaringan ini terlalu sering. Coba lagi dalam satu jam.");
+    header("Location: " . BASE_URL . "auth/register.php");
+    exit;
+}
+catat_percobaan_daftar($conn);
 
 $nama_lengkap = trim($_POST["nama_lengkap"] ?? "");
 $username     = trim($_POST["username"] ?? "");

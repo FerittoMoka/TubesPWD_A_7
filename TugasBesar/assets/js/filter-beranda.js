@@ -18,10 +18,11 @@
     var inMood = document.getElementById("in-mood");
     var inKategori = document.getElementById("in-kategori");
     var inWilayah = document.getElementById("in-wilayah");
+    var inBuka = document.getElementById("in-buka");
     var reset = document.getElementById("reset-filter");
 
     // Keadaan awal dibaca dari chip yang sudah ditandai aktif oleh server
-    var state = { mood: [], kategori: [], wilayah: [], cari: inputCari ? inputCari.value.trim() : "" };
+    var state = { mood: [], kategori: [], wilayah: [], buka: [], cari: inputCari ? inputCari.value.trim() : "" };
     Array.prototype.forEach.call(chips, function (c) {
         var nilai = c.getAttribute("data-nilai");
         if (nilai !== "" && c.classList.contains("aktif")) {
@@ -39,11 +40,12 @@
         if (state.kategori.length) { p.push("kategori=" + state.kategori.join(",")); }
         if (state.wilayah.length) { p.push("wilayah=" + state.wilayah.join(",")); }
         if (state.mood.length) { p.push("mood=" + state.mood.join(",")); }
+        if (state.buka.length) { p.push("buka=1"); }
         return location.pathname + (p.length ? "?" + p.join("&") : "") + "#destinasi";
     }
 
     function terapkan() {
-        var adaFilter = state.mood.length > 0 || state.kategori.length > 0 || state.wilayah.length > 0 || state.cari !== "";
+        var adaFilter = state.mood.length > 0 || state.kategori.length > 0 || state.wilayah.length > 0 || state.buka.length > 0 || state.cari !== "";
         var cariKecil = state.cari.toLowerCase();
         var jumlah = 0;
         var terlihat = 0;
@@ -60,6 +62,9 @@
                 var tagAttr = row.getAttribute("data-mood") || "";
                 var tags = tagAttr === "" ? [] : tagAttr.split(",");
                 cocok = state.mood.some(function (m) { return tags.indexOf(m) !== -1; });
+            }
+            if (cocok && state.buka.length && row.getAttribute("data-buka") !== "1") {
+                cocok = false;
             }
             if (cocok && cariKecil) {
                 cocok = (row.getAttribute("data-teks") || "").indexOf(cariKecil) !== -1;
@@ -104,6 +109,7 @@
         if (inMood) { inMood.value = state.mood.join(","); }
         if (inKategori) { inKategori.value = state.kategori.join(","); }
         if (inWilayah) { inWilayah.value = state.wilayah.join(","); }
+        if (inBuka) { inBuka.value = state.buka.length ? "1" : ""; }
         try { history.replaceState(null, "", bangunUrl()); } catch (e) { /* abaikan */ }
     }
 
@@ -144,6 +150,7 @@
             state.mood = [];
             state.kategori = [];
             state.wilayah = [];
+            state.buka = [];
             state.cari = "";
             if (inputCari) { inputCari.value = ""; }
             terapkan();

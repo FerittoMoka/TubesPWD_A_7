@@ -14,7 +14,7 @@ CREATE DATABASE IF NOT EXISTS db_wisata CHARACTER SET utf8mb4;
 USE db_wisata;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, rencana_bagi, rencana_meta, rencana_hari, favorites, wishlists, reviews, destinations, categories, users;
+DROP TABLE IF EXISTS destination_photos, review_photos, review_helps, rencana_snapshot, rencana_bagi, rencana_meta, rencana_hari, log_admin, percobaan_akses, favorites, wishlists, reviews, destinations, categories, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE users (
@@ -367,4 +367,36 @@ CREATE TABLE IF NOT EXISTS rencana_bagi (
     terakhir_diakses DATETIME DEFAULT NULL,
     UNIQUE KEY unik_token_bagi (token),
     CONSTRAINT fk_bagi_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===== Riwayat rencana untuk tombol "Batalkan aksi" =====
+-- Lima baris terakhir per pengguna; isi = JSON item, jam mulai per hari, dan tanggal mulai.
+CREATE TABLE IF NOT EXISTS rencana_snapshot (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    aksi VARCHAR(40) NOT NULL DEFAULT '',
+    dibuat DATETIME NOT NULL,
+    isi LONGTEXT NOT NULL,
+    KEY kunci_snapshot_pengguna (user_id, id),
+    CONSTRAINT fk_snapshot_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===== Jejak aktivitas administrator =====
+CREATE TABLE IF NOT EXISTS log_admin (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    aksi VARCHAR(40) NOT NULL,
+    detail VARCHAR(255) NOT NULL DEFAULT '',
+    ip VARCHAR(45) NOT NULL DEFAULT '',
+    dibuat DATETIME NOT NULL,
+    KEY kunci_log_admin (dibuat)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ===== Pembatas percobaan masuk/daftar =====
+-- Jendela waktu dihitung MySQL; baris lama dipakai ulang saat jendelanya habis.
+CREATE TABLE IF NOT EXISTS percobaan_akses (
+    kunci VARCHAR(160) NOT NULL PRIMARY KEY,
+    jumlah INT NOT NULL DEFAULT 0,
+    mulai DATETIME NOT NULL,
+    terakhir DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

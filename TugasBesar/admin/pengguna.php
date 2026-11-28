@@ -15,6 +15,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $s = $conn->prepare("UPDATE users SET role=? WHERE id=?");
         $s->bind_param("si", $role, $id);
         $s->execute();
+        catat_log_admin($conn, $me, "role_pengguna", "pengguna #" . $id . " menjadi " . $role);
         flash("success", "Role pengguna diperbarui.");
     } elseif ($aksi === "hapus") {
         $s = $conn->prepare("SELECT foto FROM users WHERE id=?");
@@ -26,6 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $s->bind_param("i", $id);
             $s->execute();
             hapus_gambar("profil", $row["foto"]);
+            catat_log_admin($conn, $me, "hapus_pengguna", "pengguna #" . $id);
             flash("success", "Pengguna dihapus.");
         }
     }

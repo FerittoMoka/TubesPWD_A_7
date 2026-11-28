@@ -236,6 +236,80 @@ function reset_coba_kode($token) {
     unset($_SESSION["bagi_coba_" . (string) $token]);
 }
 
+/* ---------- Salin rencana dari tautan publik ---------- */
+
+/* Salin isi rencana pemilik tautan ke akun penerima. Rencana penerima diganti seluruhnya,
+   jadi aksi ini hanya dipakai setelah pengguna menyetujui lewat konfirmasi di halaman publik.
+   Hasil: array(true, jumlah_item) atau array(false, pesan). */
+function salin_rencana_bagi($conn, $token, $uid) {
+    $baris = ambil_baris_bagi($conn, $token);
+    if ($baris === null) { return array(false, "Tautan tidak valid, sudah dimatikan, atau sudah kedaluwarsa."); }
+    $pemilik = (int) $baris["user_id"];
+    $uid = (int) $uid;
+    if ($pemilik === $uid) { return array(false, "Ini rencana milik Anda sendiri."); }
+
+    pastikan_rencana_hari($conn);
+    $data = muat_rencana_pengguna($conn, $pemilik);
+    if (count($data["hari"]) === 0) { return array(false, "Rencana pada tautan ini masih kosong."); }
+
+    /* Rencana penerima disimpan dulu agar bisa dibatalkan dari halaman Rencana. */
+    simpan_snapshot_rencana($conn, $uid, "salin_rencana");
+    $jam_pemilik = ambil_jam_mulai_hari($conn, $pemilik);
+    $jumlah = 0;
+
+    mysqli_begin_transaction($conn);
+    try {
+        $del = mysqli_prepare($conn, "DELETE FROM wishlists WHERE user_id = ?");
+        mysqli_stmt_bind_param($del, "i", $uid);
+        mysqli_stmt_execute($del);
+        mysqli_stmt_close($del);
+
+        $ins = mysqli_prepare($conn, "INSERT INTO wishlists (user_id, destination_id, hari_ke, urutan) VALUES (?, ?, ?, ?)");
+        foreach ($data["hari"] as $h => $blok) {
+            if ((int) $h > 7) { continue; }
+            $urutan = 0;
+            foreach ($blok["item"] as $it) {
+                $urutan++;
+                $did = (int) $it["did"];
+                mysqli_stmt_bind_param($ins, "iiii", $uid, $did, $h, $urutan);
+                mysqli_stmt_execute($ins);
+                $jumlah++;
+            }
+        }
+        mysqli_stmt_close($ins);
+
+        $ins_jam = mysqli_prepare($conn, "INSERT INTO rencana_hari (user_id, hari_ke, jam_mulai) VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE jam_mulai = VALUES(jam_mulai)");
+        foreach ($jam_pemilik as $h_jam => $jam_teks) {
+            $menit = jam_ke_menit($jam_teks);
+            if ($menit === null || (int) $h_jam > 7) { continue; }
+            $jam_simpan = jam_input($menit) . ":00";
+            $hari_simpan = (int) $h_jam;
+            mysqli_stmt_bind_param($ins_jam, "iis", $uid, $hari_simpan, $jam_simpan);
+            mysqli_stmt_execute($ins_jam);
+        }
+        mysqli_stmt_close($ins_jam);
+
+        /* Tanggal yang sudah lewat tidak ikut disalin agar hari tutup tidak salah dicek. */
+        $tanggal = (string) $data["tanggal_mulai"];
+        $tgl_simpan = tanggal_valid($tanggal) ? $tanggal : null;
+        $st_tgl = mysqli_prepare($conn, "INSERT INTO rencana_meta (user_id, tanggal_mulai) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE tanggal_mulai = VALUES(tanggal_mulai)");
+        mysqli_stmt_bind_param($st_tgl, "is", $uid, $tgl_simpan);
+        mysqli_stmt_execute($st_tgl);
+        mysqli_stmt_close($st_tgl);
+
+        mysqli_commit($conn);
+    } catch (Throwable $ex) {
+        mysqli_rollback($conn);
+        error_log("Dolan Jogja (salin_rencana_bagi): " . $ex->getMessage());
+        return array(false, "Rencana gagal disalin; rencana Anda tidak berubah.");
+    }
+
+    tandai_rencana_berubah($conn, $uid);
+    return array(true, $jumlah);
+}
+
 /* ---------- Alamat tautan ---------- */
 
 function url_absolut($relatif) {

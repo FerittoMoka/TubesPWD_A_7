@@ -23,11 +23,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $s = $conn->prepare("INSERT INTO categories (nama) VALUES (?)");
                 $s->bind_param("s", $nama);
                 $s->execute();
+                catat_log_admin($conn, (int) $USER["id"], "tambah_kategori", $nama);
                 flash("success", "Kategori ditambahkan.");
             } else {
                 $s = $conn->prepare("UPDATE categories SET nama=? WHERE id=?");
                 $s->bind_param("si", $nama, $id);
                 $s->execute();
+                catat_log_admin($conn, (int) $USER["id"], "ubah_kategori", "kategori #" . $id . " menjadi " . $nama);
                 flash("success", "Kategori diperbarui.");
             }
         }
@@ -41,6 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $s = $conn->prepare("DELETE FROM categories WHERE id=?");
             $s->bind_param("i", $id);
             $s->execute();
+            catat_log_admin($conn, (int) $USER["id"], "hapus_kategori", "kategori #" . $id);
             flash("success", "Kategori dihapus.");
         }
     }

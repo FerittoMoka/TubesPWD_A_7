@@ -329,3 +329,281 @@ function muat_rencana_pengguna($conn, $uid) {
         "diubah" => $revisi["diubah"],
     );
 }
+
+/* ---------- Optimasi urutan rute satu hari ---------- */
+
+/* Jarak total (km) bila item dikunjungi berurutan seperti sekarang. */
+function total_jarak_urut($items) {
+    $total = 0.0;
+    $sebelum = null;
+    foreach ($items as $it) {
+        if ($sebelum !== null) {
+            $total += jarak_km($sebelum["latitude"], $sebelum["longitude"], $it["latitude"], $it["longitude"]);
+        }
+        $sebelum = $it;
+    }
+    return $total;
+}
+
+/* Biaya satu urutan indeks pada matriks jarak. */
+function biaya_urutan($rute, $jarak) {
+    $total = 0.0;
+    $n = count($rute);
+    for ($i = 0; $i < $n - 1; $i++) { $total += $jarak[$rute[$i]][$rute[$i + 1]]; }
+    return $total;
+}
+
+/* Perbaikan 2-opt untuk jalur terbuka: balik potongan bila jaraknya memendek. */
+function perbaiki_urutan_2opt($rute, $jarak) {
+    $n = count($rute);
+    for ($ulang = 0; $ulang < 40; $ulang++) {
+        $ada_perbaikan = false;
+        for ($i = 0; $i < $n - 1; $i++) {
+            for ($j = $i + 1; $j < $n; $j++) {
+                $kiri = $i - 1;
+                $kanan = $j + 1;
+                $lama = 0.0;
+                $baru = 0.0;
+                if ($kiri >= 0) {
+                    $lama += $jarak[$rute[$kiri]][$rute[$i]];
+                    $baru += $jarak[$rute[$kiri]][$rute[$j]];
+                }
+                if ($kanan < $n) {
+                    $lama += $jarak[$rute[$j]][$rute[$kanan]];
+                    $baru += $jarak[$rute[$i]][$rute[$kanan]];
+                }
+                if ($baru + 1e-9 < $lama) {
+                    $potong = array_reverse(array_slice($rute, $i, $j - $i + 1));
+                    array_splice($rute, $i, $j - $i + 1, $potong);
+                    $ada_perbaikan = true;
+                }
+            }
+        }
+        if (!$ada_perbaikan) { break; }
+    }
+    return $rute;
+}
+
+/* Urutkan item satu hari agar jarak tempuhnya paling pendek.
+   Titik awal dicoba satu per satu (nearest neighbor), lalu diperbaiki 2-opt.
+   Item tanpa koordinat ditaruh di akhir dengan urutan aslinya. */
+function urutkan_rute_hari($items) {
+    $items = array_values($items);
+    if (count($items) < 3) { return $items; }
+
+    $berkoordinat = array();
+    $lain = array();
+    foreach ($items as $it) {
+        if ($it["latitude"] !== null && $it["longitude"] !== null
+            && (string) $it["latitude"] !== "" && (string) $it["longitude"] !== "") {
+            $berkoordinat[] = $it;
+        } else {
+            $lain[] = $it;
+        }
+    }
+    $m = count($berkoordinat);
+    if ($m < 3) { return $items; }
+
+    $jarak = array();
+    for ($i = 0; $i < $m; $i++) {
+        $jarak[$i] = array();
+        for ($j = 0; $j < $m; $j++) {
+            $jarak[$i][$j] = ($i === $j) ? 0.0 : jarak_km(
+                $berkoordinat[$i]["latitude"], $berkoordinat[$i]["longitude"],
+                $berkoordinat[$j]["latitude"], $berkoordinat[$j]["longitude"]
+            );
+        }
+    }
+
+    $terbaik = null;
+    $biaya_terbaik = INF;
+    for ($awal = 0; $awal < $m; $awal++) {
+        $belum = array_values(array_diff(range(0, $m - 1), array($awal)));
+        $rute = array($awal);
+        $posisi = $awal;
+        while (count($belum) > 0) {
+            $pilih = 0;
+            $terdekat = INF;
+            foreach ($belum as $k => $idx) {
+                if ($jarak[$posisi][$idx] < $terdekat) {
+                    $terdekat = $jarak[$posisi][$idx];
+                    $pilih = $k;
+                }
+            }
+            $posisi = $belum[$pilih];
+            $rute[] = $posisi;
+            unset($belum[$pilih]);
+            $belum = array_values($belum);
+        }
+        $rute = perbaiki_urutan_2opt($rute, $jarak);
+        $biaya = biaya_urutan($rute, $jarak);
+        if ($biaya < $biaya_terbaik) {
+            $biaya_terbaik = $biaya;
+            $terbaik = $rute;
+        }
+    }
+
+    $hasil = array();
+    foreach ($terbaik as $idx) { $hasil[] = $berkoordinat[$idx]; }
+    foreach ($lain as $it) { $hasil[] = $it; }
+    return $hasil;
+}
+
+/* ---------- Riwayat singkat rencana (batalkan aksi terakhir) ---------- */
+
+function pastikan_rencana_snapshot($conn) {
+    @mysqli_query($conn, "CREATE TABLE IF NOT EXISTS rencana_snapshot (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        aksi VARCHAR(40) NOT NULL DEFAULT '',
+        dibuat DATETIME NOT NULL,
+        isi LONGTEXT NOT NULL,
+        KEY kunci_snapshot_pengguna (user_id, id),
+        CONSTRAINT fk_snapshot_pengguna FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+/* Salin keadaan rencana SEBELUM diubah. Maksimal 5 riwayat per pengguna. */
+function simpan_snapshot_rencana($conn, $uid, $aksi) {
+    pastikan_rencana_snapshot($conn);
+    $isi = array("item" => array(), "jam" => array(), "tanggal" => "");
+
+    $st = @mysqli_prepare($conn, "SELECT destination_id, hari_ke, urutan FROM wishlists WHERE user_id = ? ORDER BY hari_ke, urutan, id");
+    if ($st) {
+        mysqli_stmt_bind_param($st, "i", $uid);
+        mysqli_stmt_execute($st);
+        foreach (mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC) as $b) {
+            $isi["item"][] = array("d" => (int) $b["destination_id"], "h" => (int) $b["hari_ke"], "u" => (int) $b["urutan"]);
+        }
+        mysqli_stmt_close($st);
+    }
+
+    $st = @mysqli_prepare($conn, "SELECT hari_ke, TIME_FORMAT(jam_mulai, '%H:%i') AS jam FROM rencana_hari WHERE user_id = ?");
+    if ($st) {
+        mysqli_stmt_bind_param($st, "i", $uid);
+        mysqli_stmt_execute($st);
+        foreach (mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC) as $b) {
+            $isi["jam"][] = array("h" => (int) $b["hari_ke"], "jam" => (string) $b["jam"]);
+        }
+        mysqli_stmt_close($st);
+    }
+    $isi["tanggal"] = ambil_tanggal_mulai($conn, $uid);
+
+    $st = @mysqli_prepare($conn, "INSERT INTO rencana_snapshot (user_id, aksi, dibuat, isi) VALUES (?, ?, NOW(), ?)");
+    if (!$st) { return false; }
+    $json = json_encode($isi);
+    $aksi = substr((string) $aksi, 0, 40);
+    mysqli_stmt_bind_param($st, "iss", $uid, $aksi, $json);
+    $ok = mysqli_stmt_execute($st);
+    mysqli_stmt_close($st);
+
+    /* Hanya 5 riwayat terakhir yang disimpan. */
+    @mysqli_query($conn, "DELETE FROM rencana_snapshot WHERE user_id = " . (int) $uid
+        . " AND id NOT IN (SELECT id FROM (SELECT id FROM rencana_snapshot WHERE user_id = " . (int) $uid
+        . " ORDER BY id DESC LIMIT 5) AS simpan)");
+    return (bool) $ok;
+}
+
+/* Riwayat terakhir: array("id" =>, "aksi" =>, "dibuat" => "Y-m-d H:i") atau null. */
+function snapshot_terakhir($conn, $uid) {
+    pastikan_rencana_snapshot($conn);
+    $st = @mysqli_prepare($conn, "SELECT id, aksi, DATE_FORMAT(dibuat, '%Y-%m-%d %H:%i') AS dibuat FROM rencana_snapshot WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    if (!$st) { return null; }
+    mysqli_stmt_bind_param($st, "i", $uid);
+    mysqli_stmt_execute($st);
+    $baris = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+    mysqli_stmt_close($st);
+    return $baris ?: null;
+}
+
+function label_aksi_snapshot($aksi) {
+    $label = array(
+        "hapus"         => "hapus destinasi dari rencana",
+        "pindah_hari"   => "pindah destinasi ke hari lain",
+        "urutkan"       => "ubah urutan destinasi",
+        "rapikan"       => "rapikan urutan rute",
+        "jam_hari"      => "ubah jam mulai hari",
+        "tanggal_mulai" => "ubah tanggal mulai",
+        "tambah_rencana" => "tambah destinasi ke rencana",
+    );
+    return $label[(string) $aksi] ?? "ubah rencana";
+}
+
+/* Kembalikan isi rencana dari riwayat terakhir (sekali pakai). */
+function pulihkan_snapshot_rencana($conn, $uid) {
+    pastikan_rencana_hari($conn);
+    pastikan_rencana_snapshot($conn);
+
+    $st = @mysqli_prepare($conn, "SELECT id, aksi, isi FROM rencana_snapshot WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+    if (!$st) { return array(false, "Riwayat rencana tidak bisa dibaca."); }
+    mysqli_stmt_bind_param($st, "i", $uid);
+    mysqli_stmt_execute($st);
+    $baris = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
+    mysqli_stmt_close($st);
+    if (!$baris) { return array(false, "Belum ada aksi yang bisa dibatalkan."); }
+
+    $isi = json_decode((string) $baris["isi"], true);
+    if (!is_array($isi) || !isset($isi["item"])) { return array(false, "Riwayat rencana tidak valid."); }
+
+    /* Destinasi yang sudah dihapus admin tidak ikut dipulihkan. */
+    $ada = array();
+    $q = @mysqli_query($conn, "SELECT id FROM destinations");
+    while ($q && ($d = mysqli_fetch_assoc($q))) { $ada[(int) $d["id"]] = true; }
+
+    mysqli_begin_transaction($conn);
+    try {
+        $del = mysqli_prepare($conn, "DELETE FROM wishlists WHERE user_id = ?");
+        mysqli_stmt_bind_param($del, "i", $uid);
+        mysqli_stmt_execute($del);
+        mysqli_stmt_close($del);
+
+        $ins = mysqli_prepare($conn, "INSERT INTO wishlists (user_id, destination_id, hari_ke, urutan) VALUES (?, ?, ?, ?)");
+        foreach ($isi["item"] as $it) {
+            $did = (int) ($it["d"] ?? 0);
+            if (!isset($ada[$did])) { continue; }
+            $hari = max(1, min(7, (int) ($it["h"] ?? 1)));
+            $urut = max(1, (int) ($it["u"] ?? 1));
+            mysqli_stmt_bind_param($ins, "iiii", $uid, $did, $hari, $urut);
+            mysqli_stmt_execute($ins);
+        }
+        mysqli_stmt_close($ins);
+
+        $del = mysqli_prepare($conn, "DELETE FROM rencana_hari WHERE user_id = ?");
+        mysqli_stmt_bind_param($del, "i", $uid);
+        mysqli_stmt_execute($del);
+        mysqli_stmt_close($del);
+
+        $ins = mysqli_prepare($conn, "INSERT INTO rencana_hari (user_id, hari_ke, jam_mulai) VALUES (?, ?, ?)");
+        foreach ((array) ($isi["jam"] ?? array()) as $j) {
+            $jam = (string) ($j["jam"] ?? "08:00");
+            if (jam_ke_menit($jam) === null) { continue; }
+            $hari = max(1, min(7, (int) ($j["h"] ?? 1)));
+            $jam = jam_input(jam_ke_menit($jam)) . ":00";
+            mysqli_stmt_bind_param($ins, "iis", $uid, $hari, $jam);
+            mysqli_stmt_execute($ins);
+        }
+        mysqli_stmt_close($ins);
+
+        $tanggal = (string) ($isi["tanggal"] ?? "");
+        $tgl_db = tanggal_valid($tanggal, true) ? $tanggal : null;
+        $st = mysqli_prepare($conn, "INSERT INTO rencana_meta (user_id, tanggal_mulai) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE tanggal_mulai = VALUES(tanggal_mulai)");
+        mysqli_stmt_bind_param($st, "is", $uid, $tgl_db);
+        mysqli_stmt_execute($st);
+        mysqli_stmt_close($st);
+
+        $hapus = mysqli_prepare($conn, "DELETE FROM rencana_snapshot WHERE id = ? AND user_id = ?");
+        mysqli_stmt_bind_param($hapus, "ii", $baris["id"], $uid);
+        mysqli_stmt_execute($hapus);
+        mysqli_stmt_close($hapus);
+
+        mysqli_commit($conn);
+    } catch (Throwable $ex) {
+        mysqli_rollback($conn);
+        error_log("Dolan Jogja (pulihkan_snapshot_rencana): " . $ex->getMessage());
+        return array(false, "Rencana gagal dipulihkan; tidak ada data yang berubah.");
+    }
+
+    tandai_rencana_berubah($conn, $uid);
+    return array(true, label_aksi_snapshot($baris["aksi"]));
+}

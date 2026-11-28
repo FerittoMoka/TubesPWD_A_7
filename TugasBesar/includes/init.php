@@ -8,6 +8,7 @@ require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/csrf.php";
 require_once __DIR__ . "/pesan.php";
+require_once __DIR__ . "/keamanan.php";
 
 if (!function_exists('url')) {
     function url($path = "") { return BASE_URL . ltrim($path, "/"); }

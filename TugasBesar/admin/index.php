@@ -13,11 +13,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $s = $conn->prepare("UPDATE destinations SET status=? WHERE id=?");
         $s->bind_param("si", $status_baru, $id);
         $s->execute();
+        catat_log_admin($conn, (int) $USER["id"], $status_baru === "arsip" ? "arsip_destinasi" : "aktifkan_destinasi", "destinasi #" . $id);
         flash("success", $status_baru === "arsip" ? "Destinasi diarsipkan dan disembunyikan dari pengunjung." : "Destinasi diaktifkan kembali.");
     }
     if (($_POST["aksi"] ?? "") === "hapus") {
         $id = (int) ($_POST["id"] ?? 0);
-        $s = $conn->prepare("SELECT foto FROM destinations WHERE id=?");
+        $s = $conn->prepare("SELECT nama, foto FROM destinations WHERE id=?");
         $s->bind_param("i", $id);
         $s->execute();
         $row = $s->get_result()->fetch_assoc();
@@ -38,6 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 mysqli_commit($conn);
                 hapus_gambar("destinasi", $row["foto"]);
+                catat_log_admin($conn, (int) $USER["id"], "hapus_destinasi", "destinasi #" . $id . " " . $row["nama"]);
                 flash("success", "Destinasi berhasil dihapus.");
             } catch (Throwable $e) {
                 mysqli_rollback($conn);
@@ -50,12 +52,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 function hitung($conn, $tabel) { return (int) $conn->query("SELECT COUNT(*) n FROM " . $tabel)->fetch_assoc()["n"]; }
+/* Ringkasan tautan berbagi: memakai penghitung yang sudah dicatat halaman publik. */
+require_once __DIR__ . "/../includes/rencana_bagi.php";
+pastikan_rencana_bagi($conn);
+$bagi_aktif = (int) $conn->query("SELECT COUNT(*) n FROM rencana_bagi WHERE kedaluwarsa IS NULL OR kedaluwarsa >= CURDATE()")->fetch_assoc()["n"];
+$bagi_kunjungan = (int) $conn->query("SELECT COALESCE(SUM(jumlah_buka),0) n FROM rencana_bagi")->fetch_assoc()["n"];
+$bagi_teratas = $conn->query("SELECT b.jumlah_buka, b.terakhir_diakses, b.kedaluwarsa, u.username, u.id AS uid
+        FROM rencana_bagi b JOIN users u ON u.id = b.user_id
+        ORDER BY b.jumlah_buka DESC, b.terakhir_diakses DESC LIMIT 5");
+$log_admin = ambil_log_admin($conn, 8);
+
 $stat = array(
     "Pengguna"  => hitung($conn, "users"),
     "Destinasi aktif" => (int) $conn->query("SELECT COUNT(*) n FROM destinations WHERE status='aktif'")->fetch_assoc()["n"],
     "Kategori"  => hitung($conn, "categories"),
     "Ulasan"    => hitung($conn, "reviews"),
     "Favorit"   => hitung($conn, "wishlists"),
+    "Tautan aktif" => $bagi_aktif,
+    "Kunjungan tautan" => $bagi_kunjungan,
 );
 
 $populer = $conn->query("SELECT d.id, d.nama,
@@ -136,7 +150,53 @@ header_web("Panel Admin");
   </div>
 </div>
 
-<div class="admin-actions"><a class="btn" href="<?php echo url("admin/destinasi.php"); ?>">+ Tambah destinasi</a></div>
+<div class="two-panels">
+  <div class="panel table-wrap">
+    <h2>Tautan berbagi paling sering dibuka</h2>
+    <table>
+      <thead><tr><th>Pemilik</th><th>Dibuka</th><th>Terakhir</th><th>Berlaku sampai</th></tr></thead>
+      <tbody>
+        <?php if (!$bagi_teratas || $bagi_teratas->num_rows === 0) { ?>
+        <tr><td colspan="4" class="muted">Belum ada tautan berbagi yang dibuat.</td></tr>
+        <?php } ?>
+        <?php while ($bagi_teratas && ($b = $bagi_teratas->fetch_assoc())) { ?>
+        <tr>
+          <td><?php echo e($b["username"]); ?></td>
+          <td><?php echo (int) $b["jumlah_buka"]; ?> kali</td>
+          <td><?php echo $b["terakhir_diakses"] ? e(tanggal($b["terakhir_diakses"])) : "-"; ?></td>
+          <td><?php echo $b["kedaluwarsa"] ? e(tanggal($b["kedaluwarsa"])) : "Tanpa batas"; ?></td>
+        </tr>
+        <?php } ?>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel table-wrap">
+    <h2>Aktivitas admin terakhir</h2>
+    <table>
+      <thead><tr><th>Waktu</th><th>Admin</th><th>Aksi</th></tr></thead>
+      <tbody>
+        <?php if (count($log_admin) === 0) { ?>
+        <tr><td colspan="3" class="muted">Belum ada aktivitas yang tercatat.</td></tr>
+        <?php } ?>
+        <?php foreach ($log_admin as $log) { ?>
+        <tr>
+          <td><?php echo e(date("j M H:i", strtotime($log["dibuat"]))); ?></td>
+          <td><?php echo e($log["username"] ?: "-"); ?></td>
+          <td><?php echo e(str_replace("_", " ", $log["aksi"])); ?><?php if ($log["detail"] !== "") { ?> <span class="kecil"><?php echo e($log["detail"]); ?></span><?php } ?></td>
+        </tr>
+        <?php } ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="admin-actions">
+  <a class="btn" href="<?php echo url("admin/destinasi.php"); ?>">+ Tambah destinasi</a>
+  <form method="post" action="<?php echo url("admin/backup.php"); ?>" class="inline" onsubmit="return confirm('Unduh salinan database sekarang? Berkas berisi data pengguna, jadi simpan di tempat aman.');">
+    <?php echo csrf_field(); ?>
+    <button type="submit" class="btn btn-sekunder">Unduh backup database (.sql)</button>
+  </form>
+</div>
 <div class="panel table-wrap" id="data-destinasi">
   <h2>Data destinasi</h2>
   <form method="get" action="<?php echo url("admin/index.php"); ?>#data-destinasi" class="form-isi">

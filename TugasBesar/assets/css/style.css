@@ -995,3 +995,33 @@ body.tanpa-scroll { overflow: hidden; }
   .bagi-kode > label { flex-basis: 100%; }
   .bagi-kode select { width: 100%; }
 }
+
+/* ===== Batalkan aksi & rute jalan di peta ===== */
+.undo-rencana { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 0; color: var(--coklat-jawa); }
+.btn-sekunder { background: var(--pasir); color: var(--soga-gelap); }
+.btn-sekunder:hover { background: #E4D8BF; }
+.chip-catatan { display: inline-block; margin-left: 4px; }
+
+/* ===== Mode perjalanan: satu hari rencana ===== */
+.hari-ini-hari { margin-bottom: 14px; }
+.hari-ini-atas { margin-bottom: 12px; }
+.hari-ini-bar { height: 8px; border-radius: 999px; background: var(--pasir); overflow: hidden; }
+.hari-ini-bar span { display: block; height: 100%; background: var(--emas); transition: width .3s ease; }
+.hari-ini-daftar { display: flex; flex-direction: column; gap: 10px; }
+.hari-ini-pos { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--pasir); border-radius: 12px; background: #FFFCF6; }
+.hari-ini-pos.berikutnya { border-color: var(--emas); box-shadow: 0 0 0 2px rgba(197, 161, 90, .18); }
+.hari-ini-pos.selesai { opacity: .6; }
+.hari-ini-pos.selesai h3 { text-decoration: line-through; }
+.hari-ini-jam { flex: 0 0 56px; text-align: center; color: var(--soga-gelap); }
+.hari-ini-jam strong { display: block; font-size: 15px; }
+.hari-ini-isi { flex: 1 1 auto; min-width: 0; }
+.hari-ini-isi h3 { margin: 0 0 4px; font-size: 16px; }
+.hari-ini-nomor { display: inline-block; min-width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 999px; background: var(--soga-gelap); color: var(--krem); font-size: 12px; }
+.hari-ini-aksi { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 8px; font-size: 13px; }
+.hari-ini-cek { display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; color: var(--soga-gelap); }
+.hari-ini-cek input { margin: 0; }
+.hari-ini-aksi-bawah { margin-top: 14px; }
+@media (max-width: 480px) {
+  .hari-ini-pos { padding: 10px; gap: 8px; }
+  .hari-ini-jam { flex-basis: 48px; }
+}

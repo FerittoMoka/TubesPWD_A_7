@@ -69,20 +69,73 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 
+    /* Rapikan urutan tiap hari agar jarak tempuhnya paling pendek. */
+    if ($aksi === "rapikan_hari") {
+        $data_awal = muat_rencana_pengguna($conn, $uid);
+        if (count($data_awal["hari"]) === 0) {
+            $_SESSION["rencana_pesan"] = array("error", "Belum ada destinasi yang bisa dirapikan.");
+        } else {
+            simpan_snapshot_rencana($conn, $uid, "rapikan");
+            $km_awal = (float) $data_awal["km"];
+            $ada_ubah = false;
+            $up = mysqli_prepare($conn, "UPDATE wishlists SET urutan = ? WHERE id = ? AND user_id = ?");
+            foreach ($data_awal["hari"] as $h_r => $blok_r) {
+                $id_awal = array_map("intval", array_column($blok_r["item"], "id"));
+                $baru = urutkan_rute_hari($blok_r["item"]);
+                if (array_map("intval", array_column($baru, "id")) !== $id_awal) { $ada_ubah = true; }
+                foreach ($baru as $i_r => $it_r) {
+                    $nomor_r = $i_r + 1;
+                    $id_r = (int) $it_r["id"];
+                    mysqli_stmt_bind_param($up, "iii", $nomor_r, $id_r, $uid);
+                    mysqli_stmt_execute($up);
+                }
+            }
+            mysqli_stmt_close($up);
+
+            $data_baru = muat_rencana_pengguna($conn, $uid);
+            $km_baru = (float) $data_baru["km"];
+            if ($ada_ubah) {
+                tandai_rencana_berubah($conn, $uid);
+                $hemat = $km_awal - $km_baru;
+                $pesan_rapi = "Urutan rute dirapikan: " . number_format($km_awal, 1, ",", ".") . " km menjadi "
+                    . number_format($km_baru, 1, ",", ".") . " km";
+                if ($hemat > 0.05) { $pesan_rapi .= " (hemat " . number_format($hemat, 1, ",", ".") . " km)"; }
+                $_SESSION["rencana_pesan"] = array("sukses", $pesan_rapi . ".");
+            } else {
+                $_SESSION["rencana_pesan"] = array("sukses", "Urutan rute sudah paling efisien ("
+                    . number_format($km_baru, 1, ",", ".") . " km).");
+            }
+        }
+        header("Location: " . $kembali);
+        exit;
+    }
+
+    /* Batalkan aksi terakhir: pulihkan isi rencana dari riwayat. */
+    if ($aksi === "batal_aksi") {
+        list($ok_batal, $info_batal) = pulihkan_snapshot_rencana($conn, $uid);
+        $_SESSION["rencana_pesan"] = $ok_batal
+            ? array("sukses", "Rencana dikembalikan ke keadaan sebelum " . $info_batal . ".")
+            : array("error", $info_batal);
+        header("Location: " . $kembali);
+        exit;
+    }
+
     /* Tanggal mulai: hari ke-1..N dipetakan ke hari kalender. */
     if ($aksi === "tanggal_mulai") {
         $tanggal_s = trim((string) ($_POST["tanggal"] ?? ""));
         if (!empty($_POST["kosongkan"]) || $tanggal_s === "") {
+            simpan_snapshot_rencana($conn, $uid, "tanggal_mulai");
             hapus_tanggal_mulai($conn, $uid);
             $_SESSION["rencana_pesan"] = array("sukses", "Tanggal mulai dikosongkan. Hari tutup tidak ikut dicek.");
         } elseif (!tanggal_valid($tanggal_s, true)) {
             $_SESSION["rencana_pesan"] = array("error", "Format tanggal tidak valid (contoh 2026-11-30).");
         } elseif (!tanggal_valid($tanggal_s)) {
             $_SESSION["rencana_pesan"] = array("error", "Tanggal mulai sudah lewat. Pilih tanggal hari ini atau setelahnya.");
-        } elseif (simpan_tanggal_mulai($conn, $uid, $tanggal_s)) {
-            $_SESSION["rencana_pesan"] = array("sukses", "Tanggal mulai disimpan: " . tanggal_ringkas($tanggal_s) . ".");
         } else {
-            $_SESSION["rencana_pesan"] = array("error", "Tanggal mulai gagal disimpan. Silakan coba lagi.");
+            simpan_snapshot_rencana($conn, $uid, "tanggal_mulai");
+            $_SESSION["rencana_pesan"] = simpan_tanggal_mulai($conn, $uid, $tanggal_s)
+                ? array("sukses", "Tanggal mulai disimpan: " . tanggal_ringkas($tanggal_s) . ".")
+                : array("error", "Tanggal mulai gagal disimpan. Silakan coba lagi.");
         }
         header("Location: " . $kembali);
         exit;
@@ -96,10 +149,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION["rencana_pesan"] = array("error", "Hari tidak valid.");
         } elseif ($mulai_jam === null) {
             $_SESSION["rencana_pesan"] = array("error", "Format jam mulai tidak valid (contoh 08:00).");
-        } elseif (!simpan_jam_mulai_hari($conn, $uid, $hari_jam, $mulai_jam)) {
-            $_SESSION["rencana_pesan"] = array("error", "Jam mulai gagal disimpan. Silakan coba lagi.");
         } else {
-            $_SESSION["rencana_pesan"] = array("sukses", "Hari ke-" . $hari_jam . " dimulai pukul " . menit_ke_jam($mulai_jam) . ".");
+            simpan_snapshot_rencana($conn, $uid, "jam_hari");
+            $_SESSION["rencana_pesan"] = simpan_jam_mulai_hari($conn, $uid, $hari_jam, $mulai_jam)
+                ? array("sukses", "Hari ke-" . $hari_jam . " dimulai pukul " . menit_ke_jam($mulai_jam) . ".")
+                : array("error", "Jam mulai gagal disimpan. Silakan coba lagi.");
         }
         header("Location: " . $kembali);
         exit;
@@ -116,6 +170,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!$w) {
         $_SESSION["rencana_pesan"] = array("error", "Item tidak ditemukan.");
     } elseif ($aksi === "hapus") {
+        simpan_snapshot_rencana($conn, $uid, "hapus");
         $st = mysqli_prepare($conn, "DELETE FROM wishlists WHERE id = ? AND user_id = ?");
         mysqli_stmt_bind_param($st, "ii", $wid, $uid);
         mysqli_stmt_execute($st);
@@ -133,6 +188,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $n = (int) mysqli_fetch_assoc(mysqli_stmt_get_result($st))["n"];
             mysqli_stmt_close($st);
 
+            simpan_snapshot_rencana($conn, $uid, "pindah_hari");
             $st = mysqli_prepare($conn, "UPDATE wishlists SET hari_ke = ?, urutan = ? WHERE id = ? AND user_id = ?");
             mysqli_stmt_bind_param($st, "iiii", $hari, $n, $wid, $uid);
             mysqli_stmt_execute($st);
@@ -153,6 +209,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($pos !== false && isset($ids[$tuj])) {
             $tmp = $ids[$pos]; $ids[$pos] = $ids[$tuj]; $ids[$tuj] = $tmp;
         }
+        simpan_snapshot_rencana($conn, $uid, "urutkan");
         // Nomori ulang 1..n agar urutan selalu rapi
         $up = mysqli_prepare($conn, "UPDATE wishlists SET urutan = ? WHERE id = ? AND user_id = ?");
         mysqli_stmt_bind_param($up, "iii", $nomor, $idx, $uid);
@@ -321,8 +378,24 @@ require_once __DIR__ . "/../includes/header.php";
                     <button type="button" class="tombol tombol-garis" onclick="salinRingkasan();">Salin ringkasan</button>
                     <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>peta.php?rute=1">Lihat Rute di Peta</a>
                     <?php if ($tanggal_mulai !== "") { ?><a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>rencana_ics.php">Unduh Kalender (.ics)</a><?php } ?>
+                    <form method="post" action="rencana.php" class="inline">
+                        <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                        <button type="submit" name="aksi" value="rapikan_hari" class="tombol tombol-garis">Rapikan urutan hari</button>
+                    </form>
                     <span id="status-salin" class="kecil"></span>
                 </div>
+                <p class="kecil">Rapikan urutan hari menyusun ulang destinasi tiap hari agar jarak tempuhnya paling pendek.</p>
+                <?php $snap_terakhir = snapshot_terakhir($conn, $uid); ?>
+                <?php if ($snap_terakhir !== null) { ?>
+                    <div class="undo-rencana kecil tidak-dicetak">
+                        <span>Aksi terakhir: <strong><?php echo e(label_aksi_snapshot($snap_terakhir["aksi"])); ?></strong>
+                            &middot; <?php echo e(substr($snap_terakhir["dibuat"], 8, 2) . "/" . substr($snap_terakhir["dibuat"], 5, 2) . " " . substr($snap_terakhir["dibuat"], 11, 5)); ?></span>
+                        <form method="post" action="rencana.php" class="inline" onsubmit="return confirm('Kembalikan rencana ke keadaan sebelum aksi terakhir?');">
+                            <?php echo rencana_hidden($csrf_token, $orang, 0); ?>
+                            <button type="submit" name="aksi" value="batal_aksi" class="btn-kecil">Batalkan aksi</button>
+                        </form>
+                    </div>
+                <?php } ?>
                 <textarea id="ringkasan-teks" class="sembunyi" rows="6" cols="40" readonly="readonly"><?php echo e($ringkasan); ?></textarea>
             </div>
 

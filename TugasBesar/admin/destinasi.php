@@ -96,6 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     : "Destinasi gagal disimpan. Silakan coba lagi.";
             } else {
             $id_dest = $id ? $id : (int) mysqli_insert_id($conn);
+            catat_log_admin($conn, (int) $USER["id"], $id ? "ubah_destinasi" : "tambah_destinasi", "destinasi #" . $id_dest . " " . $nama);
 
             /* Galeri: hapus foto terpilih, simpan keterangan, lalu unggah foto baru. */
             foreach ((array) ($_POST["hapus_galeri"] ?? array()) as $foto_hapus) {

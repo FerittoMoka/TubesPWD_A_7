@@ -130,6 +130,7 @@ require_once __DIR__ . "/includes/header.php";
                 <button type="button" class="tombol tombol-garis btn-rute-peta" id="btn-toggle-rute">
                     Tampilkan Rute Rencana Saya (<?php echo count($rute_user); ?>)
                 </button>
+                <p class="kecil" id="status-rute-peta" aria-live="polite"></p>
             <?php } ?>
             <p class="kecil" id="peta-hitung">Menampilkan <?php echo count($titik); ?> destinasi</p>
         </div>
@@ -361,18 +362,64 @@ require_once __DIR__ . "/includes/header.php";
         }
     }
 
+    var statusRute = document.getElementById("status-rute-peta");
+    var permintaanRute = 0;
+
+    function tampilStatusRute(teks) {
+        if (statusRute) { statusRute.textContent = teks; }
+    }
+
+    /* Garis lurus selalu digambar lebih dulu sebagai cadangan bila layanan rute gagal. */
+    function gambarRuteLurus(coords) {
+        L.polyline(coords, {
+            color: "#C5A15A",
+            weight: 4,
+            dashArray: "8, 8",
+            opacity: 0.9
+        }).addTo(layerRute);
+    }
+
+    /* Rute mengikuti jalan lewat OSRM (berbasis data OpenStreetMap), tanpa kunci API. */
     function renderRute() {
+        var nomor = ++permintaanRute;
         layerRute.clearLayers();
-        if (ruteAktif && ruteUser.length >= 2) {
-            var coords = ruteUser.map(function (r) { return [r.lat, r.lng]; });
-            L.polyline(coords, {
-                color: "#C5A15A",
-                weight: 4,
-                dashArray: "8, 8",
-                opacity: 0.9
-            }).addTo(layerRute);
+        tampilStatusRute("");
+        if (!ruteAktif || ruteUser.length < 2) {
+            render();
+            return;
         }
+
+        var coords = ruteUser.map(function (r) { return [r.lat, r.lng]; });
+        gambarRuteLurus(coords);
         render();
+        tampilStatusRute("Memuat rute jalan...");
+
+        var jalur = ruteUser.map(function (r) { return r.lng + "," + r.lat; }).join(";");
+        var url = "https://router.project-osrm.org/route/v1/driving/" + jalur + "?overview=full&geometries=geojson";
+        var kendali = (typeof AbortController !== "undefined") ? new AbortController() : null;
+        var opsi = kendali ? { signal: kendali.signal } : {};
+        var batas = setTimeout(function () { if (kendali) { kendali.abort(); } }, 8000);
+
+        fetch(url, opsi).then(function (r) {
+            if (!r.ok) { throw new Error("HTTP " + r.status); }
+            return r.json();
+        }).then(function (j) {
+            clearTimeout(batas);
+            if (nomor !== permintaanRute || !j || !j.routes || !j.routes.length) { return; }
+            var rute = j.routes[0];
+            if (!rute.geometry || !rute.geometry.coordinates) { return; }
+            layerRute.clearLayers();
+            var garis = rute.geometry.coordinates.map(function (c) { return [c[1], c[0]]; });
+            L.polyline(garis, { color: "#C5A15A", weight: 5, opacity: 0.95 }).addTo(layerRute);
+            var km = (rute.distance / 1000).toFixed(1).replace(".", ",");
+            var menit = Math.max(1, Math.round(rute.duration / 60));
+            tampilStatusRute("Rute jalan: \u00b1" + km + " km, sekitar " + menit + " menit berkendara (data OSRM/OpenStreetMap).");
+        }).catch(function () {
+            clearTimeout(batas);
+            if (nomor === permintaanRute) {
+                tampilStatusRute("Rute jalan tidak tersedia; ditampilkan garis lurus antar titik.");
+            }
+        });
     }
 
     if (inputCari) { inputCari.addEventListener("input", render); }

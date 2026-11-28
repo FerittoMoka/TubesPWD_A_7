@@ -38,6 +38,8 @@ mysqli_stmt_execute($st);
 $ada = mysqli_fetch_assoc(mysqli_stmt_get_result($st));
 mysqli_stmt_close($st);
 
+simpan_snapshot_rencana($conn, $uid, "tambah_rencana");
+
 if ($ada) {
     $q = mysqli_prepare($conn, "DELETE FROM wishlists WHERE user_id = ? AND destination_id = ?");
     mysqli_stmt_bind_param($q, "ii", $uid, $id);

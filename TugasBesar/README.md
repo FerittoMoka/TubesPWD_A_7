@@ -37,7 +37,8 @@
 | Terdekat | Geolocation dua tahap + fallback Tugu Jogja, titik keberangkatan populer, input koordinat manual, hasil tanpa reload (AJAX), jarak Haversine | `destinasi/terdekat.php`, `assets/js/geolokasi.js` |
 | Akun | Registrasi (cek username/email real-time), login, logout, profil & foto, ganti password | `auth/*`, `user/profil.php` |
 | Admin | CRUD destinasi, kategori, moderasi ulasan, daftar pengguna | `admin/*`, `includes/init.php` |
-| Keamanan | Password `password_hash`, semua query `mysqli_prepare`, token CSRF di setiap form, escape output `e()` | `includes/auth.php`, `includes/csrf.php` |
+| Keamanan | Password `password_hash`, semua query `mysqli_prepare`, token CSRF di setiap form, escape output `e()`, pembatas percobaan login/daftar, jejak audit admin | `includes/auth.php`, `includes/csrf.php`, `includes/keamanan.php` |
+| Mode perjalanan | Satu hari rencana untuk dibuka di HP: pos berikutnya, jam tiba, tombol "sudah sampai" di perangkat, rute tiap pos | `rencana_hari_ini.php` |
 
 ### Empat fitur unggulan
 
@@ -126,6 +127,17 @@ TugasBesar/
 - **Sembunyikan perkiraan biaya** menghapus semua nominal tiket dari halaman publik, ringkasan, dan isi VEVENT.
 - **Langganan kalender**: `rencana_ics.php?token=...&langganan=1` mengirim berkas inline dengan `X-Published-TTL: PT1H`, jadi bisa dipasang sebagai kalender langganan di Google Calendar/iPhone. Hanya tersedia bila tautan tidak memakai kode akses.
 - Setiap VEVENT memuat `SEQUENCE` dan `LAST-MODIFIED` dari penghitung `rencana_meta.revisi` (naik pada setiap perubahan rencana), plus `GEO` dan `URL` halaman detail, sehingga impor ulang memperbarui event yang sama dan bisa dibuka langsung di aplikasi peta.
+
+### Optimasi rute, mode perjalanan, dan pengaman tambahan
+- **Rapikan urutan hari** menyusun ulang destinasi tiap hari dengan nearest neighbor dari setiap titik awal lalu diperbaiki 2-opt; pesan hasilnya menyebut jarak sebelum/sesudah. Algoritmanya di `urutkan_rute_hari()` (`includes/rencana_jadwal.php`) dan memakai koordinat yang sama dengan jadwal. Item tanpa koordinat tetap di akhir urutan.
+- **Batalkan aksi** menyimpan keadaan rencana (item, jam mulai, tanggal) sebelum aksi yang mengubahnya — hapus, pindah hari, ubah urutan, rapikan rute, ubah jam/tanggal, dan tambah dari halaman detail. Lima riwayat terakhir disimpan di tabel `rencana_snapshot`; tombol **Batalkan aksi** memulihkan keadaan terakhir lalu menghapus riwayat itu, jadi bisa ditekan berulang untuk mundur beberapa langkah.
+- **Salin ke Rencana Saya** di halaman publik hanya muncul untuk pengguna yang sudah masuk (bukan pemiliknya). Rencana penerima diganti seluruhnya setelah konfirmasi, tanggal yang sudah lewat tidak ikut disalin, dan pemulihannya tersedia lewat Batalkan aksi.
+- **Mode Perjalanan** (`rencana_hari_ini.php?token=...`) memakai token berbagi dan kode akses yang sama. Hari yang tampil ditentukan tanggal mulai (bisa dipilih lewat `&hari=N`), pos pertama yang belum ditandai disorot, progres ditampilkan sebagai bilah, dan tanda "sudah sampai" hanya disimpan di `localStorage` perangkat.
+- **Chip "Buka sekarang"** di beranda menyaring destinasi yang sedang buka menurut `status_buka()` (WIB). Chip ini bisa digabung dengan suasana/kategori/wilayah dan tetap jalan di filter tanpa reload (`assets/js/filter-beranda.js`).
+- **Pembatas masuk/daftar**: maksimal 6 percobaan per akun dan 20 per alamat IP dalam 15 menit, serta 5 pendaftaran per IP per jam. Hitungan disimpan di tabel `percobaan_akses` dan jendelanya dihitung MySQL (`TIMESTAMPDIFF`) agar tidak terpengaruh beda zona waktu; login yang berhasil menghapus hitungan akun/IP tersebut.
+- **Jejak audit admin** mencatat arsip/hapus destinasi, simpan destinasi, kategori, moderasi ulasan, perubahan pengguna, dan unduh backup ke tabel `log_admin`; delapan aktivitas terakhir tampil di ringkasan admin beserta ringkasan tautan berbagi (jumlah tautan aktif, total pembukaan, tautan teratas).
+- **Unduh backup** dari ringkasan admin memakai `admin/backup.php`: `mysqldump` dijalankan dengan berkas kredensial sementara 0600, hasilnya dikirim langsung ke browser dari folder sementara, dan tidak pernah disimpan di webroot.
+- **Rute mengikuti jalan** di peta memakai layanan publik OSRM (`overview=full`), lalu menampilkan jarak dan perkiraan waktu berkendara. Bila layanan tidak bisa dihubungi dalam 8 detik, garis lurus antar titik tetap dipakai dan statusnya ditulis di panel peta.
 
 ### Pencegahan destinasi duplikat
 - Seed hanya memuat satu baris per destinasi. Tujuh baris kembar di batch kedua (Keraton, Malioboro, Gembira Loka, Hutan Pinus, Parangtritis, Tebing Breksi, Goa Pindul) sudah dihapus; foto/harga/jam/koordinat terbarunya digabung ke baris batch pertama yang menyimpan ulasan.

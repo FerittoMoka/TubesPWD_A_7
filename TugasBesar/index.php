@@ -34,12 +34,13 @@ function hitung_sql($conn, $sql) {
     return (int) $r[0];
 }
 
-function url_beranda($cari, $mood_list, $kat_list, $wil_list) {
+function url_beranda($cari, $mood_list, $kat_list, $wil_list, $buka = false) {
     $p = array();
     if ($cari !== "") { $p[] = "cari=" . rawurlencode($cari); }
     if (count($kat_list) > 0) { $p[] = "kategori=" . implode(",", $kat_list); }
     if (count($wil_list) > 0) { $p[] = "wilayah=" . implode(",", $wil_list); }
     if (count($mood_list) > 0) { $p[] = "mood=" . implode(",", $mood_list); }
+    if ($buka) { $p[] = "buka=1"; }
     return "index.php" . (count($p) > 0 ? "?" . implode("&amp;", $p) : "") . "#destinasi";
 }
 
@@ -55,7 +56,8 @@ function chip_filter($label, $grup, $nilai, $aktif, $href, $jumlah = null) {
 
 /* Aturan filter: suasana = salah satu cocok (ATAU), kategori = salah satu cocok (ATAU),
    antar kelompok (suasana, kategori, kata kunci) = semua harus terpenuhi (DAN). */
-function cocok_filter($d, $mood_list, $kat_list, $wil_list, $cari) {
+function cocok_filter($d, $mood_list, $kat_list, $wil_list, $cari, $buka = false) {
+    if ($buka && ($d["_buka"] ?? "") !== "buka") { return false; }
     if (count($kat_list) > 0 && !in_array((int) $d["category_id"], $kat_list, true)) { return false; }
     if (count($wil_list) > 0 && !in_array(slug_wilayah($d["wilayah"] ?? ""), $wil_list, true)) { return false; }
     if (count($mood_list) > 0) {
@@ -112,6 +114,9 @@ if ($wil_raw === null) {
     }
     if ($abaikan > 0) { $pesan_filter[] = $abaikan . " wilayah pada alamat tidak ditemukan, jadi diabaikan."; }
 }
+
+/* Chip "Buka sekarang": hanya destinasi yang sedang buka menurut jam WIB. */
+$buka = (isset($_GET["buka"]) && (string) $_GET["buka"] === "1");
 
 /* ---------- Muat data (aman dari error database) ---------- */
 $jml_dest = 0;
@@ -174,6 +179,11 @@ try {
     error_log("Dolan Jogja (index.php): " . $ex->getMessage());
 }
 
+/* Status buka dihitung sekali per destinasi untuk chip "Buka sekarang". */
+foreach ($semua as $i_b => $d_b) {
+    $semua[$i_b]["_buka"] = status_buka($d_b["jam_buka"] ?? "");
+}
+
 /* Sebagian data lama belum mengisi kolom wilayah; tebak dari teks lokasi agar filter tetap berguna. */
 foreach ($semua as $i_w => $d_w) {
     if ((string) ($d_w["wilayah"] ?? "") !== "") { continue; }
@@ -185,10 +195,13 @@ foreach ($semua as $i_w => $d_w) {
     }
 }
 
-$ada_filter = ($cari !== "" || count($mood_list) > 0 || count($kat_list) > 0 || count($wil_list) > 0);
+$ada_filter = ($cari !== "" || count($mood_list) > 0 || count($kat_list) > 0 || count($wil_list) > 0 || $buka);
+$jml_buka = 0;
+foreach ($semua as $d_buka) { if (($d_buka["_buka"] ?? "") === "buka") { $jml_buka++; } }
 
 // Nama filter aktif untuk judul hasil
 $label_filter = array();
+if ($buka) { $label_filter[] = "Buka sekarang"; }
 foreach ($mood_list as $m) { $label_filter[] = e($daftar_mood[$m]); }
 foreach ($daftar_kat as $k) {
     if (in_array((int) $k["id"], $kat_list, true)) { $label_filter[] = e($k["nama"]); }
@@ -219,7 +232,7 @@ $hero_kartu = count($semua) >= 3 ? array_slice($urut, 0, 6) : array_slice($semua
 // Tentukan baris mana yang tampil pada kondisi awal
 $jml_cocok = 0;
 foreach ($semua as $i => $d) {
-    $cocok = cocok_filter($d, $mood_list, $kat_list, $wil_list, $cari);
+    $cocok = cocok_filter($d, $mood_list, $kat_list, $wil_list, $cari, $buka);
     $semua[$i]["_cocok"] = $cocok;
     $semua[$i]["_unggulan"] = in_array((int) $d["id"], $id_unggulan, true);
     $semua[$i]["_tampil"] = $cocok && ($ada_filter || !$semua[$i]["_unggulan"]);
@@ -259,6 +272,7 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
                     <input type="hidden" id="in-kategori" name="kategori" value="<?php echo e(implode(",", $kat_list)); ?>" />
                     <input type="hidden" id="in-mood" name="mood" value="<?php echo e(implode(",", $mood_list)); ?>" />
                     <input type="hidden" id="in-wilayah" name="wilayah" value="<?php echo e(implode(",", $wil_list)); ?>" />
+                    <input type="hidden" id="in-buka" name="buka" value="<?php echo $buka ? "1" : ""; ?>" />
                     <button type="submit" class="tombol">Cari</button>
                 </form>
 
@@ -339,21 +353,26 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             <p class="kecil">Belum ada pilihan suasana yang tersedia.</p>
         <?php } else { ?>
             <div class="chip-baris" id="mood-baris">
-                <?php echo chip_filter("Semua suasana", "mood", "", count($mood_list) === 0, url_beranda($cari, array(), $kat_list, $wil_list)); ?>
+                <?php echo chip_filter("Semua suasana", "mood", "", count($mood_list) === 0, url_beranda($cari, array(), $kat_list, $wil_list, $buka)); ?>
                 <?php foreach ($daftar_mood as $kunci => $label) { ?>
-                    <?php echo chip_filter($label, "mood", $kunci, in_array($kunci, $mood_list, true), url_beranda($cari, ganti_nilai($mood_list, $kunci), $kat_list, $wil_list)); ?>
+                    <?php echo chip_filter($label, "mood", $kunci, in_array($kunci, $mood_list, true), url_beranda($cari, ganti_nilai($mood_list, $kunci), $kat_list, $wil_list, $buka)); ?>
                 <?php } ?>
             </div>
         <?php } ?>
+
+        <div class="chip-baris" id="buka-baris">
+            <?php echo chip_filter("Buka sekarang", "buka", "1", $buka, url_beranda($cari, $mood_list, $kat_list, $wil_list, !$buka), $jml_buka); ?>
+            <span class="kecil chip-catatan">Hanya destinasi yang sedang buka menurut jam WIB saat ini.</span>
+        </div>
 
         <p class="muted">Kategori <span class="kecil">(boleh pilih lebih dari satu)</span></p>
         <?php if (count($daftar_kat) === 0) { ?>
             <?php if (!$gagal_muat) { ?><p class="kecil">Belum ada kategori yang tersedia.</p><?php } ?>
         <?php } else { ?>
             <div class="chip-baris" id="kategori-baris">
-                <?php echo chip_filter("Semua", "kategori", "", count($kat_list) === 0, url_beranda($cari, $mood_list, array(), $wil_list)); ?>
+                <?php echo chip_filter("Semua", "kategori", "", count($kat_list) === 0, url_beranda($cari, $mood_list, array(), $wil_list, $buka)); ?>
                 <?php foreach ($daftar_kat as $k) { $kid = (int) $k["id"]; ?>
-                    <?php echo chip_filter($k["nama"], "kategori", (string) $kid, in_array($kid, $kat_list, true), url_beranda($cari, $mood_list, ganti_nilai($kat_list, $kid), $wil_list), $k["jumlah"]); ?>
+                    <?php echo chip_filter($k["nama"], "kategori", (string) $kid, in_array($kid, $kat_list, true), url_beranda($cari, $mood_list, ganti_nilai($kat_list, $kid), $wil_list, $buka), $k["jumlah"]); ?>
                 <?php } ?>
             </div>
         <?php } ?>
@@ -378,7 +397,7 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
             <?php foreach ($wilayah_all as $slug_j => $nama_j) { ?>
                 <a class="wilayah-kartu<?php echo in_array($slug_j, $wil_list, true) ? " aktif" : ""; ?>"
                    data-grup="wilayah" data-nilai="<?php echo e($slug_j); ?>" data-label="<?php echo e($nama_j); ?>"
-                   href="<?php echo url_beranda($cari, $mood_list, $kat_list, ganti_nilai($wil_list, $slug_j)); ?>">
+                   href="<?php echo url_beranda($cari, $mood_list, $kat_list, ganti_nilai($wil_list, $slug_j), $buka); ?>">
                     <span class="wilayah-ciri"><?php echo $ciri_wilayah[$slug_j] ?? "Wilayah DIY"; ?></span>
                     <strong><?php echo e($nama_j); ?></strong>
                     <span class="wilayah-jumlah"><?php echo (int) $jumlah_wilayah[$slug_j]; ?> destinasi</span>
@@ -466,7 +485,7 @@ $kosong_karena_filter = (!$gagal_muat && $ada_filter && $jml_cocok === 0);
                     $foto_card = foto_ada($d["foto"]) ? BASE_URL . "assets/uploads/destinasi/" . rawurlencode(basename((string) $d["foto"])) : "";
                     $rating_card = (int) $d["jml_ulasan"] > 0 ? number_format((float) $d["rata"], 1) : "";
                 ?>
-                    <div class="baris kartu-klik<?php echo $d["_tampil"] ? "" : " sembunyi"; ?>" data-kategori="<?php echo (int) $d["category_id"]; ?>" data-mood="<?php echo e((string) ($d["tag"] ?? "")); ?>" data-wilayah="<?php echo e(slug_wilayah($d["wilayah"] ?? "")); ?>" data-teks="<?php echo e(mb_strtolower($d["nama"] . " " . $d["lokasi"], "UTF-8")); ?>"<?php if ($d["_unggulan"]) { echo ' data-unggulan="1"'; } ?>
+                    <div class="baris kartu-klik<?php echo $d["_tampil"] ? "" : " sembunyi"; ?>" data-kategori="<?php echo (int) $d["category_id"]; ?>" data-mood="<?php echo e((string) ($d["tag"] ?? "")); ?>" data-wilayah="<?php echo e(slug_wilayah($d["wilayah"] ?? "")); ?>" data-buka="<?php echo ($d["_buka"] ?? "") === "buka" ? "1" : "0"; ?>" data-teks="<?php echo e(mb_strtolower($d["nama"] . " " . $d["lokasi"], "UTF-8")); ?>"<?php if ($d["_unggulan"]) { echo ' data-unggulan="1"'; } ?>
                         data-b-id="<?php echo (int) $d["id"]; ?>"
                         data-b-nama="<?php echo e($d["nama"]); ?>"
                         data-b-kategori="<?php echo e($d["kategori"]); ?>"

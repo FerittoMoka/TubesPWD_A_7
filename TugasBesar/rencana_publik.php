@@ -36,9 +36,32 @@ if ($baris === null) {
     exit;
 }
 
+/* ---------- Salin rencana ke akun pengunjung ---------- */
+$pesan_salin = "";
+if ($_SERVER["REQUEST_METHOD"] === "POST" && ($_POST["aksi"] ?? "") === "salin") {
+    if (!sudah_login()) {
+        header("Location: " . BASE_URL . "auth/login.php");
+        exit;
+    }
+    if (!verify_csrf_token($_POST["csrf_token"] ?? "")) {
+        $pesan_salin = "Sesi sudah berakhir. Muat ulang halaman lalu coba lagi.";
+    } elseif (!bagi_sudah_terbuka($baris)) {
+        $pesan_salin = "Masukkan kode akses dulu sebelum menyalin rencana ini.";
+    } else {
+        list($ok_salin, $info_salin) = salin_rencana_bagi($conn, $token, (int) $_SESSION["user_id"]);
+        if ($ok_salin) {
+            $_SESSION["rencana_pesan"] = array("sukses", "Rencana disalin ke akun Anda (" . (int) $info_salin
+                . " destinasi). Rencana sebelumnya bisa dikembalikan lewat tombol Batalkan aksi.");
+            header("Location: " . BASE_URL . "user/rencana.php");
+            exit;
+        }
+        $pesan_salin = $info_salin;
+    }
+}
+
 /* ---------- Kode akses ---------- */
 $pesan_kode = "";
-if ($_SERVER["REQUEST_METHOD"] === "POST" && bagi_terkunci($baris)) {
+if ($_SERVER["REQUEST_METHOD"] === "POST" && ($_POST["aksi"] ?? "") !== "salin" && bagi_terkunci($baris)) {
     if (!verify_csrf_token($_POST["csrf_token"] ?? "")) {
         $pesan_kode = "Sesi sudah berakhir. Muat ulang halaman lalu coba lagi.";
     } elseif (bagi_terlalu_banyak_coba($token)) {
@@ -100,6 +123,8 @@ if (count($data["hari"]) > 0) {
 $teks_wa .= ": " . url_rencana_publik($token);
 if (bagi_terkunci($baris)) { $teks_wa .= " (kode akses diminta saat dibuka)"; }
 $tautan_wa = "https://wa.me/?text=" . rawurlencode($teks_wa);
+$tautan_hari_ini = url_absolut("rencana_hari_ini.php") . "?token=" . rawurlencode((string) $token);
+$boleh_salin = sudah_login() && (int) $_SESSION["user_id"] !== (int) $baris["user_id"];
 
 $judul = "Rencana Dolan (dibagikan)";
 require_once __DIR__ . "/includes/header.php";
@@ -122,8 +147,19 @@ require_once __DIR__ . "/includes/header.php";
                         <span class="kecil">Pemilik belum mengisi tanggal mulai, jadi ekspor kalender belum tersedia.</span>
                     <?php } ?>
                     <a class="tombol tombol-garis" href="<?php echo e($tautan_wa); ?>" target="_blank" rel="noopener">Bagikan ke WhatsApp</a>
+                    <a class="tombol tombol-garis" href="<?php echo e($tautan_hari_ini); ?>">Mode Perjalanan</a>
+                    <?php if ($boleh_salin) { ?>
+                        <form method="post" action="<?php echo e(url_rencana_publik($token)); ?>" class="inline" onsubmit="return confirm('Rencana di akun Anda akan diganti dengan salinan rencana ini. Lanjutkan?');">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="aksi" value="salin" />
+                            <button type="submit" class="tombol tombol-garis">Salin ke Rencana Saya</button>
+                        </form>
+                    <?php } elseif (!sudah_login()) { ?>
+                        <a class="tombol tombol-garis" href="<?php echo BASE_URL; ?>auth/login.php">Masuk untuk menyalin</a>
+                    <?php } ?>
                 </div>
-                <p class="kecil">Mode hanya baca &mdash; tidak perlu akun dan rencana tidak bisa diubah dari halaman ini.</p>
+                <?php if ($pesan_salin !== "") { ?><p class="error"><?php echo e($pesan_salin); ?></p><?php } ?>
+                <p class="kecil">Mode hanya baca &mdash; tidak perlu akun dan rencana tidak bisa diubah dari halaman ini. Anggota yang masuk bisa menyalinnya ke rencana sendiri.</p>
             <?php } ?>
         </div>
 
